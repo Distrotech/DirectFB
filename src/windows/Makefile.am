@@ -10,11 +10,24 @@ INCLUDES = \
 
 internalincludedir = $(INTERNALINCLUDEDIR)/windows
 
-internalinclude_HEADERS = \
-	idirectfbwindow.h
-
 
 noinst_LTLIBRARIES = libdirectfb_windows.la
 
+
+if ARIBDEV_CORE
+internalinclude_HEADERS = \
+	idirectfbwindow.h	\
+	idirectfbwindow_arib.h
+
+libdirectfb_windows_la_SOURCES = \
+	idirectfbwindow.c	\
+	idirectfbwindow_arib.c
+
+else
+
+internalinclude_HEADERS = \
+	idirectfbwindow.h
+
 libdirectfb_windows_la_SOURCES = \
 	idirectfbwindow.c
+endif

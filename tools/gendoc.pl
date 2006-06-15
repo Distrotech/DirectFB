@@ -34,10 +34,9 @@
 #                                                              #
 ################################################################
 
-$version = shift @ARGV;
 
-html_create( INDEX, "index.html", "Index Page", "", "Index" );
-html_create( TYPES, "types.html", "DirectFB Types", "", "Types" );
+html_create( INDEX, "index.html", "Index Page" );
+html_create( TYPES, "types.html", "DirectFB Types" );
 
 print INDEX "<P>\n",
             "  <CENTER>\n",
@@ -83,6 +82,9 @@ while (<>) {
                   "    </TD></TR>\n";
    }
    elsif ( /^\s*DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ ) {
+      parse_interface( $1 );
+   }
+   elsif ( /^\s*DEFINE_CHILD_INTERFACE\s*\(\s*(\w+),\s*(\w+),\s*$/ ) {
       parse_interface( $1 );
    }
    elsif ( /^\s*typedef\s+enum\s*\{?\s*$/ ) {
@@ -255,7 +257,7 @@ sub parse_interface (NAME)
       html_create( INTERFACE, "$interface.html",
                               "<A href=\"index.html\">" .
                               "<FONT color=#DDDDDD>DirectFB Interfaces</FONT>" .
-                              "</A>", $interface, $interface );
+                              "</A>", $interface );
 
 #      print INTERFACE "<P align=center>\n",
 #                      "  $interface_abstracts{$interface}\n",
@@ -295,7 +297,7 @@ sub parse_interface (NAME)
                   html_create( FUNCTION, "${interface}_$1.html",
                                "<A href=\"$interface.html\">" .
                                "<FONT color=#DDDDDD>$interface</FONT>" .
-                               "</A>", $1, "$interface - $1" );
+                               "</A>", $1 );
 
                   print FUNCTION "<P>$headline</P><P>\n",
                                  "  <TABLE border=0 cellspacing=0 cellpadding=2 bgcolor=#C0C0C0>\n",
@@ -822,13 +824,12 @@ sub parse_macro (NAME, PARAMS)
    }
 
 
-sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE, SINGLETITLE)
+sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
    {
       my $FILE = shift(@_);
       my $filename = shift(@_);
       my $title = shift(@_);
       my $subtitle = shift(@_);
-      my $singletitle = shift(@_);
 
       open( $FILE, ">$filename" )
           or die ("*** Can not open '$filename' for writing:\n*** $!");
@@ -843,7 +844,7 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE, SINGLETITLE)
                   "  A:link, A:visited, A:active { text-decoration: none; }\n",
                   "</STYLE>\n",
                   "<HEAD>\n",
-                  "  <TITLE>$singletitle [DirectFB Reference Manual]</TITLE>\n",
+                  "  <TITLE>DirectFB Reference Manual</TITLE>\n",
                   "</HEAD>\n",
                   "<BODY bgcolor=#FFFFFF link=#0070FF",
                        " vlink=#0070FF text=#404040>\n",
@@ -853,7 +854,7 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE, SINGLETITLE)
                   "    <A href=\"http://www.directfb.org\"><IMG border=0 src=\"directfb.png\"></A>\n",
                   "  </TD><TD align=right>\n",
                   "    &nbsp;&nbsp;",
-                  "    <A href=\"index.html\"><FONT size=+3 color=white>Reference Manual - $version</FONT></A>\n",
+                  "    <A href=\"index.html\"><FONT size=+3 color=white>DirectFB Reference Manual</FONT></A>\n",
                   "  </TD></TR>\n",
                   "  <TR><TD colspan=2 align=center bgcolor=#303030>\n";
 

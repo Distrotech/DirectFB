@@ -13,6 +13,25 @@ AM_CPPFLAGS = \
 
 internalincludedir = $(INTERNALINCLUDEDIR)/misc
 
+if ARIBDEV_CORE
+
+internalinclude_HEADERS = \
+	conf.h			\
+	gfx_util.h		\
+	glyph_util.h		\
+	util.h
+
+
+noinst_LTLIBRARIES = libdirectfb_misc.la
+
+libdirectfb_misc_la_SOURCES =	\
+	conf.c			\
+	gfx_util.c		\
+	glyph_util.c		\
+	util.c
+
+else
+
 internalinclude_HEADERS = \
 	conf.h			\
 	gfx_util.h		\
@@ -25,3 +44,5 @@ libdirectfb_misc_la_SOURCES =	\
 	conf.c			\
 	gfx_util.c		\
 	util.c
+
+endif

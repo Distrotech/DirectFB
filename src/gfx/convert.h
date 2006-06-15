@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __GFX__CONVERT_H__
 #define __GFX__CONVERT_H__
@@ -32,6 +41,19 @@
 
 #include <direct/util.h>
 
+#ifdef DFB_YCBCR
+/* get a pixel Y-Cb-Cr order */
+#define GET_PIXEL_YCBCR24(y,cb,cr,src1,src2,src3) do { \
+            y    = (src1);\
+            cb   = (src2);\
+            cr   = (src3);\
+        } while(0)
+#define PUT_PIXEL_YCBCR24(dst1,dst2,dst3,y,cb,cr) do { \
+            dst1 = (y);\
+            dst2 = (cb);\
+            dst3 = (cr);\
+        } while(0)
+#endif // DFB_YCBCR
 
 /* pixel packing */
 
@@ -67,15 +89,21 @@
                                  ((g) << 8)  | \
                                   (b) )
 
-#define PIXEL_AYUV(a,y,u,v)    ( ((a) << 24) | \
-                                 ((y) << 16) | \
-                                 ((u) << 8)  | \
-                                  (v) )
-
 #define PIXEL_AiRGB(a,r,g,b)   ( (((a) ^ 0xff) << 24) | \
                                  ((r) << 16) | \
                                  ((g) << 8)  | \
                                   (b) )
+#ifdef DFB_YCBCR
+#define PIXEL_AYCbCr(a,y,cb,cr) (((a) << 24) | \
+                                 ((y) << 16) | \
+                                 ((cb) << 8)  | \
+                                  (cr) )
+
+#define PIXEL_AiYCbCr(a,y,cb,cr) ((((a) ^ 0xff) << 24) | \
+                                  ((y)  << 16) | \
+                                  ((cb) << 8)  | \
+                                   (cr) )
+#endif
 
 #ifdef WORDS_BIGENDIAN
 
@@ -89,7 +117,7 @@
                                  ((y) << 8)  | \
                                   (v) )
 #else /* little endian */
-     
+
 #define PIXEL_YUY2(y,u,v)      ( ((v) << 24) | \
                                  ((y) << 16) | \
                                  ((u) << 8)  | \
@@ -227,17 +255,17 @@ extern const __s16 cb_for_b[256];
      (b) = CLAMP( _b, 0, 255 ); \
 } while (0)
 
-extern const __u16 y_from_ey[256];
-extern const __u16 cb_from_bey[512];
-extern const __u16 cr_from_rey[512];
+extern const __u16  y_from_ey[256];
+extern const __u16 *cb_from_bey;
+extern const __u16 *cr_from_rey;
 
 #define RGB_TO_YCBCR( r, g, b, y, cb, cr ) do { \
      __u32 _ey, _r, _g, _b;\
      _r = (r); _g = (g); _b = (b);\
      _ey = (19595 * _r + 38469 * _g + 7471 * _b) >> 16;\
      (y)  = y_from_ey[_ey]; \
-     (cb) = cb_from_bey[_b-_ey+255]; \
-     (cr) = cr_from_rey[_r-_ey+255]; \
+     (cb) = cb_from_bey[_b-_ey]; \
+     (cr) = cr_from_rey[_r-_ey]; \
 } while (0)
 
 
@@ -338,5 +366,12 @@ dfb_argb_to_a8( __u32 *src, __u8 *dst, int len )
      for (i=0; i<len; i++)
           dst[i] = src[i] >> 24;
 }
+
+#if 1	/* DFB_ARIB */
+/*
+ *	Surface clear color
+ */
+void dfb_get_clear_color( DFBColor *color, DFBSurfacePixelFormat format );
+#endif
 
 #endif

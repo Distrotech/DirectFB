@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -51,9 +60,11 @@
 #include <core/state.h>
 #include <core/system.h>
 #include <core/windows.h>
+#ifdef DFB_ARIB
+#include <core/windows_arib.h>
+#endif
 #include <core/windowstack.h>
 #include <core/wm.h>
-
 #include <misc/conf.h>
 #include <misc/util.h>
 
@@ -125,12 +136,12 @@ window_destructor( FusionObject *object, bool zombie )
 }
 
 FusionObjectPool *
-dfb_window_pool_create( const FusionWorld *world )
+dfb_window_pool_create()
 {
      return fusion_object_pool_create( "Window Pool",
                                        sizeof(CoreWindow),
                                        sizeof(DFBWindowEvent),
-                                       window_destructor, world );
+                                       window_destructor );
 }
 
 /**************************************************************************************************/
@@ -270,7 +281,6 @@ dfb_window_create( CoreWindowStack        *stack,
      context = stack->context;
      layer   = dfb_layer_at( context->layer_id );
 
-
      surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED |
                      DSCAPS_DEPTH | DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
@@ -348,7 +358,6 @@ dfb_window_create( CoreWindowStack        *stack,
      if (caps & DWCAPS_DOUBLEBUFFER)
           surface_caps |= DSCAPS_DOUBLE;
 
-
      memset( &config, 0, sizeof(CoreWindowConfig) );
 
      config.bounds.x = x;
@@ -363,7 +372,6 @@ dfb_window_create( CoreWindowStack        *stack,
          DFB_PIXELFORMAT_HAS_ALPHA(pixelformat) && pixelformat != DSPF_LUT8)
           config.options |= DWOP_ALPHACHANNEL;
 
-
      /* Create the window object. */
      window = dfb_core_create_window( layer->core );
 
@@ -371,24 +379,6 @@ dfb_window_create( CoreWindowStack        *stack,
      window->caps   = caps;
      window->stack  = stack;
      window->config = config;
-
-     ret = dfb_wm_preconfigure_window(stack,window);
-     if(ret) {
-          fusion_object_destroy( &window->object );
-          dfb_windowstack_unlock( stack );
-          return ret;
-     }
-
-     /* wm may have changed values */
-     config = window->config;
-     
-     x      = config.bounds.x;
-     y      = config.bounds.y;
-     width  = config.bounds.w;
-     height = config.bounds.h;
-     
-     caps   = window->caps;
-
 
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
@@ -519,9 +509,19 @@ dfb_window_destroy( CoreWindow *window )
           return;
      }
 
+#ifdef DFB_ARIB
+     if (window->arib_id > 0) {
+          /* Make sure the window is no longer visible. */
+          dfb_arib_window_set_opacity( window, 0 );
+     }
+     else {
+          /* Make sure the window is no longer visible. */
+          dfb_window_set_opacity( window, 0 );
+     }
+#else
      /* Make sure the window is no longer visible. */
      dfb_window_set_opacity( window, 0 );
-
+#endif
      /* Stop managing the window. */
      dfb_wm_remove_window( stack, window );
 
@@ -1181,6 +1181,34 @@ dfb_window_surface( const CoreWindow *window )
 
      return window->surface;
 }
+
+#ifdef DFB_ARIB
+DFBResult
+dfb_window_set_transparent_region( CoreWindow   *window,
+                                   DFBRectangle *rect1,
+                                   DFBRectangle *rect2,
+                                   DFBRectangle *rect3,
+                                   DFBRectangle *rect4 )
+{
+     CoreWindowStack *stack = window->stack;
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( window->stack != NULL );
+
+     A_TRACE("%s:\n", __FUNCTION__);
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     dfb_wm_arib_set_switching_region( window, rect1, rect2, rect3, rect4, DFB_FALSE );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return DFB_OK;
+}
+#endif
 
 /******************************************************************************/
 

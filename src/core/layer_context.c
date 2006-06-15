@@ -24,16 +24,19 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <string.h>
 
 #include <directfb.h>
-
-#include <direct/memcpy.h>
-#include <direct/messages.h>
-#include <direct/util.h>
-
-#include <fusion/shmalloc.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -47,18 +50,22 @@
 #include <core/system.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
+#ifdef DFB_ARIB
+#include <core/windowstack_arib.h>
+#endif
 #include <core/wm.h>
-
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 
-#include <fusion/shmalloc.h>
+#include <direct/messages.h>
+
+#include <direct/util.h>
 
 
 D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
 
-/**********************************************************************************************************************/
+/******************************************************************************/
 
 static void      init_region_config  ( CoreLayerContext            *context,
                                        CoreLayerRegionConfig       *config );
@@ -85,7 +92,7 @@ static void      screen_rectangle    ( CoreLayerContext            *context,
                                        const DFBLocation           *location,
                                        DFBRectangle                *rect );
 
-/**********************************************************************************************************************/
+/******************************************************************************/
 
 static void
 context_destructor( FusionObject *object, bool zombie )
@@ -115,26 +122,22 @@ context_destructor( FusionObject *object, bool zombie )
      /* Deinitialize the lock. */
      fusion_skirmish_destroy( &context->lock );
 
-     /* Free clip regions. */
-     if (context->primary.config.clips)
-          SHFREE( context->shmpool, context->primary.config.clips );
-
      /* Destroy the object. */
      fusion_object_destroy( object );
 }
 
-/**********************************************************************************************************************/
+/******************************************************************************/
 
 FusionObjectPool *
-dfb_layer_context_pool_create( const FusionWorld *world )
+dfb_layer_context_pool_create()
 {
      return fusion_object_pool_create( "Layer Context Pool",
                                        sizeof(CoreLayerContext),
                                        sizeof(CoreLayerContextNotification),
-                                       context_destructor, world );
+                                       context_destructor );
 }
 
-/**********************************************************************************************************************/
+/******************************************************************************/
 
 DFBResult
 dfb_layer_context_create( CoreLayer         *layer,
@@ -156,16 +159,14 @@ dfb_layer_context_create( CoreLayer         *layer,
 
      D_DEBUG_AT( Core_Layers, "%s -> %p\n", __FUNCTION__, context );
 
-     context->shmpool = shared->shmpool;
-
      /* Initialize the lock. */
-     if (fusion_skirmish_init( &context->lock, "Layer Context", dfb_core_world(layer->core) )) {
+     if (fusion_skirmish_init( &context->lock, "Layer Context" )) {
           fusion_object_destroy( &context->object );
           return DFB_FUSION;
      }
 
      /* Initialize the region vector. */
-     fusion_vector_init( &context->regions, 4, context->shmpool );
+     fusion_vector_init( &context->regions, 4 );
 
      /* Store layer ID, default configuration and default color adjustment. */
      context->layer_id   = shared->layer_id;
@@ -197,14 +198,27 @@ dfb_layer_context_create( CoreLayer         *layer,
      context->stack = dfb_windowstack_create( context );
      if (!context->stack) {
           dfb_layer_context_unref( context );
-          return D_OOSHM();
+          return DFB_NOSYSTEMMEMORY;
      }
-
+#ifdef DFB_ARIB
+     if (D_FLAGS_IS_SET(shared->description.type, DLTF_ARIB)) {
+          /* Tell the window stack about its size. */
+          dfb_windowstack_resize( context->stack,
+                                  DFB_ARIB_HD_DIMENSION_W,
+                                  DFB_ARIB_HD_DIMENSION_H );
+     }
+     else {
+          /* Tell the window stack about its size. */
+          dfb_windowstack_resize( context->stack,
+                                  context->config.width,
+                                  context->config.height );
+     }
+#else
      /* Tell the window stack about its size. */
      dfb_windowstack_resize( context->stack,
                              context->config.width,
                              context->config.height );
-
+#endif
      /* Return the new context. */
      *ret_context = context;
 
@@ -217,6 +231,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
      int              index;
      CoreLayer       *layer;
      CoreLayerRegion *region;
+     CoreLayerShared *shared;
 
      D_DEBUG_AT( Core_Layers, "%s (%p)\n", __FUNCTION__, context );
 
@@ -226,6 +241,8 @@ dfb_layer_context_activate( CoreLayerContext *context )
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
+     D_ASSERT( layer->shared != NULL );
+     shared = layer->shared;
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -253,9 +270,19 @@ dfb_layer_context_activate( CoreLayerContext *context )
                                             layer->layer_data, &context->adjustment );
 
      /* Resume window stack. */
+#ifdef DFB_ARIB
+     if (context->stack) {
+          if (D_FLAGS_IS_SET(shared->description.type, DLTF_ARIB)) {
+          	   dfb_wm_arib_set_active( context->stack, true );
+          }
+          else {
+               dfb_wm_set_active( context->stack, true );
+          }
+     }
+#else
      if (context->stack)
           dfb_wm_set_active( context->stack, true );
-
+#endif
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
@@ -267,8 +294,15 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
 {
      int              index;
      CoreLayerRegion *region;
+     CoreLayerShared *shared;
+     CoreLayer       *layer;
 
      D_ASSERT( context != NULL );
+
+     layer = dfb_layer_at(context->layer_id);
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     shared = layer->shared;
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
@@ -292,9 +326,19 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      context->active = false;
 
      /* Suspend window stack. */
+#ifdef DFB_ARIB
+     if (context->stack) {
+          if (D_FLAGS_IS_SET(shared->description.type, DLTF_ARIB)) {
+          	   dfb_wm_arib_set_active( context->stack, false );
+          }
+          else {
+               dfb_wm_set_active( context->stack, false );
+          }
+     }
+#else
      if (context->stack)
           dfb_wm_set_active( context->stack, false );
-
+#endif
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
@@ -644,7 +688,24 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
                /* Update hardware flag. */
                stack->hw_mode = (region_config.buffermode == DLBM_WINDOWS);
-
+#ifdef DFB_ARIB
+               if (D_FLAGS_IS_SET(shared->description.type, DLTF_ARIB)) {
+                    /* Tell the windowing core about the new size. */
+                    dfb_windowstack_resize( stack,
+                                            DFB_ARIB_HD_DIMENSION_W,
+                                            DFB_ARIB_HD_DIMENSION_H );
+                    /* FIXME: call only if really needed */
+                    dfb_arib_windowstack_repaint_all( stack );
+               }
+               else {
+                    /* Tell the windowing core about the new size. */
+                    dfb_windowstack_resize( stack,
+                                            region_config.width,
+                                            region_config.height );
+                    /* FIXME: call only if really needed */
+                    dfb_windowstack_repaint_all( stack );
+               }
+#else
                /* Tell the windowing core about the new size. */
                dfb_windowstack_resize( stack,
                                        region_config.width,
@@ -652,6 +713,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
                /* FIXME: call only if really needed */
                dfb_windowstack_repaint_all( stack );
+#endif
           }
 
           /* Unlock the region and give up the local reference. */
@@ -1091,56 +1153,6 @@ dfb_layer_context_set_field_parity( CoreLayerContext *context,
 }
 
 DFBResult
-dfb_layer_context_set_clip_regions( CoreLayerContext *context,
-                                    const DFBRegion  *regions,
-                                    int               num_regions,
-                                    DFBBoolean        positive )
-{
-     DFBResult              ret;
-     CoreLayerRegionConfig  config;
-     DFBRegion             *clips;
-     DFBRegion             *old_clips;
-
-     D_ASSERT( context != NULL );
-
-     clips = SHMALLOC( context->shmpool, sizeof(DFBRegion) * num_regions );
-     if (!clips)
-          return D_OOSHM();
-
-     direct_memcpy( clips, regions, sizeof(DFBRegion) * num_regions );
-
-     /* Lock the context. */
-     if (dfb_layer_context_lock( context )) {
-          SHFREE( context->shmpool, clips );
-          return DFB_FUSION;
-     }
-
-     /* Take the current configuration. */
-     config = context->primary.config;
-
-     /* Remember for freeing later on. */
-     old_clips = config.clips;
-
-     /* Change the clip regions. */
-     config.clips     = clips;
-     config.num_clips = num_regions;
-     config.positive  = positive;
-
-     /* Try to set the new configuration. */
-     ret = update_primary_region_config( context, &config, CLRCF_CLIPS );
-
-     /* Unlock the context. */
-     dfb_layer_context_unlock( context );
-
-     if (ret)
-          SHFREE( context->shmpool, clips );
-     else if (old_clips)
-          SHFREE( context->shmpool, old_clips );
-
-     return ret;
-}
-
-DFBResult
 dfb_layer_context_create_window( CoreLayerContext        *context,
                                  int                      x,
                                  int                      y,
@@ -1557,11 +1569,11 @@ reallocate_surface( CoreLayer             *layer,
      surface->caps &= ~(DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED);
      surface->caps |= config->surface_caps & (DSCAPS_INTERLACED |
                                               DSCAPS_SEPARATED  |
-                                              DSCAPS_PREMULTIPLIED); 
+                                              DSCAPS_PREMULTIPLIED);
      /* FIXME: remove this? */
      if (config->options & DLOP_DEINTERLACING)
           surface->caps |= DSCAPS_INTERLACED;
-     
+
      return DFB_OK;
 }
 

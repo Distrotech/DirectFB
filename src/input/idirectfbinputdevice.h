@@ -23,11 +23,52 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __IDIRECTFBINPUTDEVICE_H__
 #define __IDIRECTFBINPUTDEVICE_H__
 
 #include <core/input.h>
+
+#ifdef DFB_ARIB	/* idirectfbinputdevice.c -> idirectfbinputdevice.h */
+#include <fusion/reactor.h>
+#include <directfb.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+#include <core/input.h>
+
+/*
+ * private data struct of IDirectFBInputDevice
+ */
+typedef struct {
+     int                         ref;               /* reference counter */
+     CoreInputDevice            *device;            /* pointer to input core
+                                                       device struct*/
+
+     int                         axis[DIAI_LAST+1]; /* position of all axes */
+     DFBInputDeviceKeyState      keystates[DIKI_NUMBER_OF_KEYS];
+                                                    /* state of all keys */
+     DFBInputDeviceModifierMask  modifiers;         /* bitmask reflecting the
+                                                       state of the modifier
+                                                       keys */
+     DFBInputDeviceLockState     locks;             /* bitmask reflecting the
+						       state of the key locks */
+     DFBInputDeviceButtonMask    buttonmask;        /* bitmask reflecting the
+                                                       state of the buttons */
+
+     DFBInputDeviceDescription   desc;              /* device description */
+
+     Reaction                    reaction;
+} IDirectFBInputDevice_data;
+#endif
 
 /*
  * initializes input device, adds it to input listeners and initializes mutexes

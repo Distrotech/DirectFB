@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -33,8 +42,11 @@
 
 #include <string.h>
 
+#ifdef DFB_ARIB
+#include <directfb_arib.h>
+#else
 #include <directfb.h>
-
+#endif
 #include <core/core.h>
 #include <core/coretypes.h>
 
@@ -42,6 +54,9 @@
 #include <core/state.h>
 #include <core/layers.h>
 #include <core/layer_region.h>
+#ifdef DFB_ARIB
+#include <core/layer_region_arib.h>
+#endif
 #include <core/surfaces.h>
 #include <core/system.h>
 
@@ -117,8 +132,11 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
           if (!dfb_region_region_intersect( &reg, &clip ))
                return DFB_INVAREA;
      }
-
+#ifdef DFB_ARIB
+     return dfb_arib_layer_region_flip_update( data->region, &reg, flags );
+#else
      return dfb_layer_region_flip_update( data->region, &reg, flags );
+#endif
 }
 
 static DFBResult

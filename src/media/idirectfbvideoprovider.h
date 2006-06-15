@@ -25,21 +25,39 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __IDIRECTFBVIDEOPROVIDER_H__
 #define __IDIRECTFBVIDEOPROVIDER_H__
+
+#ifdef DFB_ARIB
+#include <dfb_types.h>
+#include <core/coretypes.h>
+#endif
 
 /*
  * probing context
  */
 typedef struct {
      unsigned char        header[64];
-     
+
      /* Only set if databuffer is created from file. */
      const char          *filename;
 
      /* Usefull if provider needs more data for probing. */
      IDirectFBDataBuffer *buffer;
+#ifdef DFB_ARIB
+     CoreLayer        *layer;
+     CoreLayerContext *context;
+#endif
 } IDirectFBVideoProvider_ProbeContext;
 
 

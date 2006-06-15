@@ -24,13 +24,25 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __INPUT_H__
 #define __INPUT_H__
 
 #include <pthread.h>
+#ifdef DFB_ARIB
+#include <directfb_arib.h>
+#else
 #include <directfb.h>
-
+#endif
 #include <direct/modules.h>
 
 #include <fusion/reactor.h>
@@ -88,6 +100,68 @@ typedef struct {
 } InputDriverFuncs;
 
 
+#ifdef DFB_ARIB	/* input.c -> input.h */
+typedef struct {
+     DirectLink               link;
+
+     int                      magic;
+
+     DirectModuleEntry       *module;
+
+     const InputDriverFuncs  *funcs;
+
+     InputDriverInfo          info;
+
+     int                      nr_devices;
+} InputDriver;
+
+typedef struct {
+     int                          min_keycode;
+     int                          max_keycode;
+     int                          num_entries;
+     DFBInputDeviceKeymapEntry   *entries;
+} InputDeviceKeymap;
+
+typedef struct {
+     int                          magic;
+
+     DFBInputDeviceID             id;            /* unique device id */
+
+     int                          num;
+
+     InputDeviceInfo              device_info;
+
+     InputDeviceKeymap            keymap;
+
+     DFBInputDeviceModifierMask   modifiers_l;
+     DFBInputDeviceModifierMask   modifiers_r;
+     DFBInputDeviceLockState      locks;
+     DFBInputDeviceButtonMask     buttons;
+     DFBARIBInputDeviceKeyGroup   key_groups;	/* DFB_ARIB */
+     DFBBoolean                   suppress;		/* DFB_ARIB */
+     FusionReactor               *reactor;      /* event dispatcher */
+     FusionSkirmish               lock;
+} InputDeviceShared;
+
+struct __DFB_CoreInputDevice {
+     DirectLink          link;
+
+     int                 magic;
+
+     InputDeviceShared  *shared;
+
+     InputDriver        *driver;
+     void               *driver_data;
+};
+
+typedef struct {
+     int                num;
+     InputDeviceShared *devices[MAX_INPUTDEVICES];
+} CoreInput;
+
+#endif
+
+
 typedef DFBEnumerationResult (*InputDeviceCallback) (CoreInputDevice *device,
                                                      void            *ctx);
 
@@ -137,8 +211,6 @@ CoreInputDevice  *dfb_input_device_at         ( DFBInputDeviceID           id );
 DFBResult         dfb_input_device_get_keymap_entry( CoreInputDevice           *device,
                                                      int                        keycode,
                                                      DFBInputDeviceKeymapEntry *entry );
-
-DFBResult         dfb_input_device_reload_keymap   ( CoreInputDevice           *device );
 
 /* global reactions */
 

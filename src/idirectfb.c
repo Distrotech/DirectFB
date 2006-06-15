@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -73,6 +82,12 @@
 #include <media/idirectfbimageprovider.h>
 #include <media/idirectfbvideoprovider.h>
 #include <media/idirectfbdatabuffer.h>
+#ifdef DFB_ARIB
+#include <media/idirectfbaribfont.h>
+#include <media/idirectfbaribdrcs.h>
+#include <display/idirectfbdisplaylayer_arib.h>
+#include <input/idirectfbinputdevice_arib.h>
+#endif
 
 #include <idirectfb.h>
 
@@ -147,6 +162,14 @@ typedef struct {
      DFBInputDeviceID       id;
 } GetInputDevice_Context;
 
+#ifdef DFB_ARIB
+typedef struct {
+     IDirectFBARIBInputDevice **interface;
+     DFBInputDeviceID           id;
+} GetARIBInputDevice_Context;
+#endif
+
+
 typedef struct {
      IDirectFBEventBuffer       **interface;
      DFBInputDeviceCapabilities   caps;
@@ -167,6 +190,11 @@ static DFBEnumerationResult EnumInputDevices_Callback ( CoreInputDevice *device,
                                                         void            *ctx );
 static DFBEnumerationResult GetInputDevice_Callback   ( CoreInputDevice *device,
                                                         void            *ctx );
+
+#ifdef DFB_ARIB
+static DFBEnumerationResult GetARIBInputDevice_Callback   ( CoreInputDevice *device,
+                                                            void            *ctx );
+#endif
 
 static DFBEnumerationResult CreateEventBuffer_Callback( CoreInputDevice *device,
                                                         void            *ctx );
@@ -458,13 +486,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      switch (format) {
           case DSPF_A1:
-          case DSPF_A4:
           case DSPF_A8:
           case DSPF_ARGB:
           case DSPF_ARGB1555:
           case DSPF_ARGB2554:
           case DSPF_ARGB4444:
-          case DSPF_AYUV:
           case DSPF_AiRGB:
           case DSPF_I420:
           case DSPF_LUT8:
@@ -479,6 +505,12 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           case DSPF_NV12:
           case DSPF_NV21:
           case DSPF_NV16:
+#ifdef DFB_YCBCR
+          case DSPF_AYCbCr:
+          case DSPF_AiYCbCr:
+          case DSPF_YCbCr24:
+          case DSPF_LUT8AYCbCr:
+#endif // DFB_YCBCR
                break;
 
           default:
@@ -498,7 +530,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           else if (data->primary.format)
                format = data->primary.format;
           else if (dfb_config->mode.format)
+#ifdef DFB_ARIB
+               format = dfb_config->g_format;
+#else
                format = dfb_config->mode.format;
+#endif
           else
                format = config.pixelformat;
 
@@ -567,7 +603,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          switch (format) {
                               case DSPF_ARGB:
-                              case DSPF_AYUV:
                               case DSPF_AiRGB:
                                    window_caps |= DWCAPS_ALPHACHANNEL;
                                    break;
@@ -909,6 +944,28 @@ IDirectFB_GetInputDevice( IDirectFB             *thiz,
      return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
 
+#ifdef DFB_ARIB
+static DFBResult
+IDirectFB_GetARIBInputDevice( IDirectFB                *thiz,
+                              DFBInputDeviceID          id,
+                              IDirectFBARIBInputDevice **interface )
+{
+     GetARIBInputDevice_Context context;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
+     if (!interface)
+          return DFB_INVARG;
+
+     context.interface = interface;
+     context.id        = id;
+
+     dfb_input_enumerate_devices( GetARIBInputDevice_Callback, &context, DICAPS_ALL );
+
+     return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
+}
+#endif
+
 static DFBResult
 IDirectFB_CreateEventBuffer( IDirectFB             *thiz,
                              IDirectFBEventBuffer **interface)
@@ -986,7 +1043,7 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBVideoProvider **interface )
 {
-     DFBResult                 ret; 
+     DFBResult                 ret;
      DFBDataBufferDescription  desc;
      IDirectFBDataBuffer      *databuffer;
 
@@ -1065,6 +1122,62 @@ IDirectFB_CreateFont( IDirectFB                 *thiz,
 
      return DFB_OK;
 }
+
+#ifdef DFB_ARIB
+static DFBResult
+IDirectFB_CreateARIBFont( IDirectFB                 *thiz,
+                          const char                *filename,
+                          IDirectFBARIBFont        **interface )
+{
+     DFBResult                   ret;
+     DirectInterfaceFuncs       *funcs = NULL;
+     IDirectFBARIBFont          *font;
+     IDirectFBARIBFont_ProbeContext  ctx;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
+     /* Check arguments */
+     if (!interface)
+          return DFB_INVARG;
+
+     if (filename) {
+          if (access( filename, R_OK ) != 0)
+               return errno2result( errno );
+     }
+     /* Fill out probe context */
+     ctx.filename = filename;
+
+     /* Find a suitable implemenation */
+     ret = DirectGetInterface( &funcs, "IDirectFBARIBFont", NULL, DirectProbeInterface, &ctx );
+     if (ret) {
+          return ret;
+     }
+     DIRECT_ALLOCATE_INTERFACE( font, IDirectFBARIBFont );
+
+     /* Construct the interface */
+     ret = funcs->Construct( font, data->core, filename );
+     if (ret) {
+          return ret;
+     }
+     *interface = font;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFB_CreateARIBDrcs( IDirectFB             *thiz,
+                          IDirectFBARIBDrcs    **interface )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
+
+     if (!interface)
+          return DFB_INVARG;
+
+     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBARIBDrcs );
+
+     return IDirectFBARIBDrcs_Construct( *interface );
+}
+#endif
 
 static DFBResult
 IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
@@ -1254,11 +1367,18 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      thiz->GetDisplayLayer = IDirectFB_GetDisplayLayer;
      thiz->EnumInputDevices = IDirectFB_EnumInputDevices;
      thiz->GetInputDevice = IDirectFB_GetInputDevice;
+#ifdef DFB_ARIB
+     thiz->GetARIBInputDevice = IDirectFB_GetARIBInputDevice;
+#endif
      thiz->CreateEventBuffer = IDirectFB_CreateEventBuffer;
      thiz->CreateInputEventBuffer = IDirectFB_CreateInputEventBuffer;
      thiz->CreateImageProvider = IDirectFB_CreateImageProvider;
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;
+#ifdef DFB_ARIB
+     thiz->CreateARIBFont = IDirectFB_CreateARIBFont;
+     thiz->CreateARIBDrcs = IDirectFB_CreateARIBDrcs;
+#endif
      thiz->CreateDataBuffer = IDirectFB_CreateDataBuffer;
      thiz->SetClipboardData = IDirectFB_SetClipboardData;
      thiz->GetClipboardData = IDirectFB_GetClipboardData;
@@ -1332,15 +1452,37 @@ static DFBEnumerationResult
 GetDisplayLayer_Callback( CoreLayer *layer, void *ctx )
 {
      GetDisplayLayer_Context *context = (GetDisplayLayer_Context*) ctx;
+#ifdef DFB_ARIB
+     DFBDisplayLayerDescription  desc;
+#endif
 
      if (dfb_layer_id_translated( layer ) != context->id)
           return DFENUM_OK;
 
+#ifdef DFB_ARIB
+     dfb_layer_get_description( layer, &desc );
+
+	/* Arib Layer */
+	if(desc.type & DIDTF_ARIB) {
+		IDirectFBARIBDisplayLayer	*arib_layer;
+
+		DIRECT_ALLOCATE_INTERFACE( arib_layer, IDirectFBARIBDisplayLayer );
+
+		context->ret = IDirectFBARIBDisplayLayer_Construct( arib_layer, layer );
+		*context->interface = (IDirectFBDisplayLayer *)arib_layer;
+	}
+	/* Primary Layer */
+	else {
+		DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
+
+		context->ret = IDirectFBDisplayLayer_Construct( *context->interface, layer );
+	}
+#else
      DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
 
      context->ret = IDirectFBDisplayLayer_Construct( *context->interface,
                                                      layer );
-
+#endif
      return DFENUM_CANCEL;
 }
 
@@ -1370,6 +1512,23 @@ GetInputDevice_Callback( CoreInputDevice *device, void *ctx )
 
      return DFENUM_CANCEL;
 }
+
+#ifdef DFB_ARIB
+static DFBEnumerationResult
+GetARIBInputDevice_Callback( CoreInputDevice *device, void *ctx )
+{
+     GetARIBInputDevice_Context *context = (GetARIBInputDevice_Context*) ctx;
+
+     if (dfb_input_device_id( device ) != context->id)
+          return DFENUM_OK;
+
+     DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBARIBInputDevice );
+
+     IDirectFBARIBInputDevice_Construct( *context->interface, device );
+
+     return DFENUM_CANCEL;
+}
+#endif
 
 static DFBEnumerationResult
 CreateEventBuffer_Callback( CoreInputDevice *device, void *ctx )

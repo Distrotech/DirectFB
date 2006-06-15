@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DFB__CORE__WM_H__
 #define __DFB__CORE__WM_H__
@@ -172,19 +181,8 @@ typedef struct {
                                      int                     x,
                                      int                     y );
 
-     DFBResult (*StartDesktop)   ( CoreWindowStack        *stack );
 
    /** Window **/
-
-     DFBResult (*GetInsets)   ( CoreWindowStack        *stack,
-                                     CoreWindow        *window,
-                                     DFBInsets         *insets );
-
-     DFBResult (*PreConfigureWindow)   ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     CoreWindow             *window,
-                                     void                   *window_data );
 
      DFBResult (*AddWindow)        ( CoreWindowStack        *stack,
                                      void                   *wm_data,
@@ -239,6 +237,47 @@ typedef struct {
                                      void                   *window_data,
                                      const DFBRegion        *region,
                                      DFBSurfaceFlipFlags     flags );
+#ifdef DFB_ARIB
+     DFBResult (*AribSetWindowConfig) ( CoreWindow             *window,
+                                        void                   *wm_data,
+                                        void                   *window_data,
+                                        const CoreWindowConfig *config,
+                                        CoreWindowConfigFlags   flags );
+
+     DFBResult (*AribUpdateStack)  ( CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     const DFBRegion        *region,
+                                     DFBSurfaceFlipFlags     flags );
+
+     DFBResult (*AribUpdateWindow) ( CoreWindow             *window,
+                                     void                   *wm_data,
+                                     void                   *window_data,
+                                     const DFBRegion        *region,
+                                     DFBSurfaceFlipFlags     flags );
+
+     DFBResult (*AribSetSwitchingRegion) (
+                                     CoreWindow             *window,
+                                     void                   *wm_data,
+                                     void                   *window_data,
+                                     DFBRectangle           *rect1,
+                                     DFBRectangle           *rect2,
+                                     DFBRectangle           *rect3,
+                                     DFBRectangle           *rect4,
+                                     DFBBoolean              attribute );
+
+     DFBResult (*AribCheckWindowId) (
+                                     CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     DFBWindowID             arib_id,
+                                     CoreWindow             **ret_window );
+     DFBResult (*AribSetActive) (
+                                     CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     bool                    active );
+#endif
 } CoreWMFuncs;
 
 
@@ -279,15 +318,6 @@ DFBResult dfb_wm_warp_cursor   ( CoreWindowStack        *stack,
                                  int                     x,
                                  int                     y );
 
-DFBResult dfb_wm_start_desktop  ( CoreWindowStack        *stack);
-
-DFBResult dfb_wm_get_insets ( CoreWindowStack        *stack,
-                               CoreWindow            *window,
-                               DFBInsets             *insets );
-
-DFBResult dfb_wm_preconfigure_window    ( CoreWindowStack        *stack,
-                                 CoreWindow             *window );
-
 
 DFBResult dfb_wm_add_window    ( CoreWindowStack        *stack,
                                  CoreWindow             *window );
@@ -319,5 +349,37 @@ DFBResult dfb_wm_update_stack  ( CoreWindowStack        *stack,
 DFBResult dfb_wm_update_window ( CoreWindow             *window,
                                  const DFBRegion        *region,
                                  DFBSurfaceFlipFlags     flags );
+#ifdef DFB_ARIB
+DFBResult dfb_wm_arib_set_window_config(
+                                 CoreWindow *window,
+                                 const CoreWindowConfig *config,
+                                 CoreWindowConfigFlags   flags );
 
+DFBResult dfb_wm_arib_update_stack (
+                                 CoreWindowStack        *stack,
+                                 DFBRegion              *region,
+                                 DFBSurfaceFlipFlags     flags );
+
+DFBResult dfb_wm_arib_update_window (
+                                 CoreWindow             *window,
+                                 const DFBRegion        *region,
+                                 DFBSurfaceFlipFlags     flags );
+
+DFBResult dfb_wm_arib_set_switching_region (
+                                 CoreWindow             *window,
+                                 DFBRectangle           *rect1,
+                                 DFBRectangle           *rect2,
+                                 DFBRectangle           *rect3,
+                                 DFBRectangle           *rect4,
+                                 DFBBoolean              attribute );
+
+DFBResult dfb_wm_arib_check_window_id (
+                                 CoreWindowStack        *stack,
+                                 DFBWindowID             arib_id,
+                                 CoreWindow            **ret_window );
+
+DFBResult dfb_wm_arib_set_active (
+                                 CoreWindowStack        *stack,
+                                 bool                    active );
+#endif
 #endif

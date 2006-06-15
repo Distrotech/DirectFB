@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -45,7 +54,7 @@
 #include <direct/util.h>
 
 
-#if DIRECT_BUILD_TEXT && DIRECT_BUILD_DEBUGS  /* Build with debug support? */
+#if DIRECT_BUILD_TEXT
 
 typedef struct {
      DirectLink  link;
@@ -55,7 +64,7 @@ typedef struct {
 
 /**************************************************************************************************/
 
-static pthread_mutex_t  domains_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  domains_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static unsigned int     domains_age  = 1;
 static DirectLink      *domains      = NULL;
 
@@ -72,24 +81,18 @@ lookup_domain( const char *name, bool sub )
                return entry;
      }
 
-     /*
-      * If the domain being registered contains a slash, but didn't exactly match an entry
-      * in directfbrc, check to see if the domain is descended from an entry in directfbrc
-      * (e.g. 'ui/field/messages' matches 'ui' or 'ui/field')
-      */
-     if (sub && strchr(name, '/')) {
-          int passed_name_len = strlen( name );
-          
-          direct_list_foreach (entry, domains) {
-               int entry_len = strlen( entry->name );
-               if ((passed_name_len > entry_len) &&
-                   (name[entry_len] == '/') &&
-                   (! strncasecmp( entry->name, name, entry_len))) {
-                    return entry;
+     if (sub) {
+          char *tmp = strchr( name, '/' );
+
+          if (tmp) {
+               direct_list_foreach (entry, domains) {
+                    if (! strchr( entry->name, '/' ) &&
+                        ! strncasecmp( entry->name, name, tmp - name ))
+                         return entry;
                }
           }
      }
-     
+
      return NULL;
 }
 
@@ -163,6 +166,27 @@ direct_debug( const char *format, ... )
                         name ? name : "  NO NAME  ", millis / 1000LL,
                         millis % 1000LL, direct_gettid(), buf );
 }
+#if	1	/* DFB_ARIB */
+__attribute__((no_instrument_function))
+void
+direct_arib_debug( const char *format, ... )
+{
+     char        buf[512];
+     long long   millis = direct_clock_get_millis();
+     const char *name   = direct_thread_self_name();
+
+     va_list ap;
+
+     va_start( ap, format );
+
+     vsnprintf( buf, sizeof(buf), format, ap );
+
+     va_end( ap );
+
+     direct_log_printf( NULL, "(+) [%-15s %3lld.%03lld] (%5d) %s",
+              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL, direct_gettid(), buf );
+}
+#endif
 
 __attribute__((no_instrument_function))
 void
@@ -200,96 +224,6 @@ direct_debug_at( DirectDebugDomain *domain,
 
           direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
                              millis / 1000LL, millis % 1000LL, direct_gettid(), dom, buf );
-     }
-
-     pthread_mutex_unlock( &domains_lock );
-}
-
-__attribute__((no_instrument_function))
-void
-direct_debug_enter( DirectDebugDomain *domain,
-	      	    const char *func,
-                    const char *file,
-                    int         line,
-                    const char *format, ... )
-{
-     pthread_mutex_lock( &domains_lock );
-
-     if (check_domain( domain )) {
-          int         len;
-          char        dom[48];
-          char        fmt[128];
-          char        buf[512];
-          long long   millis = direct_clock_get_millis();
-          const char *name   = direct_thread_self_name();
-          va_list     ap;
-
-          va_start( ap, format );
-
-          vsnprintf( buf, sizeof(buf), format, ap );
-
-          va_end( ap );
-
-
-          len = snprintf( dom, sizeof(dom), "%s:", domain->name );
-
-          if (len < 18)
-               len = 18;
-          else
-               len = 28;
-
-          len += direct_trace_debug_indent() * 4;
-
-          snprintf( fmt, sizeof(fmt), "(>) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds Entering %%s%%s [%%s:%%d]\n", len );
-
-          direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
-                             millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
-			     func, buf, file, line );
-     }
-
-     pthread_mutex_unlock( &domains_lock );
-}
-
-__attribute__((no_instrument_function))
-void
-direct_debug_exit( DirectDebugDomain *domain,
-	      	    const char *func,
-                    const char *file,
-                    int         line,
-                    const char *format, ... )
-{
-     pthread_mutex_lock( &domains_lock );
-
-     if (check_domain( domain )) {
-          int         len;
-          char        dom[48];
-          char        fmt[128];
-          char        buf[512];
-          long long   millis = direct_clock_get_millis();
-          const char *name   = direct_thread_self_name();
-          va_list     ap;
-
-          va_start( ap, format );
-
-          vsnprintf( buf, sizeof(buf), format, ap );
-
-          va_end( ap );
-
-
-          len = snprintf( dom, sizeof(dom), "%s:", domain->name );
-
-          if (len < 18)
-               len = 18;
-          else
-               len = 28;
-
-          len += direct_trace_debug_indent() * 4;
-
-          snprintf( fmt, sizeof(fmt), "(<) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds Returning from %%s%%s [%%s:%%d]\n", len );
-
-          direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
-                             millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
-			     func, buf, file, line );
      }
 
      pthread_mutex_unlock( &domains_lock );
@@ -349,17 +283,15 @@ direct_assertion( const char *exp,
 
      direct_trace_print_stack( NULL );
 
-     if (direct_config->fatal >= DCFL_ASSERT) {
-          D_DEBUG( "Direct/Assertion: "
-                   "Sending SIGTRAP to process group %d...\n", getpgrp() );
+     D_DEBUG( "Direct/Assertion: "
+              "Sending SIGTRAP to process group %d...\n", getpgrp() );
 #ifndef USE_KOS
-          killpg( getpgrp(), SIGTRAP );
+     killpg( getpgrp(), SIGTRAP );
 #endif
-          D_DEBUG( "Direct/Assertion: "
-                   "...didn't catch signal on my own, calling _exit(-1).\n" );
+     D_DEBUG( "Direct/Assertion: "
+              "...didn't catch signal on my own, calling _exit(-1).\n" );
 
-          _exit( -1 );
-     }
+     _exit( -1 );
 }
 
 __attribute__((no_instrument_function))
@@ -378,18 +310,6 @@ direct_assumption( const char *exp,
                         direct_gettid(), exp, file, line, func );
 
      direct_trace_print_stack( NULL );
-
-     if (direct_config->fatal >= DCFL_ASSUME) {
-          D_DEBUG( "Direct/Assumption: "
-                   "Sending SIGTRAP to process group %d...\n", getpgrp() );
-#ifndef USE_KOS
-          killpg( getpgrp(), SIGTRAP );
-#endif
-          D_DEBUG( "Direct/Assumption: "
-                   "...didn't catch signal on my own, calling _exit(-1).\n" );
-
-          _exit( -1 );
-     }
 }
 
 #else
@@ -399,5 +319,5 @@ direct_debug_config_domain( const char *name, bool enable )
 {
 }
 
-#endif    /* DIRECT_BUILD_TEXT && DIRECT_BUILD_DEBUGS */
+#endif    /* DIRECT_BUILD_TEXT */
 

@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -112,9 +121,6 @@ static void video_access_by_hardware( SurfaceBuffer       *buffer,
 static void video_access_by_software( SurfaceBuffer       *buffer,
                                       DFBSurfaceLockFlags  flags );
 
-static DFBResult system_access_by_software( SurfaceBuffer       *buffer,
-                                            DFBSurfaceLockFlags  flags );
-
 /**************************************************************************************************/
 
 static const ReactionFunc dfb_surface_globals[] = {
@@ -162,14 +168,14 @@ static void surface_destructor( FusionObject *object, bool zombie )
      fusion_object_destroy( object );
 }
 
-FusionObjectPool *dfb_surface_pool_create( const FusionWorld *world )
+FusionObjectPool *dfb_surface_pool_create()
 {
      FusionObjectPool *pool;
 
      pool = fusion_object_pool_create( "Surface Pool",
                                        sizeof(CoreSurface),
                                        sizeof(CoreSurfaceNotification),
-                                       surface_destructor, world );
+                                       surface_destructor );
 
      return pool;
 }
@@ -286,9 +292,6 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
      DFBResult    ret;
      CoreSurface *s;
 
-     D_DEBUG_AT( Core_Surface, "dfb_surface_create_preallocated( core %p, size %dx%d, format %s )\n",
-                 core, width, height, pixelformat_name( format ) );
-
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
 
@@ -307,7 +310,7 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
           s->caps |= DSCAPS_SYSTEMONLY;
 
 
-     s->front_buffer = (SurfaceBuffer *) SHCALLOC( s->shmpool, 1, sizeof(SurfaceBuffer) );
+     s->front_buffer = (SurfaceBuffer *) SHCALLOC( 1, sizeof(SurfaceBuffer) );
 
      s->front_buffer->flags   = SBF_FOREIGN_SYSTEM | SBF_WRITTEN;
      s->front_buffer->policy  = policy;
@@ -319,7 +322,7 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
      s->front_buffer->system.addr   = front_buffer;
 
      if (caps & DSCAPS_FLIPPING) {
-          s->back_buffer = (SurfaceBuffer *) SHMALLOC( s->shmpool, sizeof(SurfaceBuffer) );
+          s->back_buffer = (SurfaceBuffer *) SHMALLOC( sizeof(SurfaceBuffer) );
           direct_memcpy( s->back_buffer, s->front_buffer, sizeof(SurfaceBuffer) );
 
           s->back_buffer->system.pitch  = back_pitch;
@@ -344,8 +347,6 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
 {
      CoreSurfaceNotification notification;
 
-     D_DEBUG_AT( Core_Surface, "dfb_surface_notify_listeners( %p, 0x%08x )\n", surface, flags );
-
      notification.flags   = flags;
      notification.surface = surface;
 
@@ -360,8 +361,6 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
 {
      int old_width, old_height;
      DFBSurfacePixelFormat old_format;
-     SurfaceBuffer	*front;
-     SurfaceBuffer	*back;
      DFBResult ret;
 
      D_DEBUG_AT( Core_Surface, "dfb_surface_reformat( %p, %dx%d, %s )\n",
@@ -378,19 +377,9 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      {
           return DFB_UNSUPPORTED;
      }
-     
+
      dfb_surfacemanager_lock( surface->manager );
 
-     front = surface->front_buffer;
-     back = surface->back_buffer;
-
-     if (front->system.locked || front->video.locked ||
-         back->system.locked  || back->video.locked)
-     {
-          dfb_surfacemanager_unlock( surface->manager );
-          return DFB_LOCKED;
-     }
-    
      old_width  = surface->width;
      old_height = surface->height;
      old_format = surface->format;
@@ -521,8 +510,6 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      SurfaceBuffer *new_idle  = NULL;
      SurfaceBuffer *new_depth = NULL;
 
-     D_DEBUG_AT( Core_Surface, "dfb_surface_reconfig( %p, %d, %d )\n", surface, front_policy, back_policy );
-
      D_ASSERT( surface != NULL );
      D_ASSERT( surface->front_buffer != NULL );
 
@@ -619,8 +606,6 @@ dfb_surface_allocate_depth( CoreSurface *surface )
 {
      DFBResult ret;
 
-     D_DEBUG_AT( Core_Surface, "dfb_surface_allocate_depth( %p )\n", surface );
-
      D_ASSERT( surface != NULL );
 
      dfb_surfacemanager_lock( surface->manager );
@@ -645,8 +630,6 @@ dfb_surface_allocate_depth( CoreSurface *surface )
 void
 dfb_surface_deallocate_depth( CoreSurface *surface )
 {
-     D_DEBUG_AT( Core_Surface, "dfb_surface_deallocate_depth( %p )\n", surface );
-
      D_ASSERT( surface != NULL );
 
      dfb_surfacemanager_lock( surface->manager );
@@ -670,8 +653,6 @@ DFBResult
 dfb_surface_set_palette( CoreSurface *surface,
                          CorePalette *palette )
 {
-     D_DEBUG_AT( Core_Surface, "dfb_surface_set_palette( %p, %p )\n", surface, palette );
-
      D_ASSERT( surface != NULL );
 
      if (surface->palette == palette)
@@ -696,8 +677,6 @@ dfb_surface_set_palette( CoreSurface *surface,
 void dfb_surface_flip_buffers( CoreSurface *surface, bool write_front )
 {
      SurfaceBuffer *front;
-
-     D_DEBUG_AT( Core_Surface, "dfb_surface_flip_buffers( %p, %s )\n", surface, write_front ? "true" : "false" );
 
      D_ASSERT( surface != NULL );
 
@@ -732,8 +711,6 @@ void dfb_surface_flip_buffers( CoreSurface *surface, bool write_front )
 void
 dfb_surface_set_field( CoreSurface *surface, int field )
 {
-     D_DEBUG_AT( Core_Surface, "dfb_surface_set_field( %p, %d )\n", surface, field );
-
      D_ASSERT( surface != NULL );
 
      surface->field = field;
@@ -748,8 +725,6 @@ dfb_surface_set_alpha_ramp( CoreSurface *surface,
                             __u8         a2,
                             __u8         a3 )
 {
-     D_DEBUG_AT( Core_Surface, "dfb_surface_set_alpha_ramp( %p, %02x %02x %02x %02x )\n", surface, a0, a1, a2, a3 );
-
      D_ASSERT( surface != NULL );
 
      surface->alpha_ramp[0] = a0;
@@ -765,9 +740,6 @@ DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
 {
      DFBResult ret;
 
-     D_DEBUG_AT( Core_Surface, "dfb_surface_soft_lock( %p, %s%s, %s )\n", surface,
-                 (flags & DSLF_READ) ? "r" : "", (flags & DSLF_WRITE) ? "w" : "", front ? "front" : "back" );
-
      D_ASSERT( surface != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( pitch != NULL );
@@ -779,16 +751,10 @@ DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
      return ret;
 }
 
-
-
 DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
                                      void **data, int *pitch, bool front )
 {
-     DFBResult      ret;
      SurfaceBuffer *buffer;
-
-     D_DEBUG_AT( Core_Surface, "dfb_surface_software_lock( %p, %s%s, %s )\n", surface,
-                 (flags & DSLF_READ) ? "r" : "", (flags & DSLF_WRITE) ? "w" : "", front ? "front" : "back" );
 
      D_ASSERT( surface != NULL );
      D_ASSERT( flags != 0 );
@@ -799,18 +765,9 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
-               ret = system_access_by_software( buffer, flags );
-               if (ret)
-                    return ret;
-
-               D_DEBUG_AT( Core_Surface, "  -> system only, counter: %d\n", buffer->system.locked );
-
-               D_ASSERT( buffer->system.addr != NULL );
-               D_ASSERT( buffer->system.pitch > 0 );
-
+               buffer->system.locked++;
                *data = buffer->system.addr;
                *pitch = buffer->system.pitch;
-
                break;
           case CSP_VIDEOLOW:
                /* no valid video instance
@@ -819,33 +776,21 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                     (flags & DSLF_READ && buffer->system.health == CSH_STORED))
                    && !buffer->video.locked)
                {
-                    ret = system_access_by_software( buffer, flags );
-                    if (ret)
-                         return ret;
-
                     dfb_surfacemanager_assure_system( surface->manager, buffer );
-
-                    D_DEBUG_AT( Core_Surface, "  -> auto system, counter: %d\n", buffer->system.locked );
-
-                    D_ASSERT( buffer->system.addr != NULL );
-                    D_ASSERT( buffer->system.pitch > 0 );
-
+                    buffer->system.locked++;
                     *data = buffer->system.addr;
                     *pitch = buffer->system.pitch;
+                    if (flags & DSLF_WRITE &&
+                        buffer->video.health == CSH_STORED)
+                         buffer->video.health = CSH_RESTORE;
                }
                else {
                     /* ok, write only goes into video directly */
                     buffer->video.locked++;
-
-                    D_DEBUG_AT( Core_Surface, "  -> auto video, counter: %d\n", buffer->video.locked );
-
-                    D_ASSERT( buffer->video.pitch > 0 );
-
-                    *data = (buffer->storage == CSS_VIDEO)
-                            ? dfb_system_video_memory_virtual( buffer->video.offset )
-                            : dfb_system_aux_memory_virtual( buffer->video.offset );
+                    *data = dfb_system_video_memory_virtual( buffer->video.offset );
                     *pitch = buffer->video.pitch;
-
+                    if (flags & DSLF_WRITE)
+                         buffer->system.health = CSH_RESTORE;
                     video_access_by_software( buffer, flags );
                }
                break;
@@ -853,44 +798,24 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                /* no video instance yet? system lock! */
                if (buffer->video.health != CSH_STORED) {
                     /* no video health, no fetch */
-                    ret = system_access_by_software( buffer, flags );
-                    if (ret)
-                         return ret;
-
-                    D_DEBUG_AT( Core_Surface, "  -> auto system, counter: %d\n", buffer->system.locked );
-
-                    D_ASSERT( buffer->system.addr != NULL );
-                    D_ASSERT( buffer->system.pitch > 0 );
-
+                    buffer->system.locked++;
                     *data = buffer->system.addr;
                     *pitch = buffer->system.pitch;
                     break;
                }
+               /* video lock! write access? restore system! */
+               if (flags & DSLF_WRITE)
+                    buffer->system.health = CSH_RESTORE;
                /* FALL THROUGH, for the rest we have to do a video lock
                   as if it had the policy CSP_VIDEOONLY */
-
           case CSP_VIDEOONLY:
-               ret = dfb_surfacemanager_assure_video( surface->manager, buffer );
-               if (ret)
-                    return ret;
-
+               if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
+                    D_ONCE( "accessing video memory during suspend" );
                buffer->video.locked++;
-
-               if (buffer->policy == CSP_VIDEOONLY)
-                    D_DEBUG_AT( Core_Surface, "  -> video only, counter: %d\n", buffer->video.locked );
-               else
-                    D_DEBUG_AT( Core_Surface, "  -> auto video, counter: %d\n", buffer->video.locked );
-
-               D_ASSERT( buffer->video.pitch > 0 );
-
-               *data = (buffer->storage == CSS_VIDEO)
-                       ? dfb_system_video_memory_virtual( buffer->video.offset )
-                       : dfb_system_aux_memory_virtual( buffer->video.offset );
+               *data = dfb_system_video_memory_virtual( buffer->video.offset );
                *pitch = buffer->video.pitch;
-
                video_access_by_software( buffer, flags );
                break;
-
           default:
                D_BUG( "invalid surface policy" );
                return DFB_BUG;
@@ -899,18 +824,13 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
      if (flags & DSLF_WRITE)
           buffer->flags |= SBF_WRITTEN;
 
-     D_DEBUG_AT( Core_Surface, "  -> %p [%d]\n", *data, *pitch );
-
      return DFB_OK;
 }
 
 DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
-                                     DFBSurfaceLockFlags flags, bool front )
+                                     unsigned int flags, bool front )
 {
      SurfaceBuffer *buffer;
-
-     D_DEBUG_AT( Core_Surface, "dfb_surface_hardware_lock( %p, %s%s, %s )\n", surface,
-                 (flags & DSLF_READ) ? "r" : "", (flags & DSLF_WRITE) ? "w" : "", front ? "front" : "back" );
 
      D_ASSERT( surface != NULL );
      D_ASSERT( flags != 0 );
@@ -919,23 +839,24 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
-               system_access_by_software( buffer, flags );
-
-               D_DEBUG_AT( Core_Surface, "  -> system only, counter: %d\n", buffer->system.locked );
+               buffer->system.locked++;
                return DFB_OK;
 
           case CSP_VIDEOHIGH:
           case CSP_VIDEOLOW:
                /* avoid inconsistency, could be optimized (read/write) */
-               if (buffer->system.locked) {
-                    D_DEBUG_AT( Core_Surface, "  -> system locked!, counter: %d\n", buffer->system.locked );
+               if (buffer->system.locked)
                     break;
-               }
 
                /* no reading? no force? no video instance? no success! ;-) */
                if (!(flags & (DSLF_READ|CSLF_FORCE)) && buffer->video.health != CSH_STORED)
                     break;
 
+               if (dfb_surfacemanager_assure_video( surface->manager, buffer ))
+                    break;
+
+               if (flags & DSLF_WRITE)
+                    buffer->system.health = CSH_RESTORE;
                /* fall through */
 
           case CSP_VIDEOONLY:
@@ -943,11 +864,6 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
                     break;
 
                buffer->video.locked++;
-
-               if (buffer->policy == CSP_VIDEOONLY)
-                    D_DEBUG_AT( Core_Surface, "  -> video only, counter: %d\n", buffer->video.locked );
-               else
-                    D_DEBUG_AT( Core_Surface, "  -> auto video, counter: %d\n", buffer->video.locked );
 
                video_access_by_hardware( buffer, flags );
 
@@ -961,8 +877,6 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
                return DFB_BUG;
      }
 
-     D_DEBUG_AT( Core_Surface, "  -> FAILED\n" );
-
      return DFB_FAILURE;
 }
 
@@ -970,88 +884,17 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 {
      SurfaceBuffer *buffer;
 
-     D_DEBUG_AT( Core_Surface, "dfb_surface_unlock( %p, %s )\n", surface, front ? "front" : "back" );
-
      D_ASSERT( surface != NULL );
-
-     dfb_surfacemanager_lock( surface->manager );
 
      buffer = front ? surface->front_buffer : surface->back_buffer;
 
      D_ASSERT( buffer != NULL );
 
-     D_DEBUG_AT( Core_Surface, "  -> system/video count: %d/%d before\n", buffer->system.locked, buffer->video.locked );
-
-     D_ASSERT( buffer->system.locked == 0 || buffer->video.locked == 0 );
-
      if (buffer->system.locked)
           buffer->system.locked--;
 
-     if (buffer->video.locked) {
+     if (buffer->video.locked)
           buffer->video.locked--;
-
-          /* FIXME: There should be a way to distinguish
-           *        between hardware and software locks. */
-          if (buffer->video.locked == 0 &&
-              buffer->video.access & VAF_SOFTWARE_LOCK)
-          {
-               dfb_gfxcard_surface_leave( buffer );
-               buffer->video.access &= ~VAF_SOFTWARE_LOCK;
-          }
-     }
-
-     D_DEBUG_AT( Core_Surface, "  -> system/video count: %d/%d after\n", buffer->system.locked, buffer->video.locked );
-
-     dfb_surfacemanager_unlock( surface->manager );
-}
-
-DFBResult
-dfb_surface_buffer_suspend( SurfaceBuffer *buffer )
-{
-     CoreSurface *surface;
-
-     D_DEBUG_AT( Core_Surface, "dfb_surface_buffer_suspend( %p )\n", buffer );
-
-     D_ASSERT( buffer != NULL );
-
-     surface = buffer->surface;
-
-     D_ASSERT( surface != NULL );
-
-     dfb_surfacemanager_lock( surface->manager );
-
-     buffer->flags |= SBF_SUSPENDED;
-     buffer->flags &= ~SBF_WRITTEN;
-
-     if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM)) {
-          D_ASSERT( buffer->system.addr != NULL );
-
-          /* Free its memory. */
-          SHFREE( surface->shmpool_data, buffer->system.addr );
-
-          /* Clear allocation. */
-          buffer->system.health = CSH_INVALID;
-          buffer->system.addr   = NULL;
-     }
-
-     if (buffer->video.health)
-          dfb_surfacemanager_deallocate( surface->manager, buffer );
-
-     dfb_surfacemanager_unlock( surface->manager );
-
-     return DFB_OK;
-}
-
-DFBResult
-dfb_surface_buffer_resume( SurfaceBuffer *buffer )
-{
-     D_DEBUG_AT( Core_Surface, "dfb_surface_buffer_resume( %p )\n", buffer );
-
-     D_ASSERT( buffer != NULL );
-
-     buffer->flags &= ~SBF_SUSPENDED;
-
-     return DFB_OK;
 }
 
 DFBResult dfb_surface_init ( CoreDFB                *core,
@@ -1062,24 +905,16 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
                              DFBSurfaceCapabilities  caps,
                              CorePalette            *palette )
 {
-     D_DEBUG_AT( Core_Surface, "dfb_surface_init( %p, %dx%d, %s, 0x%08x, %p )\n",
-                 surface, width, height, dfb_pixelformat_name( format ), caps, palette );
-
-     D_ASSUME( core != NULL );
      D_ASSERT( surface != NULL );
-     D_ASSERT( width > 0 );
-     D_ASSERT( height > 0 );
 
      switch (format) {
           case DSPF_A1:
-          case DSPF_A4:
           case DSPF_A8:
           case DSPF_ALUT44:
           case DSPF_ARGB:
           case DSPF_ARGB1555:
           case DSPF_ARGB2554:
           case DSPF_ARGB4444:
-          case DSPF_AYUV:
           case DSPF_AiRGB:
           case DSPF_I420:
           case DSPF_LUT8:
@@ -1093,6 +928,12 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           case DSPF_UYVY:
           case DSPF_YUY2:
           case DSPF_YV12:
+#ifdef DFB_YCBCR
+          case DSPF_AYCbCr:
+          case DSPF_AiYCbCr:
+          case DSPF_YCbCr24:
+          case DSPF_LUT8AYCbCr:
+#endif // DFB_YCBCR
                break;
 
           default:
@@ -1134,15 +975,16 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
                dfb_palette_generate_rgb332_map( palette );
           else if (format == DSPF_ALUT44)
                dfb_palette_generate_rgb121_map( palette );
-
+#ifdef DFB_YCBCR
+          else if (format == DSPF_LUT8AYCbCr)
+               dfb_palette_generate_rgb332_map( palette ); // TODO: generate ycbcr332 map --ats--
+#endif // DFB_YCBCR
           dfb_surface_set_palette( surface, palette );
 
           dfb_palette_unref( palette );
      }
 
      surface->manager = dfb_gfxcard_surface_manager();
-     surface->shmpool = dfb_core_shmpool( core );
-     surface->shmpool_data = dfb_core_shmpool_data( core );
 
      return DFB_OK;
 }
@@ -1170,8 +1012,6 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      static const char *gz_ext = "";
 #endif
      CorePalette       *palette = NULL;
-     
-     D_DEBUG_AT( Core_Surface, "dfb_surface_dump( %p, %s, %s )\n", surface, directory, prefix );
 
      D_ASSERT( surface != NULL );
      D_ASSERT( directory != NULL );
@@ -1203,6 +1043,10 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           case DSPF_ARGB2554:
           case DSPF_ARGB4444:
           case DSPF_AiRGB:
+#ifdef DFB_YCBCR
+          case DSPF_AYCbCr:
+          case DSPF_AiYCbCr:
+#endif
                alpha = true;
 
                /* fall through */
@@ -1213,6 +1057,9 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           case DSPF_RGB32:
           case DSPF_YUY2:
           case DSPF_UYVY:
+#ifdef DFB_YCBCR
+          case DSPF_YCbCr24:
+#endif
                rgb   = true;
                break;
 
@@ -1226,8 +1073,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      /* Lock the surface, get the data pointer and pitch. */
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
      if (ret) {
-          if (palette)
-               dfb_palette_unref( palette );
+          dfb_palette_unref( palette );
           return ret;
      }
 
@@ -1249,8 +1095,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           D_ERROR( "DirectFB/core/surfaces: "
                    "couldn't find an unused index for surface dump!\n" );
           dfb_surface_unlock( surface, true );
-          if (palette)
-               dfb_palette_unref( palette );
+          dfb_palette_unref( palette );
           return DFB_FAILURE;
      }
 
@@ -1261,11 +1106,10 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
           fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_p < 0) {
-               D_PERROR("DirectFB/core/surfaces: "
+               D_PERROR("DirectFB/core/input: "
                         "could not open %s!\n", filename);
                dfb_surface_unlock( surface, true );
-               if (palette)
-                    dfb_palette_unref( palette );
+               dfb_palette_unref( palette );
                return DFB_IO;
           }
      }
@@ -1277,12 +1121,11 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
           fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_g < 0) {
-               D_PERROR("DirectFB/core/surfaces: "
+               D_PERROR("DirectFB/core/input: "
                          "could not open %s!\n", filename);
 
                dfb_surface_unlock( surface, true );
-               if (palette)
-                    dfb_palette_unref( palette );
+               dfb_palette_unref( palette );
 
                if (rgb) {
                     close( fd_p );
@@ -1354,6 +1197,9 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                     direct_memcpy( &buf_g[0], data8, surface->width );
                     break;
                case DSPF_AiRGB:
+#ifdef DFB_YCBCR
+               case DSPF_AiYCbCr: /* --HORI--*/
+#endif // DFB_YCBCR
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
                          buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
                          buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
@@ -1363,6 +1209,9 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                     }
                     break;
                case DSPF_ARGB:
+#ifdef DFB_YCBCR
+               case DSPF_AYCbCr: /* --HORI--*/
+#endif // DFB_YCBCR
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
                          buf_p[n3+0] = (data32[n] & 0xFF0000) >> 16;
                          buf_p[n3+1] = (data32[n] & 0x00FF00) >>  8;
@@ -1472,6 +1321,15 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                                        buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
                     }
                     break;
+#ifdef DFB_YCBCR
+               case DSPF_YCbCr24:/* --HORI--*/
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                        PUT_PIXEL_YCBCR24(
+                            buf_p[n3+0], buf_p[n3+1], buf_p[n3+2],
+                            data8[n3+0], data8[n3+1], data8[n3+2]);
+                    }
+                    break;
+#endif // DFB_YCBCR
                default:
                     D_BUG( "unexpected pixelformat" );
                     break;
@@ -1527,55 +1385,74 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
                                               DFBSurfacePixelFormat   format,
                                               SurfaceBuffer         **ret_buffer )
 {
-     DFBResult      ret;
      SurfaceBuffer *buffer;
-     int            pitch;
-     int            size;
-
-     D_DEBUG_AT( Core_Surface, "dfb_surface_allocate_buffer( %p, %d, %s )\n",
-                 surface, policy, dfb_pixelformat_name( format ) );
 
      D_ASSERT( surface != NULL );
      D_ASSERT( ret_buffer != NULL );
 
-     /* Calculate pitch. */
-     pitch = DFB_BYTES_PER_LINE( format, MAX( surface->width, surface->min_width ) );
-
-     /* Align pitch. */
-     pitch = (pitch + 3) & ~3;
-
-     /* Calculate amount of data to allocate. */
-     size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
-
      /* Allocate buffer structure. */
-     buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
+     buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
 
      buffer->policy  = policy;
      buffer->surface = surface;
      buffer->format  = format;
 
-     buffer->system.pitch = pitch;
-     buffer->system.size  = size;
+     switch (policy) {
+          case CSP_SYSTEMONLY:
+          case CSP_VIDEOLOW:
+          case CSP_VIDEOHIGH: {
+               int   pitch;
+               int   size;
+               void *data;
 
+               /* Calculate pitch. */
+               pitch = DFB_BYTES_PER_LINE( buffer->format,
+                                           MAX( surface->width, surface->min_width ) );
+               if (pitch & 3)
+                    pitch += 4 - (pitch & 3);
 
-     if (policy == CSP_VIDEOONLY) {
-          /* Lock surface manager. */
-          dfb_surfacemanager_lock( surface->manager );
+               /* Calculate amount of data to allocate. */
+               size = DFB_PLANE_MULTIPLY( buffer->format,
+                                          MAX( surface->height, surface->min_height ) * pitch );
 
-          /* Allocate buffer in video memory. */
-          ret = dfb_surfacemanager_allocate( surface->manager, buffer );
+               /* Allocate shared memory. */
+               data = SHMALLOC( size );
+               if (!data) {
+                    SHFREE( buffer );
+                    return DFB_NOSYSTEMMEMORY;
+               }
 
-          /* Unlock surface manager. */
-          dfb_surfacemanager_unlock( surface->manager );
+               /* Write back values. */
+               buffer->system.health = CSH_STORED;
+               buffer->system.pitch  = pitch;
+               buffer->system.addr   = data;
 
-          /* Check for successful allocation. */
-          if (ret) {
-               SHFREE( surface->shmpool, buffer );
-               return ret;
+               break;
           }
 
-          /* Set from 'to be restored' to 'is stored'. */
-          buffer->video.health = CSH_STORED;
+          case CSP_VIDEOONLY: {
+               DFBResult ret;
+
+               /* Lock surface manager. */
+               dfb_surfacemanager_lock( surface->manager );
+
+               /* Allocate buffer in video memory. */
+               ret = dfb_surfacemanager_allocate( surface->manager, buffer );
+
+               /* Unlock surface manager. */
+               dfb_surfacemanager_unlock( surface->manager );
+
+               /* Check for successful allocation. */
+               if (ret) {
+                    SHFREE( buffer );
+                    return ret;
+               }
+
+               /* Set from 'to be restored' to 'is stored'. */
+               buffer->video.health = CSH_STORED;
+
+               break;
+          }
      }
 
      /* Return the new buffer. */
@@ -1588,45 +1465,42 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
                                                 DFBSurfacePixelFormat  format,
                                                 SurfaceBuffer         *buffer )
 {
-     DFBResult ret;
-     int       pitch;
-     int       size;
-
-     D_DEBUG_AT( Core_Surface, "dfb_surface_reallocate_buffer( %p, %s, %p )\n",
-                 surface, dfb_pixelformat_name( format ), buffer );
+     DFBResult    ret;
 
      if (buffer->flags & SBF_FOREIGN_SYSTEM)
           return DFB_UNSUPPORTED;
 
-     /* Calculate pitch. */
-     pitch = DFB_BYTES_PER_LINE( format, MAX( surface->width, surface->min_width ) );
-
-     /* Align pitch. */
-     pitch = (pitch + 3) & ~3;
-
-     /* Calculate amount of data to allocate. */
-     size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
-
      if (buffer->system.health) {
+          int   pitch;
+          int   size;
+          void *data;
+
+          /* Calculate pitch. */
+          pitch = DFB_BYTES_PER_LINE( format, MAX( surface->width, surface->min_width ) );
+          if (pitch & 3)
+               pitch += 4 - (pitch & 3);
+
+          /* Calculate amount of data to allocate. */
+          size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
+
+          /* Allocate shared memory. */
+          data = SHMALLOC( size );
+          if (!data)
+               return DFB_NOSYSTEMMEMORY;
+
           /* Free old memory. */
-          SHFREE( surface->shmpool_data, buffer->system.addr );
+          SHFREE( buffer->system.addr );
 
-          /* Clear allocation. */
-          buffer->system.health = CSH_INVALID;
-          buffer->system.addr   = NULL;
+          /* Write back new values. */
+          buffer->system.health = CSH_STORED;
+          buffer->system.pitch  = pitch;
+          buffer->system.addr   = data;
      }
-
-     /* Write back new values. */
-     buffer->system.pitch = pitch;
-     buffer->system.size  = size;
 
      buffer->format = format;
 
-
-     /*
-      * FIXME: better support video instance reallocation
-      */
      if (buffer->video.health) {
+          /* FIXME: better support video instance reallocation */
           dfb_surfacemanager_deallocate( surface->manager, buffer );
           ret = dfb_surfacemanager_allocate( surface->manager, buffer );
 
@@ -1650,21 +1524,13 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
 static void dfb_surface_destroy_buffer( CoreSurface   *surface,
                                         SurfaceBuffer *buffer )
 {
-     D_DEBUG_AT( Core_Surface, "dfb_surface_destroy_buffer( %p, %p )\n", surface, buffer );
-
      D_ASSERT( surface != NULL );
      D_ASSERT( buffer != NULL );
 
      dfb_surfacemanager_lock( surface->manager );
 
      if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM)) {
-          D_ASSUME( buffer->system.addr != NULL );
-
-          if (buffer->system.locked)
-               D_WARN( "Freeing buffer with a non-zero lock counter" );
-          
-          if (buffer->system.addr)
-               SHFREE( surface->shmpool_data, buffer->system.addr );
+          SHFREE( buffer->system.addr );
 
           buffer->system.addr   = NULL;
           buffer->system.health = CSH_INVALID;
@@ -1675,7 +1541,7 @@ static void dfb_surface_destroy_buffer( CoreSurface   *surface,
 
      dfb_surfacemanager_unlock( surface->manager );
 
-     SHFREE( surface->shmpool, buffer );
+     SHFREE( buffer );
 }
 
 ReactionResult
@@ -1684,8 +1550,6 @@ _dfb_surface_palette_listener( const void *msg_data,
 {
      const CorePaletteNotification *notification = msg_data;
      CoreSurface                   *surface      = ctx;
-
-     D_DEBUG_AT( Core_Surface, "_dfb_surface_palette_listener( %p, %p )\n", msg_data, ctx );
 
      if (notification->flags & CPNF_DESTROY)
           return RS_REMOVE;
@@ -1698,150 +1562,39 @@ _dfb_surface_palette_listener( const void *msg_data,
 
 /* internal functions needed to avoid side effects */
 
-static void
-invalidate_system( SurfaceBuffer *buffer )
+static void video_access_by_hardware( SurfaceBuffer       *buffer,
+                                      DFBSurfaceLockFlags  flags )
 {
-     /* No valid system instance? */
-     if (buffer->system.health != CSH_STORED)
-          return;
-
-     if (buffer->flags & SBF_FOREIGN_SYSTEM)
-          buffer->system.health = CSH_RESTORE;
-     else {
-          buffer->system.health = CSH_INVALID;
-
-          SHFREE( buffer->surface->shmpool_data, buffer->system.addr );
-          buffer->system.addr = NULL;
-     }
-}
-
-static void
-video_access_by_hardware( SurfaceBuffer       *buffer,
-                          DFBSurfaceLockFlags  flags )
-{
-     /* Hardware read access... */
      if (flags & DSLF_READ) {
-          /* ...if software has written before... */
           if (buffer->video.access & VAF_SOFTWARE_WRITE) {
-               /* ...flush texture cache. */
                dfb_gfxcard_flush_texture_cache();
-
-               /* ...clear software write access. */
                buffer->video.access &= ~VAF_SOFTWARE_WRITE;
           }
-
-          /* Mark hardware read access. */
           buffer->video.access |= VAF_HARDWARE_READ;
      }
-
-     /* Hardware write access... */
-     if (flags & DSLF_WRITE) {
-          /* ...invalidate system instance? */
-          invalidate_system( buffer );
-
-          /* Mark hardware write access. */
+     if (flags & DSLF_WRITE)
           buffer->video.access |= VAF_HARDWARE_WRITE;
-     }
 }
 
-static void
-video_access_by_software( SurfaceBuffer       *buffer,
-                          DFBSurfaceLockFlags  flags )
+static void video_access_by_software( SurfaceBuffer       *buffer,
+                                      DFBSurfaceLockFlags  flags )
 {
-     VideoAccessFlags access = VAF_SOFTWARE_LOCK;
-     
-     /* If hardware has written or has to write... */
-     if (buffer->video.access & VAF_HARDWARE_WRITE) {
-          /* ...wait for the operation to finish. */
-          dfb_gfxcard_wait_serial( &buffer->video.serial );
-
-          /* ...clear hardware write access. */
-          buffer->video.access &= ~VAF_HARDWARE_WRITE;
-
-          /* Software read access after hardware write... */
-          if (flags & DSLF_READ)
-               /* ... requires flush of the (bus) read cache. */
-               dfb_gfxcard_flush_read_cache();
-     }
-
-
-     /* Software read access... */
-     if (flags & DSLF_READ)
-          access |= VAF_SOFTWARE_READ;
-
-     /* Software write access... */
      if (flags & DSLF_WRITE) {
-          access |= VAF_SOFTWARE_WRITE;
-
-          /* ...if hardware has (to) read... */
           if (buffer->video.access & VAF_HARDWARE_READ) {
-               /* ...wait for it. */
-               dfb_gfxcard_sync(); /* TODO: wait for serial instead */
-
-               /* ...clear hardware read access. */
+               dfb_gfxcard_sync();
                buffer->video.access &= ~VAF_HARDWARE_READ;
           }
-
-          /* ...invalidate system instance? */
-          invalidate_system( buffer );
      }
 
-
-     if (! D_FLAGS_ARE_SET( buffer->video.access, access ))
-          dfb_gfxcard_surface_enter( buffer, flags );
-
-     buffer->video.access |= access;
-}
-
-static DFBResult
-system_access_by_software( SurfaceBuffer       *buffer,
-                           DFBSurfaceLockFlags  flags )
-{
-     D_ASSUME( buffer->policy != CSP_VIDEOONLY );
-
-     /* Check buffer health. */
-     switch (buffer->system.health) {
-          case CSH_INVALID: {
-               D_ASSERT( buffer->system.addr == NULL );
-               D_ASSERT( buffer->surface != NULL );
-
-               /* Keep it unallocated while suspended. */
-               if (buffer->flags & SBF_SUSPENDED)
-                    return DFB_SUSPENDED;
-
-               /* Allocate shared memory. */
-               buffer->system.addr = SHMALLOC( buffer->surface->shmpool_data, buffer->system.size );
-               if (!buffer->system.addr)
-                    return D_OOSHM();
-
-               /* Update health. */
-               if (buffer->policy == CSP_SYSTEMONLY || buffer->video.health != CSH_STORED)
-                    buffer->system.health = CSH_STORED;
-               else
-                    buffer->system.health = CSH_RESTORE;
-
-               break;
-          }
-
-          case CSH_STORED:
-               /* all right */
-               break;
-
-          default:
-               D_BUG( "unexpected system health %d (video %d)",
-                      buffer->system.health, buffer->video.health );
-               return DFB_BUG;
+     if (buffer->video.access & VAF_HARDWARE_WRITE) {
+          dfb_gfxcard_wait_serial( &buffer->video.serial );
+          buffer->video.access &= ~VAF_HARDWARE_WRITE;
      }
 
-     /* Write access invalidates video instance. */
-     if (flags & DSLF_WRITE) {
-          if (buffer->video.health == CSH_STORED)
-               buffer->video.health = CSH_RESTORE;
-     }
+     if (flags & DSLF_READ)
+          buffer->video.access |= VAF_SOFTWARE_READ;
 
-     /* Increase lock counter. */
-     buffer->system.locked++;
-
-     return DFB_OK;
+     if (flags & DSLF_WRITE)
+          buffer->video.access |= VAF_SOFTWARE_WRITE;
 }
 

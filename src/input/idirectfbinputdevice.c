@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -58,6 +67,7 @@ static ReactionResult
 IDirectFBInputDevice_React( const void *msg_data,
                             void       *ctx );
 
+#ifndef DFB_ARIB	/* idirectfbinputdevice.c -> idirectfbinputdevice.h */
 /*
  * private data struct of IDirectFBInputDevice
  */
@@ -81,7 +91,7 @@ typedef struct {
 
      Reaction                    reaction;
 } IDirectFBInputDevice_data;
-
+#endif
 
 
 static void
@@ -148,6 +158,7 @@ IDirectFBInputDevice_CreateEventBuffer( IDirectFBInputDevice  *thiz,
      return DFB_OK;
 }
 
+
 static DFBResult
 IDirectFBInputDevice_AttachEventBuffer( IDirectFBInputDevice  *thiz,
                                         IDirectFBEventBuffer  *buffer )
@@ -155,15 +166,6 @@ IDirectFBInputDevice_AttachEventBuffer( IDirectFBInputDevice  *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      return IDirectFBEventBuffer_AttachInputDevice( buffer, data->device );
-}
-
-static DFBResult
-IDirectFBInputDevice_DetachEventBuffer( IDirectFBInputDevice  *thiz,
-                                        IDirectFBEventBuffer  *buffer )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
-
-     return IDirectFBEventBuffer_DetachInputDevice( buffer, data->device );
 }
 
 static DFBResult
@@ -328,7 +330,6 @@ IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      thiz->GetKeymapEntry = IDirectFBInputDevice_GetKeymapEntry;
      thiz->CreateEventBuffer = IDirectFBInputDevice_CreateEventBuffer;
      thiz->AttachEventBuffer = IDirectFBInputDevice_AttachEventBuffer;
-     thiz->DetachEventBuffer = IDirectFBInputDevice_DetachEventBuffer;
      thiz->GetKeyState = IDirectFBInputDevice_GetKeyState;
      thiz->GetModifiers = IDirectFBInputDevice_GetModifiers;
      thiz->GetLockState = IDirectFBInputDevice_GetLockState;

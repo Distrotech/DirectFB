@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -84,10 +93,6 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
           case DSPF_AiRGB:
                pixel = PIXEL_RGB32( r, g, b );
                break;
-          case DSPF_AYUV:
-               RGB_TO_YCBCR( r, g, b, y, cb, cr );
-               pixel = PIXEL_AYUV( 0, y, cb, cr );
-               break;
           case DSPF_YUY2:
                RGB_TO_YCBCR( r, g, b, y, cb, cr );
                pixel = PIXEL_YUY2( y, cb, cr );
@@ -101,6 +106,17 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
                RGB_TO_YCBCR( r, g, b, y, cb, cr );
                pixel = y | (cb << 8) | (cr << 16);
                break;
+#ifdef DFB_YCBCR
+          case DSPF_AYCbCr:
+          case DSPF_AiYCbCr:
+          case DSPF_YCbCr24:
+               do{
+                   __u32 y,cb,cr;
+                   RGB_TO_YCBCR( r,g,b, y,cb,cr ); // alpha ignored because dfb_color_to_pixel
+                   pixel = PIXEL_RGB32( y,cb,cr ); // used by calicurate color-key value.
+               }while(0);
+               break;
+#endif // DFB_YCBCR
           default:
                pixel = 0;
      }
@@ -174,14 +190,47 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_ARGB4444:
                return "ARGB4444";
+#if 1	/* DFB_ARIB */
+          case DSPF_AYCbCr:
+               return "AYCbCr";
 
-          case DSPF_AYUV:
-               return "AYUV";
+          case DSPF_AiYCbCr:
+               return "AiYCbCr";
 
-          case DSPF_A4:
-               return "A4";
+          case DSPF_YCbCr24:
+               return "YCbCr24";
+
+          case DSPF_LUT8AYCbCr:
+               return "DSPF_LUT8AYCbCr";
+
+          case DSPF_A2:
+               return "DSPF_A2";
+#endif
      }
 
      return "<invalid>";
 }
+
+#if 1	/* DFB_ARIB */
+/*
+ *	Surface clear color
+ */
+void dfb_get_clear_color( DFBColor *color, DFBSurfacePixelFormat format )
+{
+  /* TODO:convert to YUV */
+	switch (format) {
+	case DSPF_AYCbCr:
+		color->a = 0;
+		color->r = 16;
+		color->g = 128;
+		color->b = 128;
+		break;
+	default:
+		color->a = 0;
+		color->r = 0;
+		color->g = 0;
+		color->b = 0;
+	}
+}
+#endif
 

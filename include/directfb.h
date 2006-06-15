@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DIRECTFB_H__
 #define __DIRECTFB_H__
@@ -37,6 +46,18 @@
 extern "C"
 {
 #endif
+
+/*
+ * ARIB still window switching rectangle num
+ */
+#define DFB_SWITCHING_WINDOW_NUM	4
+
+/*
+ * Global Alpha
+ */
+#define DFB_OPACITY_OPAQUE        255
+#define DFB_OPACITY_TRANSPARENT     0
+
 
 /*
  * @internal
@@ -123,6 +144,12 @@ DECLARE_INTERFACE( IDirectFBWindow )
 DECLARE_INTERFACE( IDirectFBInputDevice )
 
 /*
+ * DFB_ARIB
+ * Creation of input buffers and explicit state queries.
+ */
+DECLARE_INTERFACE( IDirectFBARIBInputDevice )
+
+/*
  * An event buffer puts events from devices or windows into a FIFO.
  */
 DECLARE_INTERFACE( IDirectFBEventBuffer )
@@ -131,6 +158,18 @@ DECLARE_INTERFACE( IDirectFBEventBuffer )
  * Getting font metrics and pixel width of a string.
  */
 DECLARE_INTERFACE( IDirectFBFont )
+
+/*
+ * DFB_ARIB
+ * Getting glyph, drawing string in ARIB specific manner.
+ */
+DECLARE_INTERFACE( IDirectFBARIBFont )
+
+/*
+ * DFB_ARIB
+ * DRCS (Dynamically Redefinable Character Sets) management.
+ */
+DECLARE_INTERFACE( IDirectFBARIBDrcs )
 
 /*
  * Getting information about and loading one image from file.
@@ -194,8 +233,7 @@ typedef enum {
      DFB_ITEMNOTFOUND,   /* No such item found. */
      DFB_VERSIONMISMATCH,/* Some versions didn't match. */
      DFB_NOSHAREDMEMORY, /* There's not enough shared memory. */
-     DFB_EOF,            /* Reached end of file. */
-     DFB_SUSPENDED       /* The requested object is suspended. */
+     DFB_EOF             /* Reached end of file. */
 } DFBResult;
 
 /*
@@ -395,7 +433,6 @@ typedef unsigned int DFBDisplayLayerID;
 typedef unsigned int DFBDisplayLayerSourceID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
-typedef unsigned int DFBTextEncodingID;
 
 typedef __u32 DFBDisplayLayerIDs;
 
@@ -423,12 +460,6 @@ typedef __u32 DFBDisplayLayerIDs;
  * Empties (clears) the bitmask of layer ids.
  */
 #define DFB_DISPLAYLAYER_IDS_EMPTY(ids)      (ids) = 0
-
-/*
- * Predefined text encoding IDs.
- */
-#define DTEID_UTF8  0
-#define DTEID_OTHER 1
 
 /*
  * The cooperative level controls the super interface's behaviour
@@ -499,9 +530,7 @@ typedef enum {
      DLCAPS_SCREEN_POSITION   = 0x00100000,
      DLCAPS_SCREEN_SIZE       = 0x00200000,
 
-     DLCAPS_CLIP_REGIONS      = 0x00400000,  /* Supports IDirectFBDisplayLayer::SetClipRegions(). */
-
-     DLCAPS_ALL               = 0x0073FFFF
+     DLCAPS_ALL               = 0x0033FFFF
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -557,8 +586,6 @@ typedef enum {
  * Flags defining which fields of a DFBSurfaceDescription are valid.
  */
 typedef enum {
-     DSDESC_NONE         = 0x00000000,  /* none of these */
-
      DSDESC_CAPS         = 0x00000001,  /* caps field is valid */
      DSDESC_WIDTH        = 0x00000002,  /* width field is valid */
      DSDESC_HEIGHT       = 0x00000004,  /* height field is valid */
@@ -570,11 +597,9 @@ typedef enum {
                                            element for the front buffer
                                            and eventually the second one
                                            for the back buffer. */
-     DSDESC_PALETTE      = 0x00000020,  /* Initialize the surfaces palette
+     DSDESC_PALETTE      = 0x00000020   /* Initialize the surfaces palette
                                            with the entries specified in the
                                            description. */
-
-     DSDESC_ALL          = 0x0000003F   /* all of these */
 } DFBSurfaceDescriptionFlags;
 
 /*
@@ -633,7 +658,16 @@ typedef enum {
  * The palette capabilities.
  */
 typedef enum {
-     DPCAPS_NONE         = 0x00000000   /* None of these. */
+     DPCAPS_NONE         = 0x00000000,   /* None of these. */
+#if 1	/* DFB_ARIB */
+	 /* if this flag is set, the palette entries shall be interpreted as:
+	  *   a -> Alpha
+	  *   r -> Y
+	  *   g -> Cb
+	  *   b -> Cr
+	  */
+	 DPCAPS_YCBCR        = 0x00000001
+#endif
 } DFBPaletteCapabilities;
 
 /*
@@ -722,7 +756,9 @@ typedef enum {
      DLTF_VIDEO          = 0x00000002,  /* Can be used for live video output.*/
      DLTF_STILL_PICTURE  = 0x00000004,  /* Can be used for single frames. */
      DLTF_BACKGROUND     = 0x00000008,  /* Can be used as a background layer.*/
-
+#if 1	/* DFB_ARIB */
+	 DLTF_ARIB           = 0x01000000,  /* Can be used as ARIB Layer by casting to IDirectFBDisplayLayer_ARIB */
+#endif
      DLTF_ALL            = 0x0000000F   /* All type flags set. */
 } DFBDisplayLayerTypeFlags;
 
@@ -738,7 +774,9 @@ typedef enum {
      DIDTF_JOYSTICK      = 0x00000004,  /* Can be used as a joystick. */
      DIDTF_REMOTE        = 0x00000008,  /* Is a remote control. */
      DIDTF_VIRTUAL       = 0x00000010,  /* Is a virtual input device. */
-
+#if 1	/* DFB_ARIB */
+	 DIDTF_ARIB          = 0x01000000,  /* Can be used as ARIB InputDevice by casting to IDirectFBARIBInputDevice */
+#endif
      DIDTF_ALL           = 0x0000001F   /* All type flags set. */
 } DFBInputDeviceTypeFlags;
 
@@ -992,15 +1030,24 @@ typedef enum {
      /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CrCb [15:0] plane) */
      DSPF_NV21      = DFB_SURFACE_PIXELFORMAT( 19, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
-     /* 32 bit  AYUV (4 byte, alpha 8@24, Y 8@16, Cb 8@8, Cr 8@0) */
-     DSPF_AYUV      = DFB_SURFACE_PIXELFORMAT( 20, 24, 8, 1, 0, 4, 0, 0, 0, 0, 0 ),
+     /* 32 bit AYCbCr(4 byte, alpha 8@24, Y 8@16, Cb 8@8, Cr 8@0) */
+     DSPF_AYCbCr    = DFB_SURFACE_PIXELFORMAT( 20, 24, 8, 1, 0, 4, 0, 0, 0, 0, 0 ),
 
-     /*  4 bit alpha (1 byte/ 2 pixel, more significant nibble used first) */
-     DSPF_A4        = DFB_SURFACE_PIXELFORMAT( 21,  0, 4, 1, 4, 0, 1, 0, 0, 0, 0 ),
+     /* 32 bit AYCbCr(4 byte, inv. alpha 8@24, Y 8@16, Cb 8@8, Cr 8@0) */
+     DSPF_AiYCbCr   = DFB_SURFACE_PIXELFORMAT( 21, 24, 8, 1, 0, 4, 0, 0, 0, 0, 1 ),
+
+     /* 24 bit YCbCr (3 byte, Y 8@16, Cb 8@8, Cr 8@0) */
+     DSPF_YCbCr24   = DFB_SURFACE_PIXELFORMAT( 22, 24, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
+
+     /* 8 bit  LUT AYCbCr (8 bit color and alpha lookup from AYCbCr palette) */
+     DSPF_LUT8AYCbCr = DFB_SURFACE_PIXELFORMAT( 23, 8, 0, 1, 0, 1, 0, 0, 0, 1, 0  ),
+
+     /*  2 bit alpha (1 byte/ 4 pixel, most significant bit used first) */
+     DSPF_A2        = DFB_SURFACE_PIXELFORMAT( 24,  0, 2, 1, 2, 0, 3, 0, 0, 0, 0 )
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            22
+#define DFB_NUM_PIXELFORMATS            25
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
@@ -1045,6 +1092,9 @@ typedef struct {
      } preallocated[2];
 
      struct {
+#if 1	/* DFB_ARIB */
+          DFBPaletteCapabilities        caps;
+#endif
           DFBColor                     *entries;
           unsigned int                  size;
      } palette;                                      /* initial palette */
@@ -1069,18 +1119,19 @@ typedef struct {
  * Description of the display layer capabilities.
  */
 typedef struct {
-     DFBDisplayLayerTypeFlags           type;          /* Classification of the display layer. */
-     DFBDisplayLayerCapabilities        caps;          /* Capability flags of the display layer. */
+     DFBDisplayLayerTypeFlags           type;        /* Classification of the
+                                                        display layer. */
+     DFBDisplayLayerCapabilities        caps;        /* Capability flags of
+                                                        the display layer. */
 
-     char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];    /* Display layer name. */
+     char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];  /* Display layer name. */
 
-     int                                level;         /* Default level. */
-     int                                regions;       /* Number of concurrent regions supported.<br>
-                                                           -1 = unlimited,
-                                                            0 = unknown/one,
-                                                           >0 = actual number */
-     int                                sources;       /* Number of selectable sources. */
-     int                                clip_regions;  /* Number of clipping regions. */
+     int                                level;       /* Default level. */
+     int                                regions;     /* Number of concurrent regions supported.<br>
+                                                        -1 = unlimited,
+                                                         0 = unknown/one,
+                                                        >0 = actual number */
+     int                                sources;     /* Number of selectable sources. */
 } DFBDisplayLayerDescription;
 
 
@@ -1274,26 +1325,15 @@ typedef int (*DFBGetDataCallback) (
  * Information about an IDirectFBVideoProvider.
  */
 typedef enum {
-     DVCAPS_BASIC       = 0x00000000,  /* basic ops (PlayTo, Stop)       */
-     DVCAPS_SEEK        = 0x00000001,  /* supports SeekTo                */
-     DVCAPS_SCALE       = 0x00000002,  /* can scale the video            */
-     DVCAPS_INTERLACED  = 0x00000004,  /* supports interlaced surfaces   */
-     DVCAPS_BRIGHTNESS  = 0x00000010,  /* supports Brightness adjustment */
-     DVCAPS_CONTRAST    = 0x00000020,  /* supports Contrast adjustment   */
-     DVCAPS_HUE         = 0x00000040,  /* supports Hue adjustment        */
-     DVCAPS_SATURATION  = 0x00000080,  /* supports Saturation adjustment */
-     DVCAPS_INTERACTIVE = 0x00000100   /* supports SendEvent             */
+     DVCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
+     DVCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
+     DVCAPS_SCALE      = 0x00000002,  /* can scale the video            */
+     DVCAPS_INTERLACED = 0x00000004,  /* supports interlaced surfaces   */
+     DVCAPS_BRIGHTNESS = 0x00000010,  /* supports Brightness adjustment */
+     DVCAPS_CONTRAST   = 0x00000020,  /* supports Contrast adjustment   */
+     DVCAPS_HUE        = 0x00000040,  /* supports Hue adjustment        */
+     DVCAPS_SATURATION = 0x00000080   /* supports Saturation adjustment */
 } DFBVideoProviderCapabilities;
-
-/*
- * Information about the status of an IDirectFBVideoProvider.
- */
-typedef enum {
-     DVSTATE_UNKNOWN    = 0x00000000, /* unknown status            */
-     DVSTATE_PLAY       = 0x00000001, /* video provider is playing */
-     DVSTATE_STOP       = 0x00000002, /* playback was stopped      */
-     DVSTATE_FINISHED   = 0x00000003  /* playback is finished      */
-} DFBVideoProviderStatus;
 
 /*
  * Flags defining which fields of a DFBColorAdjustment are valid.
@@ -1303,8 +1343,7 @@ typedef enum {
      DCAF_BRIGHTNESS   = 0x00000001,  /* brightness field is valid  */
      DCAF_CONTRAST     = 0x00000002,  /* contrast field is valid    */
      DCAF_HUE          = 0x00000004,  /* hue field is valid         */
-     DCAF_SATURATION   = 0x00000008,  /* saturation field is valid  */
-     DCAF_ALL          = 0x0000000F   /* all of these               */
+     DCAF_SATURATION   = 0x00000008   /* saturation field is valid  */
 } DFBColorAdjustmentFlags;
 
 /*
@@ -1541,7 +1580,15 @@ DEFINE_INTERFACE(   IDirectFB,
           DFBInputDeviceID          device_id,
           IDirectFBInputDevice    **ret_interface
      );
-
+     /*
+      * DFB_ARIB
+      * Retrieve an interface to a specific ARIB input device.
+      */
+     DFBResult (*GetARIBInputDevice) (
+          IDirectFB                 *thiz,
+          DFBInputDeviceID           device_id,
+          IDirectFBARIBInputDevice **ret_interface
+     );
      /*
       * Create a buffer for events.
       *
@@ -1573,7 +1620,6 @@ DEFINE_INTERFACE(   IDirectFB,
           IDirectFBEventBuffer       **ret_buffer
      );
 
-
    /** Media **/
 
      /*
@@ -1604,6 +1650,34 @@ DEFINE_INTERFACE(   IDirectFB,
           const DFBFontDescription      *desc,
           IDirectFBFont                **ret_interface
      );
+
+     /*
+      * DFB_ARIB
+      * Load an ARIB font set from the specified file.
+      * The file must contain all the family, size, style ARIB TR-B15/14
+      * requires.
+      *
+      * [memo] no desc argument at the initial draft
+      */
+     DFBResult (*CreateARIBFont) (
+                                  /*          IDirectFBARIBDisplayLayer         *thiz, */
+          IDirectFB                     *thiz,
+          const char                    *filename,
+          IDirectFBARIBFont            **ret_interface
+     );
+
+     /*
+      * DFB_ARIB
+      * Create an ARIB DRCS manager
+      *
+      * [memo] no desc argument at the initial draft
+      */
+     DFBResult (*CreateARIBDrcs) (
+          /*          IDirectFBARIBDisplayLayer         *thiz, */
+          IDirectFB                     *thiz,
+          IDirectFBARIBDrcs            **ret_interface
+     );
+
 
      /*
       * Create a data buffer.
@@ -1703,16 +1777,16 @@ DEFINE_INTERFACE(   IDirectFB,
       * Load an implementation of a specific interface type.
       *
       * This methods loads an interface implementation of the specified
-      * <b>type</b> of interface, e.g. "IFusionSound".
+      * <i>type</i> of interface, e.g. "IFusionSound".
       *
       * A specific implementation can be forced with the optional
-      * <b>implementation</b> argument.
+      * <i>implementation</i> argument.
       *
-      * Implementations are passed <b>arg</b> during probing and construction.
+      * Implementations are passed <i>arg</i> during probing and construction.
       *
       * If an implementation has been successfully probed and the interface
       * has been constructed, the resulting interface pointer is stored in
-      * <b>interface</b>.
+      * <i>interface</i>.
       */
      DFBResult (*GetInterface) (
           IDirectFB                *thiz,
@@ -1816,8 +1890,10 @@ typedef enum {
      DSMCAPS_NONE         = 0x00000000, /* None of these. */
 
      DSMCAPS_FULL         = 0x00000001, /* Can mix full tree as specified in the description. */
-     DSMCAPS_SUB_LEVEL    = 0x00000002, /* Can set a maximum layer level, e.g. to exclude an OSD from VCR output. */
-     DSMCAPS_SUB_LAYERS   = 0x00000004, /* Can select a number of layers individually as specified in the description. */
+     DSMCAPS_SUB_LEVEL    = 0x00000002, /* Can set a maximum layer level, e.g.
+                                           to exclude an OSD from VCR output. */
+     DSMCAPS_SUB_LAYERS   = 0x00000004, /* Can select a number of layers individually as
+                                           specified in the description. */
      DSMCAPS_BACKGROUND   = 0x00000008  /* Background color is configurable. */
 } DFBScreenMixerCapabilities;
 
@@ -2470,7 +2546,6 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
      /*
       * For an interlaced display, this sets the field parity.
-      *
       * field: 0 for top field first, and 1 for bottom field first.
       */
      DFBResult (*SetFieldParity) (
@@ -2478,27 +2553,8 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           int                                 field
      );
 
-     /*
-      * Set the clipping region(s).
-      *
-      * If supported, this method sets the clipping <b>regions</b> that are used to
-      * to enable or disable visibility of parts of the layer. The <b>num_regions</b>
-      * must not exceed the limit as stated in the display layer description.
-      *
-      * If <b>positive</b> is DFB_TRUE the layer will be shown only in these regions,
-      * otherwise it's shown as usual except in these regions.
-      *
-      * Also see IDirectFBDisplayLayer::GetDescription().
-      */
-     DFBResult (*SetClipRegions) (
-          IDirectFBDisplayLayer              *thiz,
-          const DFBRegion                    *regions,
-          int                                 num_regions,
-          DFBBoolean                          positive
-     );
 
-
-   /** Color keys **/
+   /** Color keyes */
 
      /*
       * Set the source color key.
@@ -2856,15 +2912,6 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Get the surface's position in pixels.
-      */
-     DFBResult (*GetPosition) (
-          IDirectFBSurface         *thiz,
-          int                      *ret_x,
-          int                      *ret_y
-     );
-
-     /*
       * Get the surface's width and height in pixels.
       */
      DFBResult (*GetSize) (
@@ -3017,7 +3064,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
    /** Drawing/blitting control **/
 
      /*
-      * Set the clipping region used to limit the area for
+      * Set the clipping region used to limitate the area for
       * drawing, blitting and text functions.
       *
       * If no region is specified (NULL passed) the clip is set
@@ -3026,15 +3073,6 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetClip) (
           IDirectFBSurface         *thiz,
           const DFBRegion          *clip
-     );
-
-     /*
-      * Get the clipping region used to limit the area for
-      * drawing, blitting and text functions.
-      */
-     DFBResult (*GetClip) (
-          IDirectFBSurface         *thiz,
-          DFBRegion                *ret_clip
      );
 
      /*
@@ -3351,8 +3389,11 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Draw a string at the specified position with the
+      * Draw an UTF-8 string at the specified position with the
       * given color following the specified flags.
+      *
+      * If font was loaded with the DFFA_CHARMAP flag, the string
+      * specifies UTF-8 encoded raw glyph indices.
       *
       * Bytes specifies the number of bytes to take from the
       * string or -1 for the complete NULL-terminated string. You
@@ -3369,7 +3410,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Draw a single glyph specified by its character code at the
+      * Draw a single glyph specified by its Unicode index at the
       * specified position with the given color following the
       * specified flags.
       *
@@ -3381,18 +3422,10 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*DrawGlyph) (
           IDirectFBSurface         *thiz,
-          unsigned int              character,
+          unsigned int              index,
           int                       x,
           int                       y,
           DFBSurfaceTextFlags       flags
-     );
-
-     /*
-      * Change the encoding used for text rendering.
-      */
-     DFBResult (*SetEncoding) (
-          IDirectFBSurface         *thiz,
-          DFBTextEncodingID         encoding
      );
 
 
@@ -3640,14 +3673,6 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
       *
       */
      DFBResult (*AttachEventBuffer) (
-          IDirectFBInputDevice          *thiz,
-          IDirectFBEventBuffer          *buffer
-     );
-     
-     /*
-      * Detach an event buffer from this device.
-      */
-     DFBResult (*DetachEventBuffer) (
           IDirectFBInputDevice          *thiz,
           IDirectFBEventBuffer          *buffer
      );
@@ -3956,41 +3981,6 @@ typedef union {
 
 #define DFB_EVENT(e)          ((DFBEvent *) (e))
 
-/*
- * Statistics about event buffer queue.
- */
-typedef struct {
-     unsigned int   num_events;              /* Total number of events in the queue. */
-
-     unsigned int   DFEC_INPUT;              /* Number of input events. */
-     unsigned int   DFEC_WINDOW;             /* Number of window events. */
-     unsigned int   DFEC_USER;               /* Number of user events. */
-     unsigned int   DFEC_UNIVERSAL;          /* Number of universal events. */
-
-     unsigned int   DIET_KEYPRESS;
-     unsigned int   DIET_KEYRELEASE;
-     unsigned int   DIET_BUTTONPRESS;
-     unsigned int   DIET_BUTTONRELEASE;
-     unsigned int   DIET_AXISMOTION;
-
-     unsigned int   DWET_POSITION;
-     unsigned int   DWET_SIZE;
-     unsigned int   DWET_CLOSE;
-     unsigned int   DWET_DESTROYED;
-     unsigned int   DWET_GOTFOCUS;
-     unsigned int   DWET_LOSTFOCUS;
-     unsigned int   DWET_KEYDOWN;
-     unsigned int   DWET_KEYUP;
-     unsigned int   DWET_BUTTONDOWN;
-     unsigned int   DWET_BUTTONUP;
-     unsigned int   DWET_MOTION;
-     unsigned int   DWET_ENTER;
-     unsigned int   DWET_LEAVE;
-     unsigned int   DWET_WHEEL;
-     unsigned int   DWET_POSITION_SIZE;
-} DFBEventBufferStats;
-
-
 /************************
  * IDirectFBEventBuffer *
  ************************/
@@ -4105,25 +4095,6 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
           IDirectFBEventBuffer     *thiz,
           int                      *ret_fd
      );
-
-
-   /** Statistics **/
-
-     /*
-      * Enable/disable collection of event buffer statistics.
-      */
-     DFBResult (*EnableStatistics) (
-          IDirectFBEventBuffer     *thiz,
-          DFBBoolean                enable
-     );
-
-     /*
-      * Query collected event buffer statistics.
-      */
-     DFBResult (*GetStatistics) (
-          IDirectFBEventBuffer     *thiz,
-          DFBEventBufferStats      *ret_stats
-     );
 )
 
 /*
@@ -4226,14 +4197,6 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       *
       */
      DFBResult (*AttachEventBuffer) (
-          IDirectFBWindow               *thiz,
-          IDirectFBEventBuffer          *buffer
-     );
-     
-     /*
-      * Detach an event buffer from this window.
-      */
-     DFBResult (*DetachEventBuffer) (
           IDirectFBWindow               *thiz,
           IDirectFBEventBuffer          *buffer
      );
@@ -4533,6 +4496,22 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz
      );
 
+
+   /** Set transparent region **/
+
+     /*
+      * Set Transparent Region.
+      *
+      */
+     DFBResult (*SetTransparentRegion) (
+          IDirectFBWindow               *thiz,
+          DFBRectangle                  *rect1,
+          DFBRectangle                  *rect2,
+          DFBRectangle                  *rect3,
+          DFBRectangle                  *rect4
+     );
+
+
      /*
       * Destroys the window and sends a destruction message.
       *
@@ -4546,15 +4525,6 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
 )
 
-
-/*
- * Called for each provided text encoding.
- */
-typedef DFBEnumerationResult (*DFBTextEncodingCallback) (
-     DFBTextEncodingID    encoding_id,
-     const char          *name,
-     void                *context
-);
 
 /*****************
  * IDirectFBFont *
@@ -4572,8 +4542,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * logical extents of this font.
       */
      DFBResult (*GetAscender) (
-          IDirectFBFont            *thiz,
-          int                      *ret_ascender
+          IDirectFBFont       *thiz,
+          int                 *ret_ascender
      );
 
      /*
@@ -4583,8 +4553,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * This is a negative value!
       */
      DFBResult (*GetDescender) (
-          IDirectFBFont            *thiz,
-          int                      *ret_descender
+          IDirectFBFont       *thiz,
+          int                 *ret_descender
      );
 
      /*
@@ -4595,8 +4565,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * font.
       */
      DFBResult (*GetHeight) (
-          IDirectFBFont            *thiz,
-          int                      *ret_height
+          IDirectFBFont       *thiz,
+          int                 *ret_height
      );
 
      /*
@@ -4607,26 +4577,26 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * the maximum expected width of a rendered string.
       */
      DFBResult (*GetMaxAdvance) (
-          IDirectFBFont            *thiz,
-          int                      *ret_maxadvance
+          IDirectFBFont       *thiz,
+          int                 *ret_maxadvance
      );
 
      /*
       * Get the kerning to apply between two glyphs specified by
-      * their character codes.
+      * their Unicode indices.
       */
      DFBResult (*GetKerning) (
-          IDirectFBFont            *thiz,
-          unsigned int              prev,
-          unsigned int              current,
-          int                      *ret_kern_x,
-          int                      *ret_kern_y
+          IDirectFBFont       *thiz,
+          unsigned int         prev_index,
+          unsigned int         current_index,
+          int                 *ret_kern_x,
+          int                 *ret_kern_y
      );
 
-   /** Measurements **/
+   /** String extents measurement **/
 
      /*
-      * Get the logical width of the specified string
+      * Get the logical width of the specified UTF-8 string
       * as if it were drawn with this font.
       *
       * Bytes specifies the number of bytes to take from the
@@ -4638,15 +4608,15 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * width indicates right-to-left rendering.
       */
      DFBResult (*GetStringWidth) (
-          IDirectFBFont            *thiz,
-          const char               *text,
-          int                       bytes,
-          int                      *ret_width
+          IDirectFBFont       *thiz,
+          const char          *text,
+          int                  bytes,
+          int                 *ret_width
      );
 
      /*
       * Get the logical and real extents of the specified
-      * string as if it were drawn with this font.
+      * UTF-8 string as if it were drawn with this font.
       *
       * Bytes specifies the number of bytes to take from the
       * string or -1 for the complete NULL-terminated string.
@@ -4667,15 +4637,16 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * DSTF_LEFT.
       */
      DFBResult (*GetStringExtents) (
-          IDirectFBFont            *thiz,
-          const char               *text,
-          int                       bytes,
-          DFBRectangle             *ret_logical_rect,
-          DFBRectangle             *ret_ink_rect
+          IDirectFBFont       *thiz,
+          const char          *text,
+          int                  bytes,
+          DFBRectangle        *ret_logical_rect,
+          DFBRectangle        *ret_ink_rect
      );
 
      /*
-      * Get the extents of a glyph specified by its character code.
+      * Get the extents of a glyph specified by its Unicode
+      * index.
       *
       * The rectangle describes the the smallest rectangle
       * containing all pixels that are touched when drawing the
@@ -4687,45 +4658,14 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * value indicating left-to-right rendering. If you don't
       * need this value, pass NULL for advance.
       */
-     DFBResult (*GetGlyphExtents) (
-          IDirectFBFont            *thiz,
-          unsigned int              character,
-          DFBRectangle             *ret_rect,
-          int                      *ret_advance
+    DFBResult (*GetGlyphExtents) (
+          IDirectFBFont       *thiz,
+          unsigned int         index,
+          DFBRectangle        *ret_rect,
+          int                 *ret_advance
      );
+ )
 
-
-   /** Encodings **/
-
-     /*
-      * Change the default encoding used when the font is set at a surface.
-      *
-      * It's also the encoding used for the measurement functions
-      * of this interface, e.g. IDirectFBFont::GetStringExtents().
-      */
-     DFBResult (*SetEncoding) (
-          IDirectFBFont            *thiz,
-          DFBTextEncodingID         encoding
-     );
-
-     /*
-      * Enumerate all provided text encodings.
-      */
-     DFBResult (*EnumEncodings) (
-          IDirectFBFont            *thiz,
-          DFBTextEncodingCallback   callback,
-          void                     *context
-     );
-
-     /*
-      * Find an encoding by its name.
-      */
-     DFBResult (*FindEncoding) (
-          IDirectFBFont            *thiz,
-          const char               *name,
-          DFBTextEncodingID        *ret_encoding
-     );
-)
 
 /*
  * Capabilities of an image.
@@ -4751,16 +4691,11 @@ typedef struct {
      __u8                     colorkey_b;  /* colorkey blue channel     */
 } DFBImageDescription;
 
-
-typedef enum {
-        DIRCR_OK,
-        DIRCR_ABORT
-} DIRenderCallbackResult;
 /*
  * Called whenever a chunk of the image is decoded.
  * Has to be registered with IDirectFBImageProvider::SetRenderCallback().
  */
-typedef DIRenderCallbackResult (*DIRenderCallback)(DFBRectangle *rect, void *ctx);
+typedef void (*DIRenderCallback)(DFBRectangle *rect, void *ctx);
 
 /**************************
  * IDirectFBImageProvider *
@@ -4833,53 +4768,6 @@ DEFINE_INTERFACE(   IDirectFBImageProvider,
 )
 
 /*
- * Capabilities of an audio/video stream.
- */
-typedef enum {
-     DVSCAPS_NONE         = 0x00000000, /* None of these.         */
-     DVSCAPS_VIDEO        = 0x00000001, /* Stream contains video. */
-     DVSCAPS_AUDIO        = 0x00000002  /* Stream contains audio. */
-     /* DVSCAPS_SUBPICTURE ?! */
-} DFBStreamCapabilities;
-
-#define DFB_STREAM_DESC_ENCODING_LENGTH   30
-#define DFB_STREAM_DESC_TITLE_LENGTH     255
-#define DFB_STREAM_DESC_AUTHOR_LENGTH    255
-#define DFB_STREAM_DESC_ALBUM_LENGTH     255
-#define DFB_STREAM_DESC_GENRE_LENGTH      32
-#define DFB_STREAM_DESC_COMMENT_LENGTH   255
-
-/*
- * Informations about an audio/video stream.
- */
-typedef struct {
-     DFBStreamCapabilities  caps;         /* capabilities                       */
-
-     struct {
-          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
-                                             encoding (e.g. "MPEG4")            */
-          double            framerate;    /* number of frames per second        */
-          double            aspect;       /* frame aspect ratio                 */
-          int               bitrate;      /* amount of bits per second          */
-     } video;
-
-     struct {
-          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
-                                             encoding (e.g. "AAC")              */
-          int               samplerate;   /* number of samples per second       */
-          int               channels;     /* number of channels per sample      */
-          int               bitrate;      /* amount of bits per second          */
-     } audio;
-
-     char                   title[DFB_STREAM_DESC_TITLE_LENGTH];     /* title   */
-     char                   author[DFB_STREAM_DESC_AUTHOR_LENGTH];   /* author  */
-     char                   album[DFB_STREAM_DESC_ALBUM_LENGTH];     /* album   */
-     short                  year;                                    /* year    */
-     char                   genre[DFB_STREAM_DESC_GENRE_LENGTH];     /* genre   */
-     char                   comment[DFB_STREAM_DESC_COMMENT_LENGTH]; /* comment */
-} DFBStreamDescription;
-
-/*
  * Called for each written frame.
  */
 typedef int (*DVFrameCallback)(void *ctx);
@@ -4914,14 +4802,6 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           DFBSurfaceDescription    *ret_dsc
      );
 
-     /*
-      * Get a description of the video stream.
-      */
-     DFBResult (*GetStreamDescription) (
-          IDirectFBVideoProvider   *thiz,
-          DFBStreamDescription     *ret_dsc
-     );
-
 
    /** Playback **/
 
@@ -4949,14 +4829,6 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           IDirectFBVideoProvider   *thiz
      );
 
-     /*
-      * Get the status of the playback.
-      */
-     DFBResult (*GetStatus) (
-          IDirectFBVideoProvider   *thiz,
-          DFBVideoProviderStatus   *ret_status
-     );
-
 
    /** Media Control **/
 
@@ -4970,6 +4842,8 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
 
      /*
       * Gets current position within the stream.
+      *
+      * Returns DFB_EOF when the stream has reached the end.
       */
      DFBResult (*GetPos) (
           IDirectFBVideoProvider   *thiz,
@@ -5004,20 +4878,6 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*SetColorAdjustment) (
           IDirectFBVideoProvider   *thiz,
           const DFBColorAdjustment *adj
-     );
-
-   /** Interactivity **/
-
-     /*
-      * Send an input or window event.
-      *
-      * This method allows to redirect events to an interactive
-      * video provider. Events must be relative to the specified
-      * rectangle of the destination surface.
-      */
-     DFBResult (*SendEvent) (
-          IDirectFBVideoProvider   *thiz,
-          const DFBEvent           *event
      );
 )
 

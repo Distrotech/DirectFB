@@ -44,8 +44,39 @@ install-exec-local:
 
 includedir = @INCLUDEDIR@/direct
 
+
+if ARIBDEV_CORE
 include_HEADERS = \
-	$(ppcasm_headers)		\
+	$(ppcasm_headers)	\
+	build.h				\
+	clock.h				\
+	conf.h				\
+	cpu_accel.h			\
+	debug.h				\
+	direct.h			\
+	hash.h				\
+	interface.h			\
+	interface_implementation.h	\
+	list.h				\
+	log.h				\
+	mem.h				\
+	memcpy.h			\
+	messages.h			\
+	modules.h			\
+	serial.h			\
+	signals.h			\
+	stream.h			\
+	system.h			\
+	thread.h			\
+	trace.h				\
+	tree.h				\
+	types.h				\
+	utf8.h				\
+	util.h				\
+	interface_arib.h
+else
+include_HEADERS = \
+	$(ppcasm_headers)	\
 	build.h				\
 	clock.h				\
 	conf.h				\
@@ -71,9 +102,11 @@ include_HEADERS = \
 	types.h				\
 	utf8.h				\
 	util.h
+endif
 
 
 lib_LTLIBRARIES = libdirect.la
+
 
 libdirect_la_SOURCES = \
 	$(ppcasm_sources)	\
@@ -98,6 +131,7 @@ libdirect_la_SOURCES = \
 	thread.c		\
 	utf8.c			\
 	util.c
+
 
 libdirect_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\

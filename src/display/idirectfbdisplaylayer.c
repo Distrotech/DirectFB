@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -66,6 +75,7 @@
 
 D_DEBUG_DOMAIN( Layer, "IDirectFBDisplayLayer", "Display Layer Interface" );
 
+#ifndef DFB_ARIB	/* idirectfbdisplaylayer.c -> idirectfbdisplaylayer.h */
 /*
  * private data struct of IDirectFB
  */
@@ -79,7 +89,7 @@ typedef struct {
      CoreLayerRegion                 *region;  /* primary region of the context */
      CoreWindowStack                 *stack;   /* stack of shared context */
 } IDirectFBDisplayLayer_data;
-
+#endif
 
 
 static void
@@ -311,26 +321,6 @@ IDirectFBDisplayLayer_SetFieldParity( IDirectFBDisplayLayer *thiz, int field )
 }
 
 static DFBResult
-IDirectFBDisplayLayer_SetClipRegions( IDirectFBDisplayLayer *thiz,
-                                      const DFBRegion       *regions,
-                                      int                    num_regions,
-                                      DFBBoolean             positive )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     if (!regions || num_regions < 1)
-          return DFB_INVARG;
-
-     if (num_regions > data->desc.clip_regions)
-          return DFB_UNSUPPORTED;
-
-     if (data->level != DLSCL_EXCLUSIVE)
-          return DFB_ACCESSDENIED;
-
-     return dfb_layer_context_set_clip_regions( data->context, regions, num_regions, positive );
-}
-
-static DFBResult
 IDirectFBDisplayLayer_SetSourceRectangle( IDirectFBDisplayLayer *thiz,
                                           int                    x,
                                           int                    y,
@@ -536,7 +526,7 @@ IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer         *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level == DLSCL_SHARED)
+     if (data->level != DLSCL_ADMINISTRATIVE)
           return DFB_ACCESSDENIED;
 
      switch (background_mode) {
@@ -565,7 +555,7 @@ IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
      if (!surface)
           return DFB_INVARG;
 
-     if (data->level == DLSCL_SHARED)
+     if (data->level != DLSCL_ADMINISTRATIVE)
           return DFB_ACCESSDENIED;
 
      surface_data = (IDirectFBSurface_data*)surface->priv;
@@ -587,7 +577,7 @@ IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level == DLSCL_SHARED)
+     if (data->level != DLSCL_ADMINISTRATIVE)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_set_background_color( data->stack, &color );
@@ -654,10 +644,9 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
 
      if (!window)
           return DFB_INVARG;
-   
-      //remove for now
-     //if (data->level == DLSCL_SHARED)
-     //    return DFB_ACCESSDENIED;
+
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
 
      w = dfb_layer_context_find_window( data->context, id );
      if (!w)
@@ -696,7 +685,7 @@ IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz, int x, int y )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level == DLSCL_SHARED)
+     if (data->level != DLSCL_ADMINISTRATIVE)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_cursor_warp( data->stack, x, y );
@@ -713,7 +702,7 @@ IDirectFBDisplayLayer_SetCursorAcceleration( IDirectFBDisplayLayer *thiz,
      if (numerator < 0  ||  denominator < 1  ||  threshold < 0)
           return DFB_INVARG;
 
-     if (data->level == DLSCL_SHARED)
+     if (data->level != DLSCL_ADMINISTRATIVE)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_cursor_set_acceleration( data->stack, numerator,
@@ -733,7 +722,7 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
      if (!shape)
           return DFB_INVARG;
 
-     if (data->level == DLSCL_SHARED)
+     if (data->level != DLSCL_ADMINISTRATIVE)
           return DFB_ACCESSDENIED;
 
      shape_data = (IDirectFBSurface_data*)shape->priv;
@@ -755,7 +744,7 @@ IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level == DLSCL_SHARED)
+     if (data->level != DLSCL_ADMINISTRATIVE)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_cursor_set_opacity( data->stack, opacity );
@@ -779,14 +768,11 @@ IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (!adj || (adj->flags & ~DCAF_ALL))
+     if (!adj || !adj->flags)
           return DFB_INVARG;
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
-
-     if (!adj->flags)
-          return DFB_OK;
 
      return dfb_layer_context_set_coloradjustment( data->context, adj );
 }
@@ -848,6 +834,9 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      data->context = context;
      data->region  = region;
      data->stack   = dfb_layer_context_windowstack( context );
+#ifdef DFB_ARIB
+     data->level   = DLSCL_ADMINISTRATIVE;
+#endif
 
      dfb_layer_get_description( data->layer, &data->desc );
 
@@ -883,7 +872,6 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCursorShape        = IDirectFBDisplayLayer_SetCursorShape;
      thiz->SetCursorOpacity      = IDirectFBDisplayLayer_SetCursorOpacity;
      thiz->SetFieldParity        = IDirectFBDisplayLayer_SetFieldParity;
-     thiz->SetClipRegions        = IDirectFBDisplayLayer_SetClipRegions;
      thiz->WaitForSync           = IDirectFBDisplayLayer_WaitForSync;
      thiz->GetSourceDescriptions = IDirectFBDisplayLayer_GetSourceDescriptions;
      thiz->SetScreenPosition     = IDirectFBDisplayLayer_SetScreenPosition;

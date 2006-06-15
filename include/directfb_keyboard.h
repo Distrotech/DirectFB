@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DIRECTFB_KEYBOARD_H__
 #define __DIRECTFB_KEYBOARD_H__
@@ -144,6 +153,7 @@ typedef enum {
      DIKI_CONTROL_R,
      DIKI_ALT_L,
      DIKI_ALT_R,
+     DIKI_ALTGR,
      DIKI_META_L,
      DIKI_META_R,
      DIKI_SUPER_L,
@@ -452,6 +462,18 @@ typedef enum {
      DIKS_CURSOR_LEFT_DOWN         = DFB_KEY( SPECIAL, 0x65 ),
      DIKS_CURSOR_UP_RIGHT          = DFB_KEY( SPECIAL, 0x66 ),
      DIKS_CURSOR_DOWN_RIGHT        = DFB_KEY( SPECIAL, 0x67 ),
+
+     /*
+      * ARIB Extension of Remote Buttons
+      */
+
+     DIKS_CAPTION                  = DFB_KEY( SPECIAL, 0x68 ),
+     DIKS_DATA                     = DFB_KEY( SPECIAL, 0x69 ),
+     DIKS_SERVICE_SWITCH           = DFB_KEY( SPECIAL, 0x6A ),
+     DIKS_OSD                      = DFB_KEY( SPECIAL, 0x6B ),
+     DIKS_EPG_CURRENT              = DFB_KEY( SPECIAL, 0x6C ),
+     DIKS_FIND                     = DFB_KEY( SPECIAL, 0x6D ),
+     DIKS_RESERVE                  = DFB_KEY( SPECIAL, 0x6E ),
 
      /*
       * Unicode private area - DirectFB Function keys

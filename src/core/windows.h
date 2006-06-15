@@ -24,12 +24,24 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __WINDOWS_H__
 #define __WINDOWS_H__
 
+#ifdef DFB_ARIB
+#include <directfb_arib.h>
+#else
 #include <directfb.h>
-
+#endif
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -80,6 +92,10 @@ struct __DFB_CoreWindowConfig {
      DFBWindowEventType      events;         /* mask of enabled events */
      __u32                   color_key;      /* transparent pixel */
      DFBRegion               opaque;         /* region of the window forced to be opaque */
+#ifdef DFB_ARIB
+     DFBSwitchingInfo        switching;      /* Change still & video. */
+#endif
+
 };
 
 
@@ -93,7 +109,7 @@ struct __DFB_CoreWindowConfig {
 /*
  * Creates a pool of window objects.
  */
-FusionObjectPool *dfb_window_pool_create( const FusionWorld *world );
+FusionObjectPool *dfb_window_pool_create();
 
 /*
  * Generates dfb_window_ref(), dfb_window_attach() etc.
@@ -251,5 +267,14 @@ DFBResult dfb_window_send_configuration( CoreWindow *window );
 DFBWindowID dfb_window_id( const CoreWindow *window );
 
 CoreSurface *dfb_window_surface( const CoreWindow *window );
+
+#ifdef DFB_ARIB
+DFBResult dfb_window_set_transparent_region( CoreWindow   *window,
+                                             DFBRectangle *rect1,
+                                             DFBRectangle *rect2,
+                                             DFBRectangle *rect3,
+                                             DFBRectangle *rect4 );
+
+#endif
 
 #endif

@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -52,7 +61,6 @@
 #include <core/state.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
-#include <core/wm.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h> /* FIXME */
 
@@ -80,7 +88,7 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
                                              void       *ctx );
 
 
-
+#ifndef DFB_ARIB	/* idirectfbwindow.c -> idirectfbwindow.h */
 typedef struct {
      int                ref;
      CoreWindow        *window;
@@ -101,7 +109,7 @@ typedef struct {
      bool               detached;
      bool               destroyed;
 } IDirectFBWindow_data;
-
+#endif
 
 static void
 IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
@@ -199,18 +207,6 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
 }
 
 static DFBResult
-IDirectFBWindow_DetachEventBuffer( IDirectFBWindow       *thiz,
-                                   IDirectFBEventBuffer  *buffer )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
-
-     if (data->destroyed)
-          return DFB_DESTROYED;
-
-     return IDirectFBEventBuffer_DetachWindow( buffer, data->window );
-}
-
-static DFBResult
 IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
                               DFBWindowEventType     mask )
 {
@@ -262,9 +258,7 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
                              int             *x,
                              int             *y )
 {
-     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
-
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -272,13 +266,11 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
      if (!x && !y)
           return DFB_INVARG;
 
-     dfb_wm_get_insets(data->window->stack,data->window,&insets);
-
      if (x)
-          *x = data->window->config.bounds.x-insets.l;
+          *x = data->window->config.bounds.x;
 
      if (y)
-          *y = data->window->config.bounds.y-insets.t;
+          *y = data->window->config.bounds.y;
 
      return DFB_OK;
 }
@@ -288,7 +280,6 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
                          int             *width,
                          int             *height )
 {
-     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
@@ -296,13 +287,12 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
 
      if (!width && !height)
           return DFB_INVARG;
-     dfb_wm_get_insets(data->window->stack,data->window,&insets);
 
      if (width)
-          *width = data->window->config.bounds.w-insets.l-insets.r;
+          *width = data->window->config.bounds.w;
 
      if (height)
-          *height = data->window->config.bounds.h-insets.t-insets.b;
+          *height = data->window->config.bounds.h;
 
      return DFB_OK;
 }
@@ -629,15 +619,11 @@ IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 static DFBResult
 IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
-     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     dfb_wm_get_insets(data->window->stack,data->window,&insets);
-     x +=insets.l;
-     y +=insets.t;
      return dfb_window_move( data->window, x, y, false );
 }
 
@@ -646,7 +632,6 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
                         int              width,
                         int              height )
 {
-     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
@@ -654,9 +639,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
-     dfb_wm_get_insets(data->window->stack,data->window,&insets);
-     width  +=insets.l+insets.r;
-     height +=insets.t+insets.b;
+
      return dfb_window_resize( data->window, width, height );
 }
 
@@ -773,6 +756,24 @@ IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
      return dfb_window_putbelow( data->window, upper_data->window );
 }
 
+#ifdef DFB_ARIB
+static DFBResult
+IDirectFBWindow_SetTransparentRegion( IDirectFBWindow  *thiz,
+                                      DFBRectangle     *rect1,
+                                      DFBRectangle     *rect2,
+                                      DFBRectangle     *rect3,
+                                      DFBRectangle     *rect4 )
+{
+	DIRECT_INTERFACE_GET_DATA(IDirectFBWindow);
+
+	data = (IDirectFBWindow_data *)data;
+
+	dfb_window_set_transparent_region( data->window, rect1, rect2, rect3, rect4 );
+
+	return DFB_OK;
+}
+#endif
+
 static DFBResult
 IDirectFBWindow_Close( IDirectFBWindow *thiz )
 {
@@ -825,7 +826,6 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Release = IDirectFBWindow_Release;
      thiz->CreateEventBuffer = IDirectFBWindow_CreateEventBuffer;
      thiz->AttachEventBuffer = IDirectFBWindow_AttachEventBuffer;
-     thiz->DetachEventBuffer = IDirectFBWindow_DetachEventBuffer;
      thiz->EnableEvents = IDirectFBWindow_EnableEvents;
      thiz->DisableEvents = IDirectFBWindow_DisableEvents;
      thiz->GetID = IDirectFBWindow_GetID;
@@ -857,6 +857,9 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->LowerToBottom = IDirectFBWindow_LowerToBottom;
      thiz->PutAtop = IDirectFBWindow_PutAtop;
      thiz->PutBelow = IDirectFBWindow_PutBelow;
+#ifdef DFB_ARIB	/* switching */
+     thiz->SetTransparentRegion = IDirectFBWindow_SetTransparentRegion;
+#endif
      thiz->Close = IDirectFBWindow_Close;
      thiz->Destroy = IDirectFBWindow_Destroy;
 

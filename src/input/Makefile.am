@@ -10,13 +10,32 @@ INCLUDES = \
 
 internalincludedir = $(INTERNALINCLUDEDIR)/input
 
+
+noinst_LTLIBRARIES = libdirectfb_input.la
+
+
+if ARIBDEV_CORE
+
+internalinclude_HEADERS = \
+	idirectfbinputdevice.h	\
+	idirectfbinputbuffer.h	\
+	idirectfbinputdevice_arib.h
+
+
+libdirectfb_input_la_SOURCES = \
+	idirectfbinputdevice.c	\
+	idirectfbinputbuffer.c	\
+	idirectfbinputdevice_arib.c
+
+else
+
 internalinclude_HEADERS = \
 	idirectfbinputdevice.h	\
 	idirectfbinputbuffer.h
 
 
-noinst_LTLIBRARIES = libdirectfb_input.la
-
 libdirectfb_input_la_SOURCES = \
 	idirectfbinputdevice.c	\
 	idirectfbinputbuffer.c
+
+endif

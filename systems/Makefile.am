@@ -29,6 +29,12 @@ VNC_DIR = vnc
 else
 VNC_DIR =
 endif
-  
 
-SUBDIRS = $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR) $(VNC_DIR)
+
+if ARIBDEV_CORE
+ARIBDEV_DIR = aribdev
+else
+ARIBDEV_DIR =
+endif
+
+SUBDIRS = $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR) $(VNC_DIR) $(ARIBDEV_DIR)

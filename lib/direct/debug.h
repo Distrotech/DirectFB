@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DIRECT__DEBUG_H__
 #define __DIRECT__DEBUG_H__
@@ -57,20 +66,12 @@ void direct_debug_config_domain( const char *name, bool enable );
 
 void direct_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
 
+#if 1	/* DFB_ARIB */
+void direct_arib_debug( const char *format, ... )  D_FORMAT_PRINTF(1);
+#endif
+
 void direct_debug_at( DirectDebugDomain *domain,
                       const char        *format, ... )  D_FORMAT_PRINTF(2);
-
-void direct_debug_enter( DirectDebugDomain *domain,
-	      	         const char *func,
-                         const char *file,
-                         int         line,
-                         const char *format, ... )  D_FORMAT_PRINTF(5);
-
-void direct_debug_exit( DirectDebugDomain *domain,
-	      	        const char *func,
-                        const char *file,
-                        int         line,
-                        const char *format, ... )  D_FORMAT_PRINTF(5);
 
 void direct_break( const char *func,
                    const char *file,
@@ -93,11 +94,6 @@ void direct_assumption( const char *exp,
 
 #if DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG))
 
-#if !DIRECT_BUILD_DEBUGS
-#warning Building with debug, but library headers suggest that debug is not supported.
-#endif
-
-
 #define D_DEBUG_ENABLED  (1)
 
 #ifdef HEAVYDEBUG
@@ -119,20 +115,17 @@ void direct_assumption( const char *exp,
                direct_debug( x );                                                    \
      } while (0)
 
+#if 1	/* DFB_ARIB: -----> */
+#define A_TRACE(x...)                                                           \
+     do {                                                                            \
+          if (!direct_config || direct_config->aribtrace)                            \
+               direct_arib_debug( x );                                               \
+     } while (0)
+#endif	/* <----- */
 
 #define D_DEBUG_AT(d,x...)                                                           \
      do {                                                                            \
           direct_debug_at( &d, x );                                                  \
-     } while (0)
-
-#define D_DEBUG_ENTER(d,x...)                                                        \
-     do {                                                                            \
-          direct_debug_enter( &d, __FUNCTION__, __FILE__, __LINE__, x );             \
-     } while (0)
-
-#define D_DEBUG_EXIT(d,x...)                                                         \
-     do {                                                                            \
-          direct_debug_exit( &d, __FUNCTION__, __FILE__, __LINE__, x );              \
      } while (0)
 
 #define D_ASSERT(exp)                                                                \
@@ -162,8 +155,9 @@ void direct_assumption( const char *exp,
 #define D_DEBUG_DOMAIN(i,n,d)
 #define D_DEBUG(x...)              do {} while (0)
 #define D_DEBUG_AT(d,x...)         do {} while (0)
-#define D_DEBUG_ENTER(d,x...)      do {} while (0)
-#define D_DEBUG_EXIT(d,x...)       do {} while (0)
+#if 1	/* DFB_ARIB: -----> */
+#define A_TRACE(x...)              do {} while (0)
+#endif	/* <----- */
 #define D_ASSERT(exp)              do {} while (0)
 #define D_ASSUME(exp)              do {} while (0)
 #define D_BREAK(x...)              do {} while (0)
@@ -184,12 +178,6 @@ void direct_assumption( const char *exp,
 #define D_MAGIC_SET(o,m)           do {                                              \
                                         D_ASSERT( (o) != NULL );                     \
                                         D_ASSUME( (o)->magic != D_MAGIC(#m) );       \
-                                                                                     \
-                                        (o)->magic = D_MAGIC(#m);                    \
-                                   } while (0)
-
-#define D_MAGIC_SET_ONLY(o,m)      do {                                              \
-                                        D_ASSERT( (o) != NULL );                     \
                                                                                      \
                                         (o)->magic = D_MAGIC(#m);                    \
                                    } while (0)

@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -316,35 +325,11 @@ dfb_system_videoram_length()
      return system_funcs->VideoRamLength();
 }
 
-unsigned long
-dfb_system_aux_memory_physical( unsigned int offset )
-{
-     D_ASSERT( system_funcs != NULL );
-
-     return system_funcs->AuxMemoryPhysical( offset );
-}
-
-void *
-dfb_system_aux_memory_virtual( unsigned int offset )
-{
-     D_ASSERT( system_funcs != NULL );
-
-     return system_funcs->AuxMemoryVirtual( offset );
-}
-
-unsigned int
-dfb_system_auxram_length()
-{
-     D_ASSERT( system_funcs != NULL );
-
-     return system_funcs->AuxRamLength();
-}
-
 void
 dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
 {
      int bus = -1, dev = -1, func = -1;
-     
+
      D_ASSERT( system_funcs != NULL );
 
      system_funcs->GetBusID( &bus, &dev, &func );
@@ -373,3 +358,12 @@ dfb_system_get_deviceid( unsigned int *ret_vendor_id,
           *ret_device_id = device_id;
 }
 
+#ifdef DFB_ARIB
+DFBResult
+dfb_system_canvas_surface_unref( CoreDFB *core )
+{
+     D_ASSERT( system_funcs != NULL );
+
+     return system_funcs->CanvasSurfaceUnref( core );
+}
+#endif

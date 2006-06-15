@@ -24,12 +24,37 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __IDIRECTFBDISPLAYLAYER_H__
 #define __IDIRECTFBDISPLAYLAYER_H__
 
 #include <directfb.h>
 #include <core/coretypes.h>
+
+#ifdef DFB_ARIB	/* idirectfbdisplaylayer.c -> idirectfbdisplaylayer.h */
+/*
+ * private data struct of IDirectFB
+ */
+typedef struct {
+     int                              ref;     /* reference counter */
+     DFBDisplayLayerDescription       desc;    /* description of the layer's caps */
+     DFBDisplayLayerCooperativeLevel  level;   /* current cooperative level */
+     CoreScreen                      *screen;  /* layer's screen */
+     CoreLayer                       *layer;   /* core layer data */
+     CoreLayerContext                *context; /* shared or exclusive context */
+     CoreLayerRegion                 *region;  /* primary region of the context */
+     CoreWindowStack                 *stack;   /* stack of shared context */
+} IDirectFBDisplayLayer_data;
+#endif
 
 /*
  * initializes interface struct and private data

@@ -15,7 +15,7 @@ Options:
 	[--version]
 	[--libs]
 	[--cflags]
-	
+
 For static linking:
 	[--input=<driver>[,<driver>]...]	(default: none)
 	[--graphics=<driver>[,<driver>]...]	(default: none)
@@ -26,7 +26,7 @@ For static linking:
 	[--videoprovider=<impl>[,<impl>]...]	(default: none)
 	[--fusionsound]
 	[--voodoo]
-	
+
 Example for static linking:
 	directfb-config --libs --graphics=matrox,r200
 			--input=linux_input --font=ft2
@@ -84,7 +84,7 @@ while test $# -gt 0; do
       if test -z "$optarg"; then
         usage 2 1>&2
       fi
-        
+
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_input="$echo_input $moduledir/inputdrivers/libdirectfb_$i.o"
       done
@@ -95,7 +95,7 @@ while test $# -gt 0; do
       if test -z "$optarg"; then
         usage 2 1>&2
       fi
-        
+
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_graphics="$echo_graphics $moduledir/gfxdrivers/libdirectfb_$i.o"
       done
@@ -106,7 +106,7 @@ while test $# -gt 0; do
       if test -z "$optarg"; then
         usage 2 1>&2
       fi
-        
+
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_font="$echo_font $moduledir/interfaces/IDirectFBFont/libidirectfbfont_$i.o"
         case $i in
@@ -118,11 +118,29 @@ while test $# -gt 0; do
 
       echo_static=yes
       ;;
+    --aribfont=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+
+      for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_aribfont="$echo_aribfont $moduledir/interfaces/IDirectFBARIBFont/libidirectfbaribfont_$i.o"
+        case $i in
+          fontavenue)
+            echo_aribfont="$echo_font -lfontavenue"
+            ;;
+          vcft)
+            ;;
+        esac
+      done
+
+      echo_static=yes
+      ;;
     --system=*)
       if test -z "$optarg"; then
         usage 2 1>&2
       fi
-        
+
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_system="$echo_system $moduledir/systems/libdirectfb_$i.o"
         case $i in
@@ -138,7 +156,7 @@ while test $# -gt 0; do
       if test -z "$optarg"; then
         usage 2 1>&2
       fi
-        
+
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_wm="$echo_wm $moduledir/wm/libidirectfb_$i.o"
         case $i in
@@ -154,7 +172,7 @@ while test $# -gt 0; do
       if test -z "$optarg"; then
         usage 2 1>&2
       fi
-        
+
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_imageprovider="$echo_imageprovider $moduledir/interfaces/IDirectFBImageProvider/libidirectfbimageprovider_$i.o"
         case $i in
@@ -181,7 +199,7 @@ while test $# -gt 0; do
       if test -z "$optarg"; then
         usage 2 1>&2
       fi
-        
+
       for i in `echo $optarg | sed 's/,/ /g'`; do
         echo_videoprovider="$echo_videoprovider $moduledir/interfaces/IDirectFBVideoProvider/libidirectfbvideoprovider_$i.o"
         case $i in
@@ -224,7 +242,7 @@ fi
 
 if test "$echo_cflags" = "yes"; then
       if test @INCLUDEDIR@ != /usr/include ; then
-        cflags="-I@INCLUDEDIR@"
+        cflags="-I@INCLUDEDIR@ -D_GNU_SOURCE"
       fi
       echo $cflags @THREADFLAGS@
 fi
@@ -244,6 +262,10 @@ fi
 
 if test -n "$echo_font"; then
 	echo $echo_font
+fi
+
+if test -n "$echo_aribfont"; then
+	echo $echo_aribfont
 fi
 
 if test -n "$echo_imageprovider"; then
@@ -287,6 +309,7 @@ if test -n "$echo_voodoo"; then
 	print_voodoo  IDirectFBDisplayLayer  idirectfbdisplaylayer
 	print_voodoo  IDirectFBEventBuffer   idirectfbeventbuffer
 	print_voodoo  IDirectFBFont          idirectfbfont
+	print_voodoo  IDirectFBARIBFont      idirectfbaribfont
 	print_voodoo  IDirectFBImageProvider idirectfbimageprovider
 	print_voodoo  IDirectFBInputDevice   idirectfbinputdevice
 	print_voodoo  IDirectFBPalette       idirectfbpalette
@@ -312,4 +335,4 @@ if test "$echo_libs" = "yes"; then
       fi
 
       echo $libs
-fi      
+fi

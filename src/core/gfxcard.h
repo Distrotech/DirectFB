@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __GFXCARD_H__
 #define __GFXCARD_H__
@@ -40,9 +49,7 @@
 typedef enum {
      CCF_CLIPPING   = 0x00000001,
      CCF_NOTRIEMU   = 0x00000002,
-     CCF_READSYSMEM = 0x00000004,
-     /* CCF_WRITESYSMEM ?! */
-     CCF_AUXMEMORY  = 0x00000010
+     CCF_READSYSMEM = 0x00000004
 } CardCapabilitiesFlags;
 
 struct __DFB_CoreGraphicsSerial {
@@ -73,7 +80,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          32
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          30
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     40
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   60
@@ -161,23 +168,6 @@ typedef struct _GraphicsDeviceFuncs {
      void (*FlushTextureCache)( void *driver_data, void *device_data );
 
      /*
-      * After the video memory has been written to by the accelerator
-      * make sure the CPU won't read back cached data.
-      */
-     void (*FlushReadCache)( void *driver_data, void *device_data );
-
-     /*
-      * Called before a software access to a video surface buffer.
-      */
-     void (*SurfaceEnter)( void *driver_data, void *device_data,
-                           SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
-
-     /*
-      * Called after a software access to a video surface buffer.
-      */
-     void (*SurfaceLeave)( void *driver_data, void *device_data, SurfaceBuffer *buffer );
-
-     /*
       * Return the serial of the last (queued) operation.
       *
       * The serial is used to wait for finishing a specific graphics
@@ -241,6 +231,31 @@ typedef struct _GraphicsDeviceFuncs {
      bool (*TextureTriangles)( void *driver_data, void *device_data,
                                DFBVertex *vertices, int num,
                                DFBTriangleFormation formation );
+#ifdef DFB_ARIB
+     /*
+      * multi plane blit functions
+      */
+
+     bool (*MultiBlitCheckState)( void *driver_data, void *device_data,
+                                  int          num,
+                                  DFBRectangle *src_rect,
+                                  CoreSurface  **src_surface,
+                                  DFBRectangle *dst_rect,
+                                  CoreSurface  *dst_surface,
+                                  CardState    *state,
+                                  void         **win_cnf );
+
+     bool (*MultiBlit)( void *driver_data, void *device_data,
+                        int          num,
+                        DFBRectangle *src_rect,
+                        CoreSurface  **src_surface,
+                        DFBRectangle *dst_rect,
+                        CoreSurface  *dst_surface,
+                        CardState    *state,
+                        void         **win_cnf );
+
+
+#endif
 } GraphicsDeviceFuncs;
 
 typedef struct {
@@ -251,8 +266,7 @@ typedef struct {
      DFBResult (*InitDriver)     (GraphicsDevice      *device,
                                   GraphicsDeviceFuncs *funcs,
                                   void                *driver_data,
-                                  void                *device_data,
-                                  CoreDFB             *core);
+                                  void                *device_data);
 
      DFBResult (*InitDevice)     (GraphicsDevice      *device,
                                   GraphicsDeviceInfo  *device_info,
@@ -297,6 +311,17 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
 
 void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
 
+#ifdef DFB_ARIB
+void dfb_gfxcard_multi_blit( int          num,
+                             DFBRectangle *src_rect,
+                             CoreSurface  **src_surface,
+                             DFBRectangle *dst_rect,
+                             CoreSurface  *dst_surface,
+                             CardState    *state,
+                             void         **win_cnf );
+
+#endif
+
 void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
 
 void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
@@ -312,36 +337,29 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
                                     DFBTriangleFormation formation,
                                     CardState *state );
 
-void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
-                             DFBTextEncodingID encoding, int x, int y,
+void dfb_gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
                              CoreFont *font, CardState *state );
 void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state );
-void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
+void dfb_gfxcard_drawglyph( unichar index, int x, int y,
                             CoreFont *font, CardState *state );
 
 void dfb_gfxcard_sync();
 void dfb_gfxcard_invalidate_state();
 void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache();
-void dfb_gfxcard_flush_read_cache();
 void dfb_gfxcard_after_set_var();
-void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
-void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer );
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
-SurfaceManager *dfb_gfxcard_surface_manager   ();
-void            dfb_gfxcard_get_capabilities  ( CardCapabilities   *ret_caps );
-void            dfb_gfxcard_get_device_info   ( GraphicsDeviceInfo *ret_info );
-void            dfb_gfxcard_get_driver_info   ( GraphicsDriverInfo *ret_info );
+SurfaceManager *dfb_gfxcard_surface_manager ();
+void            dfb_gfxcard_get_capabilities( CardCapabilities   *ret_caps );
+void            dfb_gfxcard_get_device_info ( GraphicsDeviceInfo *ret_info );
+void            dfb_gfxcard_get_driver_info ( GraphicsDriverInfo *ret_info );
 
-int             dfb_gfxcard_reserve_memory    ( GraphicsDevice      *device,
-                                                unsigned int         size );
-int             dfb_gfxcard_reserve_auxmemory ( GraphicsDevice      *device,
-                                                unsigned int         size );
+int             dfb_gfxcard_reserve_memory  ( GraphicsDevice      *device,
+                                              unsigned int         size );
 
-unsigned int    dfb_gfxcard_memory_length     ();
-unsigned int    dfb_gfxcard_auxmemory_length  ();
+unsigned int    dfb_gfxcard_memory_length   ();
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.
@@ -368,15 +386,8 @@ void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
 
 int dfb_gfxcard_get_accelerator( GraphicsDevice *device );
 
-unsigned long  dfb_gfxcard_memory_physical( GraphicsDevice *device,
-                                            unsigned int    offset );
-void          *dfb_gfxcard_memory_virtual ( GraphicsDevice *device,
-                                            unsigned int    offset );
-
-unsigned long  dfb_gfxcard_auxmemory_physical( GraphicsDevice *device,
-                                               unsigned int    offset );
-void          *dfb_gfxcard_auxmemory_virtual ( GraphicsDevice *device,
-                                               unsigned int    offset );
+unsigned long  dfb_gfxcard_memory_physical( GraphicsDevice *device, unsigned int offset );
+void          *dfb_gfxcard_memory_virtual( GraphicsDevice *device, unsigned int offset );
 
 #endif
 

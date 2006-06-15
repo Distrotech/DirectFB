@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __IDIRECTFBWINDOW_H__
 #define __IDIRECTFBWINDOW_H__
@@ -31,6 +40,29 @@
 #include <directfb.h>
 
 #include <core/coretypes.h>
+
+#ifdef DFB_ARIB	/* idirectfbwindow.c -> idirectfbwindow.h */
+typedef struct {
+     int                ref;
+     CoreWindow        *window;
+     CoreLayer         *layer;
+
+     IDirectFBSurface  *surface;
+
+     struct {
+          IDirectFBSurface  *shape;
+          int                hot_x;
+          int                hot_y;
+     } cursor;
+
+     Reaction           reaction;
+
+     bool               entered;
+
+     bool               detached;
+     bool               destroyed;
+} IDirectFBWindow_data;
+#endif
 
 /*
  * initializes a new window and constructs interface

@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -33,7 +42,10 @@
 
 #include <sys/time.h>
 #include <sys/resource.h>
-
+#if 1 /* DFB_ARIB */
+#include <unistd.h>
+#include <sys/types.h>
+#endif
 #include <direct/debug.h>
 #include <direct/list.h>
 #include <direct/mem.h>
@@ -95,7 +107,7 @@ static const char *thread_type_name( DirectThreadType type )  D_CONST_FUNC;
 
 /******************************************************************************/
 
-static pthread_mutex_t  handler_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  handler_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static DirectLink      *handlers     = NULL;
 
 /******************************************************************************/
@@ -144,7 +156,7 @@ direct_thread_remove_init_handler( DirectThreadInitHandler *handler )
 
 /******************************************************************************/
 
-static pthread_mutex_t key_lock   = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t key_lock   = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t   thread_key = -1;
 
 /******************************************************************************/
@@ -174,10 +186,8 @@ direct_thread_create( DirectThreadType      thread_type,
 
      /* Allocate thread structure. */
      thread = D_CALLOC( 1, sizeof(DirectThread) );
-     if (!thread) {
-          D_OOM();
+     if (!thread)
           return NULL;
-     }
 
      /* Write thread information to structure. */
      thread->name = D_STRDUP( name );
@@ -409,7 +419,11 @@ thread_type_name( DirectThreadType type )
           case DTT_CRITICAL:
                return "CRITICAL";
      }
-
+#if 1 /* DFB_ARIB */
+     if (type < DTT_CRITICAL) {
+          return "REALTIME";
+     }
+#endif
      return "unknown type!";
 }
 
@@ -455,6 +469,32 @@ direct_thread_main( void *arg )
           default:
                break;
      }
+#if 1 /* DFB_ARIB */
+     if (thread->type < DTT_CRITICAL) {
+          int realtime_priority;
+          struct sched_param param;
+          int ret, policy;
+
+          realtime_priority = DTT_CRITICAL - thread->type;
+          if (realtime_priority > sched_get_priority_max(SCHED_RR))
+               realtime_priority = sched_get_priority_max(SCHED_RR);
+
+          ret = pthread_getschedparam(pthread_self(), &policy, &param);
+          if(ret)
+               D_ERROR("Direct/Thread: pthread_getschedparam error (%d).\n", ret);
+          param.sched_priority = realtime_priority;
+		if (getuid() == 0) {
+			ret = pthread_setschedparam(pthread_self(), SCHED_RR, &param);
+               D_ONCE("Direct/Thread: calling pthread_setschedparam(SCHED_RR, prio=%d).\n", param.sched_priority);
+			if(ret)
+                    D_ERROR("Direct/Thread: pthread_setschedparam error (%d).\n", ret);
+		}
+		else
+		{
+               D_ERROR("Direct/Thread: unable to execute pthread_setschedparam(SCHED_RR) without root previledge..\n");
+		}
+     }
+#endif
 
 #ifdef DIRECT_THREAD_WAIT_INIT
      /* Indicate that our initialization has completed. */

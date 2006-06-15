@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DIRECTFBSURFACE_WINDOW_H__
 #define __DIRECTFBSURFACE_WINDOW_H__
@@ -31,6 +40,22 @@
 #include <directfb.h>
 
 #include <core/coretypes.h>
+
+#ifdef DFB_ARIB	/* idirectfbsurface_window.c -> idirectfbsurface_window.h */
+/*
+ * private data struct of IDirectFB
+ */
+typedef struct {
+     IDirectFBSurface_data base;   /* base Surface implementation */
+
+     CoreWindow           *window; /* pointer to core data */
+
+     pthread_t             flip_thread; /* thread for non-flipping primary
+                                           surfaces, to make changes visible */
+
+//     CoreGraphicsSerial    serial;
+} IDirectFBSurface_Window_data;
+#endif
 
 /*
  * calls base classes IDirectFBSurface_Construct,

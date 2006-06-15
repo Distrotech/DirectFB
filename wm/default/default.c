@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -368,10 +377,15 @@ window_at_pointer( CoreWindowStack *stack,
 
                               switch (surface->format) {
                                    case DSPF_AiRGB:
+#ifdef DFB_YCBCR
+                                   case DSPF_AiYCbCr:
+#endif // DFB_YCBCR
                                         alpha = 0xff - (*(__u32*)(data + 4 * wx + pitch * wy) >> 24);
                                         break;
                                    case DSPF_ARGB:
-                                   case DSPF_AYUV:
+#ifdef DFB_YCBCR
+                                   case DSPF_AYCbCr:
+#endif // DFB_YCBCR
                                         alpha = *(__u32*)(data + 4 * wx + pitch * wy) >> 24;
                                         break;
                                    case DSPF_ARGB1555:
@@ -384,6 +398,9 @@ window_at_pointer( CoreWindowStack *stack,
                                         alpha = *(__u8*)(data + wx + pitch * wy) & 0xf0;
                                         alpha |= alpha >> 4;
                                         break;
+#ifdef DFB_YCBCR
+                                   case DSPF_LUT8AYCbCr:
+#endif // DFB_YCBCR
                                    case DSPF_LUT8: {
                                         CorePalette *palette = surface->palette;
                                         __u8         pix     = *((__u8*) data + wx + pitch * wy);
@@ -414,12 +431,20 @@ window_at_pointer( CoreWindowStack *stack,
                                    case DSPF_ARGB:
                                    case DSPF_AiRGB:
                                    case DSPF_RGB32:
+#ifdef DFB_YCBCR
+                                   case DSPF_AYCbCr:
+                                   case DSPF_AiYCbCr:
+#endif // DFB_YCBCR
                                         pixel = *(__u32*)(data +
                                                           4 * wx + pitch * wy)
                                                 & 0x00ffffff;
                                         break;
 
                                    case DSPF_RGB24:
+#ifdef DFB_YCBCR
+                                   case DSPF_YCbCr24:   //endianess? boh...
+#endif // DFB_YCBCR
+
                                         p = (data + 3 * wx + pitch * wy);
 #ifdef WORDS_BIGENDIAN
                                         pixel = (p[0] << 16) | (p[1] << 8) | p[2];
@@ -441,6 +466,9 @@ window_at_pointer( CoreWindowStack *stack,
 
                                    case DSPF_RGB332:
                                    case DSPF_LUT8:
+#ifdef DFB_YCBCR
+                                   case DSPF_LUT8AYCbCr:
+#endif // DFB_YCBCR
                                         pixel = *(__u8*)(data +
                                                          wx + pitch * wy);
                                         break;
@@ -452,7 +480,6 @@ window_at_pointer( CoreWindowStack *stack,
                                         break;
 
                                    default:
-                                        D_ONCE( "unknown format 0x%x", surface->format );
                                         break;
                               }
 
@@ -1321,7 +1348,7 @@ remove_window( CoreWindowStack *stack,
 
           if (key->owner == window) {
                direct_list_remove( &data->grabbed_keys, &key->link );
-               SHFREE( stack->shmpool, key );
+               SHFREE( key );
           }
      }
 
@@ -1704,18 +1731,15 @@ grab_key( CoreWindow                 *window,
           DFBInputDeviceKeySymbol     symbol,
           DFBInputDeviceModifierMask  modifiers )
 {
-     int              i;
-     StackData       *data;
-     GrabbedKey      *grab;
-     CoreWindowStack *stack;
+     int         i;
+     StackData  *data;
+     GrabbedKey *grab;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( window_data->stack_data != NULL );
-     D_ASSERT( window_data->stack_data->stack != NULL );
 
-     data  = window_data->stack_data;
-     stack = data->stack;
+     data = window_data->stack_data;
 
      /* Reject if already grabbed. */
      direct_list_foreach (grab, data->grabbed_keys)
@@ -1723,7 +1747,7 @@ grab_key( CoreWindow                 *window,
                return DFB_LOCKED;
 
      /* Allocate grab information. */
-     grab = SHCALLOC( stack->shmpool, 1, sizeof(GrabbedKey) );
+     grab = SHCALLOC( 1, sizeof(GrabbedKey) );
 
      /* Fill grab information. */
      grab->symbol    = symbol;
@@ -1747,24 +1771,21 @@ ungrab_key( CoreWindow                 *window,
             DFBInputDeviceKeySymbol     symbol,
             DFBInputDeviceModifierMask  modifiers )
 {
-     DirectLink      *l;
-     StackData       *data;
-     CoreWindowStack *stack;
+     DirectLink *l;
+     StackData  *data;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( window_data->stack_data != NULL );
-     D_ASSERT( window_data->stack_data->stack != NULL );
 
-     data  = window_data->stack_data;
-     stack = data->stack;
+     data = window_data->stack_data;
 
      direct_list_foreach (l, data->grabbed_keys) {
           GrabbedKey *key = (GrabbedKey*) l;
 
           if (key->symbol == symbol && key->modifiers == modifiers && key->owner == window) {
                direct_list_remove( &data->grabbed_keys, &key->link );
-               SHFREE( stack->shmpool, key );
+               SHFREE( key );
                return DFB_OK;
           }
      }
@@ -2394,7 +2415,7 @@ wm_init_stack( CoreWindowStack *stack,
 
      data->stack = stack;
 
-     fusion_vector_init( &data->windows, 64, stack->shmpool );
+     fusion_vector_init( &data->windows, 64 );
 
      for (i=0; i<MAX_KEYS; i++)
           data->keys[i].code = -1;
@@ -2435,7 +2456,7 @@ wm_close_stack( CoreWindowStack *stack,
 
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
-          SHFREE( stack->shmpool, l );
+          SHFREE( l );
 
      return DFB_OK;
 }
@@ -2606,11 +2627,16 @@ wm_window_lookup( CoreWindowStack  *stack,
 
      fusion_vector_foreach_reverse (window, i, data->windows) {
           if (window->id == window_id) {
+               /* don't hand out the cursor window */
+               if (window->caps & DWHC_TOPMOST)
+                    window = NULL;
+
                break;
           }
      }
 
      *ret_window = window;
+
      return DFB_OK;
 }
 
@@ -2666,36 +2692,6 @@ wm_warp_cursor( CoreWindowStack *stack,
 }
 
 /**************************************************************************************************/
-
-static DFBResult
-wm_start_desktop( CoreWindowStack *stack)
-{
-	return DFB_OK;
-}
-
-static DFBResult
-wm_get_insets( CoreWindowStack *stack,
-               CoreWindow      *window,
-               DFBInsets       *insets )
-{
-    if( insets ) {
-        insets->l=0;
-        insets->t=0;
-        insets->r=0;
-        insets->b=0;
-    }
-	return DFB_OK;
-}
-
-static DFBResult
-wm_preconfigure_window( CoreWindowStack *stack,
-               void            *wm_data,
-               void            *stack_data,
-               CoreWindow      *window,
-               void            *window_data )
-{
-	return DFB_OK;
-}
 
 static DFBResult
 wm_add_window( CoreWindowStack *stack,

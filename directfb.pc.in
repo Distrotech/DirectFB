@@ -8,4 +8,4 @@ Description: Graphics and windowing library for the Linux frame buffer device
 Version: @VERSION@
 Requires: fusion direct
 Libs: -L${libdir} -ldirectfb @THREADLIB@ @DYNLIB@ @ZLIB_LIBS@ @OSX_LIBS@
-Cflags: @THREADFLAGS@ -I@INCLUDEDIR@
+Cflags: @YCBCRFLAGS@ @ARIBFLAGS@ @THREADFLAGS@ -I@INCLUDEDIR@

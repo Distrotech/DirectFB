@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -186,14 +195,21 @@ dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
           rectangle->h -= region->y1 - rectangle->y;
           rectangle->y = region->y1;
      }
-
+#ifdef DFB_ARIB
      /* adjust size */
-     if (region->x2 < rectangle->x + rectangle->w - 1)
+     if (region->x2 < rectangle->x + rectangle->w)
         rectangle->w = region->x2 - rectangle->x + 1;
 
-     if (region->y2 < rectangle->y + rectangle->h - 1)
+     if (region->y2 < rectangle->y + rectangle->h)
         rectangle->h = region->y2 - rectangle->y + 1;
+#else
+     /* adjust size */
+     if (region->x2 <= rectangle->x + rectangle->w)
+        rectangle->w = region->x2 - rectangle->x + 1;
 
+     if (region->y2 <= rectangle->y + rectangle->h)
+        rectangle->h = region->y2 - rectangle->y + 1;
+#endif
      /* set size to zero if there's no intersection */
      if (rectangle->w <= 0 || rectangle->h <= 0) {
           rectangle->w = 0;
@@ -219,14 +235,21 @@ dfb_rectangle_intersect_by_region( DFBRectangle    *rectangle,
           rectangle->h -= region->y1 - rectangle->y;
           rectangle->y = region->y1;
      }
-
+#ifdef DFB_ARIB
      /* adjust size */
-     if (region->x2 < rectangle->x + rectangle->w - 1)
+     if (region->x2 < rectangle->x + rectangle->w)
         rectangle->w = region->x2 - rectangle->x + 1;
 
-     if (region->y2 < rectangle->y + rectangle->h - 1)
+     if (region->y2 < rectangle->y + rectangle->h)
         rectangle->h = region->y2 - rectangle->y + 1;
+#else
+     /* adjust size */
+     if (region->x2 <= rectangle->x + rectangle->w)
+        rectangle->w = region->x2 - rectangle->x + 1;
 
+     if (region->y2 <= rectangle->y + rectangle->h)
+        rectangle->h = region->y2 - rectangle->y + 1;
+#endif
      /* set size to zero if there's no intersection */
      if (rectangle->w <= 0 || rectangle->h <= 0) {
           rectangle->w = 0;
@@ -254,14 +277,21 @@ bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
           rectangle->h -= region.y1 - rectangle->y;
           rectangle->y = region.y1;
      }
-
-     /* adjust size */
-     if (region.x2 < rectangle->x + rectangle->w - 1)
+#ifdef DFB_ARIB
+          /* adjust size */
+     if (region.x2 < rectangle->x + rectangle->w)
           rectangle->w = region.x2 - rectangle->x + 1;
 
-     if (region.y2 < rectangle->y + rectangle->h - 1)
+     if (region.y2 < rectangle->y + rectangle->h)
           rectangle->h = region.y2 - rectangle->y + 1;
+#else
+     /* adjust size */
+     if (region.x2 <= rectangle->x + rectangle->w)
+          rectangle->w = region.x2 - rectangle->x + 1;
 
+     if (region.y2 <= rectangle->y + rectangle->h)
+          rectangle->h = region.y2 - rectangle->y + 1;
+#endif
      /* set size to zero if there's no intersection */
      if (rectangle->w <= 0 || rectangle->h <= 0) {
           rectangle->w = 0;

@@ -1,0 +1,140 @@
+////////////////////////////////////////////////////////////
+// README.ARIB
+// (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+// All rights reserved.
+////////////////////////////////////////////////////////////
+
+Purpose
+-------
+
+The Software DirectFB ARIB extension is developed for Japanese
+Broadcasting standard, i.e. ARIB.
+We developed modules on DirectFB to realize ARIB 5 plane graphics model, 
+which is required for caption, super-impose, and data broadcasting 
+conforming to ARIB standards.
+
+ARIB: Association of Radio Industries and Businesses
+
+
+Build Requirements
+------------------
+
+We tested the extension on the following environment.
+
+* Hardware
+o Motherboard:VIA/ME6000
+o Memory     :256MB
+
+* Distribution
+o FedoraCore2 minimum install (VIA C3 patch applied)
+
+* Library and Module Requirements
+o zlib-1.2.3
+o freetype-2.1.10
+o jpeg-6b
+o libpng-1.2.8
+o linux-fusion-1.1
+
+* DirectFB/gfxdriver
+o unichrome
+
+
+ARIB graphics Model
+-------------------
+
+The ARIB extension we made realizes the following model.
+
+   +--Controlled by  +--Controlled by
+   |  ARIB window    |  window manager
+   V  manager        V
+ +--------------+  +--------------+
+ | ARIB windows |  |  gfx windows |
+ +--------------+  +--------------+
+        |                 |
+ +--------------+  +--------------+
+ | ARIB layer   |  | Primary layer|
+ +--------------+  +--------------+
+        |                 |
+        |                 V
+        |          +--------------+     +-------+
+        +--------->|    ARIBDEV   |---->|monitor|
+                   +--------------+     +-------+
+
+ARIB windows are drawn by such application as caption, super-impose, 
+and the data-broadcasting browser, based on broadcast contents. 
+Gfx windows in the above figure are drawn by generic native applications, 
+such as OSD, EPG, media viewer, and so on. 
+
+The ARIB extension has following components,
+
+o ARIBDev 
+  - NEW "System", derived from the FBDev, to support the following features:
+    = mixing and scaling of ARIB layer and gfx layer.
+    = controlling output display signal.
+  
+o ARIB layer
+  - NEW "Layer", derived from gfx layer, to support the following features:
+    = output resolution/aspect control in response to input video and 
+      data broadcast resolution/aspect.
+    = locating (and scaling) ARIB layer on "screen".
+
+o ARIB window manager
+  - NEW "window manager" to mixing the ARIB windows.
+
+o Surface
+  - surface is extended to support AYCbCr and LUT8AYCbCr pixel formats
+    at the generic rasterizer (src/gfx/generic/generic.c).
+
+o ARIB Font Provider
+  - NEW "font provider" to render ARIB 4-level grey scale fonts. 
+  - src/media/idirectfbaribfont.[ch] are provided. If you wish to use it,
+    you have to implement interfaces/IDirectFBARIBFont/<your font lib.>.c.
+
+
+Installation
+------------
+
+$ ./configure      \
+  --enable-multi   \
+  --enable-aribdev \
+  --enable-ycbcr   \
+  --with-gfxdrivers=unichrome
+$ make
+$ make install
+
+
+Known issues
+------------
+
+o An internal error occurred while shutdown seqence with "cursor" option. 
+
+
+No Warranty
+-----------
+
+Except as specifically stated in this agreement or in another agreement,
+the Software is provided and licensed "AS IS" without warranty of any
+kind, either expressed or implied, including, but not limited to, the
+implied warranties of merchantability, non-infringement, and fitness for
+a particular purpose.
+
+
+Licence
+-------
+
+This library is free software; you can redistribute it and/or modify it 
+under the terms of the GNU Lesser General Public License as published 
+by the Free Software Foundation; either version 2 of the License, or 
+(at your option) any later version.
+
+The complete text of the license is found in the file COPYING.
+
+
+Developers
+----------
+
+o Atsushi Hori
+o Seishi Takahashi
+o Koichi Hiramatsu
+o Toshiyuki Takahashi
+

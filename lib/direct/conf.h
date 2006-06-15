@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DIRECT__CONF_H__
 #define __DIRECT__CONF_H__
@@ -35,17 +44,14 @@
 #include <sys/signal.h>
 #endif
 
-typedef enum {
-     DCFL_NONE,     /* None is fatal. */
-     DCFL_ASSERT,   /* ASSERT is fatal. */
-     DCFL_ASSUME    /* ASSERT and ASSUME are fatal. */
-} DirectConfigFatalLevel;
-
 struct __D_DirectConfig {
      bool       quiet;
      bool       debug;
      bool       trace;
-
+#if 1	/* DFB_ARIB */
+     bool       aribdebug;
+     bool       aribtrace;
+#endif
      char      *memcpy;            /* Don't probe for memcpy routines to save a lot of
                                       startup time. Use this one instead if it's set. */
 
@@ -55,8 +61,6 @@ struct __D_DirectConfig {
      sigset_t   dont_catch;        /* don't catch these signals */
 
      DirectLog *log;
-
-     DirectConfigFatalLevel fatal;
 };
 
 extern DirectConfig *direct_config;

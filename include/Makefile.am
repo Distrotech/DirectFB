@@ -6,10 +6,10 @@ EXTRA_DIST = mknames.sh
 
 include_HEADERS = \
 	directfb.h		\
+	directfb_arib.h		\
 	directfb_keyboard.h	\
 	directfb_keynames.h	\
 	directfb_strings.h	\
-	directfb_util.h		\
 	directfb_version.h	\
 	dfb_types.h
 

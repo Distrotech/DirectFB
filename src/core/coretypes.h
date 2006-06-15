@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __CORETYPES_H__
 #define __CORETYPES_H__
@@ -36,6 +45,10 @@ typedef struct __DFB_CoreDFBShared         CoreDFBShared;
 typedef struct _CoreCleanup                CoreCleanup;
 
 typedef struct _CoreFont                   CoreFont;
+#if 1 /* DFB_ARIB */
+typedef struct _CoreARIBFont               CoreARIBFont;
+#endif
+
 typedef struct _CorePalette                CorePalette;
 typedef struct _CoreSurface                CoreSurface;
 

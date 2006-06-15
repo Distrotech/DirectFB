@@ -10,6 +10,35 @@ INCLUDES = \
 
 internalincludedir = $(INTERNALINCLUDEDIR)/display
 
+
+noinst_LTLIBRARIES = libdirectfb_display.la
+
+
+if ARIBDEV_CORE
+
+internalinclude_HEADERS = \
+	idirectfbpalette.h		\
+	idirectfbsurface.h		\
+	idirectfbsurface_layer.h 	\
+	idirectfbsurface_window.h 	\
+	idirectfbdisplaylayer.h		\
+	idirectfbscreen.h		\
+	idirectfbsurface_window_arib.h 	\
+	idirectfbdisplaylayer_arib.h
+
+
+libdirectfb_display_la_SOURCES =	\
+	idirectfbpalette.c		\
+	idirectfbsurface.c		\
+	idirectfbsurface_layer.c 	\
+	idirectfbsurface_window.c 	\
+	idirectfbdisplaylayer.c		\
+	idirectfbscreen.c		\
+	idirectfbsurface_window_arib.c 	\
+	idirectfbdisplaylayer_arib.c
+
+else
+
 internalinclude_HEADERS = \
 	idirectfbpalette.h		\
 	idirectfbsurface.h		\
@@ -19,8 +48,6 @@ internalinclude_HEADERS = \
 	idirectfbscreen.h
 
 
-noinst_LTLIBRARIES = libdirectfb_display.la
-
 libdirectfb_display_la_SOURCES =	\
 	idirectfbpalette.c		\
 	idirectfbsurface.c		\
@@ -28,3 +55,5 @@ libdirectfb_display_la_SOURCES =	\
 	idirectfbsurface_window.c 	\
 	idirectfbdisplaylayer.c		\
 	idirectfbscreen.c
+
+endif

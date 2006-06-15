@@ -24,40 +24,50 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __CORE__LAYERS_H__
 #define __CORE__LAYERS_H__
 
+#ifdef DFB_ARIB
+#include <fusion/call.h>
+#include <directfb_arib.h>
+#else
 #include <directfb.h>
+#endif
 
 #include <core/coretypes.h>
 
 struct __DFB_CoreLayerRegionConfig {
-     int                        width;            /* width of the source in pixels */
-     int                        height;           /* height of the source in pixels */
-     DFBSurfacePixelFormat      format;           /* pixel format of the source surface */
-     DFBSurfaceCapabilities     surface_caps;     /* capabilities of the source surface */
-     DFBDisplayLayerBufferMode  buffermode;       /* surface buffer configuration */
+     int                       width;             /* width of the source in pixels */
+     int                       height;            /* height of the source in pixels */
+     DFBSurfacePixelFormat     format;            /* pixel format of the source surface */
+     DFBSurfaceCapabilities    surface_caps;      /* capabilities of the source surface */
+     DFBDisplayLayerBufferMode buffermode;        /* surface buffer configuration */
 
-     DFBDisplayLayerOptions     options;          /* various configuration options */
+     DFBDisplayLayerOptions    options;           /* various configuration options */
 
-     DFBDisplayLayerSourceID    source_id;        /* selected source */
+     DFBDisplayLayerSourceID   source_id;         /* selected source */
 
-     DFBRectangle               source;           /* viewport within source (input) */
-     DFBRectangle               dest;             /* viewport on screen (output) */
+     DFBRectangle              source;            /* viewport within source (input) */
+     DFBRectangle              dest;              /* viewport on screen (output) */
 
-     __u8                       opacity;          /* global region alpha */
+     __u8                      opacity;           /* global region alpha */
 
-     DFBColor                   src_key;          /* source color key */
-     DFBColor                   dst_key;          /* destination color key */
+     DFBColor                  src_key;           /* source color key */
+     DFBColor                  dst_key;           /* destination color key */
 
-     int                        parity;           /* field parity (for interlaced) */
+     int                       parity;            /* field parity (for interlaced) */
 
-     __u8                       alpha_ramp[4];    /* alpha values for 1 or 2 bit lookup */
-
-     DFBRegion                 *clips;            /* clip regions */
-     int                        num_clips;        /* number of clip regions */
-     DFBBoolean                 positive;         /* show or cut out regions */
+     __u8                      alpha_ramp[4];     /* alpha values for 1 or 2 bit lookup */
 };
 
 typedef enum {
@@ -74,7 +84,6 @@ typedef enum {
 
      CLRCF_SOURCE       = 0x00000100,
      CLRCF_DEST         = 0x00000200,
-     CLRCF_CLIPS        = 0x00000400,
 
      CLRCF_OPACITY      = 0x00001000,
      CLRCF_ALPHA_RAMP   = 0x00002000,
@@ -87,7 +96,7 @@ typedef enum {
      CLRCF_SURFACE      = 0x10000000,
      CLRCF_PALETTE      = 0x20000000,
 
-     CLRCF_ALL          = 0x3013377F
+     CLRCF_ALL          = 0x3013337F
 } CoreLayerRegionConfigFlags;
 
 typedef struct {
@@ -264,6 +273,136 @@ typedef struct {
                                      void                   *layer_data,
                                      void                   *region_data,
                                      CoreSurface            *surface );
+#ifdef DFB_ARIB
+    DFBResult (*FlipRegionMulti)(
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        void                       *region_data,
+                        DFBRegion                  *update,
+                        DFBSurfaceFlipFlags        flags );
+
+    DFBResult (*BlitLayerSurface) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBRectangle               *src_full_rect,
+                        DFBRectangle               *dst_full_rect );
+
+     DFBResult (*ClearTmpSurface) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBRectangle               *clear_rect );
+
+     int (*CheckResolution) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBDimension               *seqhead_resolution,
+                        DFBDimension               *seqdisp_resolution,
+                        DFBBoolean                 seqhead_aspect_ratio,
+                        DFBBoolean                 seqhead_progressive );
+
+     DFBBoolean (*SetMpegResolution) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBDimension               *seqhead_resolution,
+                        DFBDimension               *seqdisp_resolution,
+                        DFBBoolean                 seqhead_aspect_ratio,
+                        DFBBoolean                 seqhead_progressive,
+                        DFBDimension               *ret_resolution );
+
+     DFBBoolean (*SetDBcastResolution) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBDimension               *resolution,
+                        DFBBoolean                 aspect_ratio,
+                        DFBDimension               *ret_resolution );
+
+     DFBBoolean (*SetBmlVisibility) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBAribBmlInfo             *bml,
+                        DFBDimension               *ret_resolution );
+
+     DFBResult (*GetResolution) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBDimension               *displayRes,
+                        DFBBoolean                 *displayAspect,
+                        DFBDimension               *canvasRes,
+                        DFBBoolean                 *canvasAspect,
+                        DFBDimension               *aribGfxRes,
+                        DFBBoolean                 *aribGfxAspect );
+
+     DFBResult (*GetBmlVisibility) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBAribBmlInfo             *bml );
+
+     DFBResult (*GetVideoRectangle) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBRectangle               *resolution,
+                        DFBRectangle               *ret_resolution,
+                        DFBRectangle               *ret_mpeg_resolution,
+                        DFBBoolean                 *full_video,
+                        DFBBoolean                 *aspect );
+
+     DFBResult (*SetAribLocation) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        const DFBLocation          *location );
+
+     DFBResult (*GetDstRefRect) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBRectangle               *src_rect,
+                        DFBRectangle               *src_full_rect,
+                        DFBRectangle               *dst_rect,
+                        DFBRectangle               *dst_full_rect,
+                        DFBRectangle               *modify_rect );
+
+     DFBResult (*SetCallBackFunction) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFBCallBackId              call_id ,
+                        FusionCallHandler          callHandler,
+                        void                       *ctx );
+
+     DFBResult (*GetTmpSurface) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        CoreSurface                **ret_surface );
+
+     DFBResult (*GetCanvasSurface) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        CoreSurface                **ret_surface );
+
+     DFBResult (*DspFbDevInformation) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data );
+
+     DFBResult (*SetResolutionTable) (
+                        CoreLayer                  *layer,
+                        void                       *driver_data,
+                        void                       *layer_data,
+                        DFB_RESOLUTION_TABLE       *resolution_table );
+#endif
 } DisplayLayerFuncs;
 
 

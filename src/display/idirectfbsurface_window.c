@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -33,8 +42,11 @@
 
 #include <string.h>
 
+#ifdef DFB_ARIB
+#include "directfb_arib.h"
+#else
 #include "directfb.h"
-
+#endif
 #include "core/core.h"
 #include "core/coretypes.h"
 
@@ -44,7 +56,6 @@
 #include "core/state.h"
 #include "core/surfaces.h"
 #include "core/windows.h"
-#include "core/wm.h"
 #include "core/windows_internal.h" /* FIXME */
 
 #include "idirectfbsurface.h"
@@ -56,13 +67,9 @@
 
 #include "gfx/util.h"
 
-
-D_DEBUG_DOMAIN( Surface, "IDirectFBSurfaceW", "IDirectFBSurface_Window Interface" );
-
-/**********************************************************************************************************************/
-
+#ifndef DFB_ARIB	/* directfbsurface_window.c -> idirectfbsurface_window.h */
 /*
- * private data struct of IDirectFBSurface_Window
+ * private data struct of IDirectFB
  */
 typedef struct {
      IDirectFBSurface_data base;   /* base Surface implementation */
@@ -74,23 +81,17 @@ typedef struct {
 
 //     CoreGraphicsSerial    serial;
 } IDirectFBSurface_Window_data;
+#endif
 
-/**********************************************************************************************************************/
+static void *
+Flipping_Thread( void *arg );
 
-static void *Flipping_Thread( void *arg );
-
-/**********************************************************************************************************************/
 
 static void
 IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 {
-     IDirectFBSurface_Window_data *data;
-
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
-
-     D_ASSERT( thiz != NULL );
-
-     data = thiz->priv;
+     IDirectFBSurface_Window_data *data =
+          (IDirectFBSurface_Window_data*)thiz->priv;
 
      if ((int) data->flip_thread != -1) {
           pthread_cancel( data->flip_thread );
@@ -107,8 +108,6 @@ IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
-
      if (--data->base.ref == 0)
           IDirectFBSurface_Window_Destruct( thiz );
 
@@ -123,8 +122,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      DFBRegion reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
-
-     D_DEBUG_AT( Surface, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, thiz, region, flags );
 
      if (!data->base.surface)
           return DFB_DESTROYED;
@@ -148,8 +145,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                return DFB_INVAREA;
      }
 
-     D_DEBUG_AT( Surface, "  -> %d, %d - %dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
-
 
      if (flags & DSFLIP_PIPELINE) {
           dfb_gfxcard_wait_serial( &data->window->serial2 );
@@ -158,7 +153,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           dfb_state_get_serial( &data->base.state, &data->window->serial1 );
      }
-
 
      if (data->window->region) {
           dfb_layer_region_flip_update( data->window->region, &reg, flags );
@@ -190,8 +184,6 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
      DFBRectangle wanted, granted;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
-
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      /* Check arguments */
      if (!data->base.surface || !data->window || !data->window->surface)
@@ -236,30 +228,9 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    DFBSurfaceCapabilities  caps )
 {
      DFBResult ret;
-	 DFBInsets insets;
-	 CoreWindowStack *stack;
-
-	 dfb_wm_get_insets(window->stack,window,&insets);
-
-	 if( insets.l != 0 || insets.t != 0 || insets.r != 0  || insets.b != 0 ) {
-		if ( !wanted ) {
-			DFBRectangle rect = { 0, 0, window->surface->width, 
-									window->surface->height };
-			wanted =&rect;
-		    wanted->w -=insets.l+insets.r;
-		    wanted->h -=insets.t+insets.b;
-
-		}
-		wanted->x +=insets.l;
-		wanted->y +=insets.t;
-		if( granted )
-			*granted = *wanted;
-		caps |= DSCAPS_SUBSURFACE;
-	 }
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
      ret = IDirectFBSurface_Construct( thiz, wanted, granted,
                                        window->surface, caps );
      if (ret)
@@ -285,6 +256,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      thiz->Release = IDirectFBSurface_Window_Release;
      thiz->Flip = IDirectFBSurface_Window_Flip;
      thiz->GetSubSurface = IDirectFBSurface_Window_GetSubSurface;
+
      return DFB_OK;
 }
 
@@ -296,8 +268,6 @@ Flipping_Thread( void *arg )
 {
      IDirectFBSurface             *thiz = (IDirectFBSurface*) arg;
      IDirectFBSurface_Window_data *data = (IDirectFBSurface_Window_data*) thiz->priv;
-
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      while (data->base.surface && data->window->surface) {
           pthread_testcancel();

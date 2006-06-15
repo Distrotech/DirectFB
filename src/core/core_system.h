@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DFB__CORE__CORE_SYSTEM_H__
 #define __DFB__CORE__CORE_SYSTEM_H__
@@ -84,21 +93,16 @@ system_video_memory_virtual( unsigned int offset );
 static unsigned int
 system_videoram_length();
 
-static unsigned long
-system_aux_memory_physical( unsigned int offset );
-
-static void*
-system_aux_memory_virtual( unsigned int offset );
-
-static unsigned int
-system_auxram_length();
-
 static void
 system_get_busid();
 
 static void
 system_get_deviceid();
 
+#ifdef DFB_ARIB
+static DFBResult
+system_canvas_surface_unref( CoreDFB *core );
+#endif
 
 static CoreSystemFuncs system_funcs = {
      GetSystemInfo:       system_get_info,
@@ -118,11 +122,11 @@ static CoreSystemFuncs system_funcs = {
      VideoMemoryPhysical: system_video_memory_physical,
      VideoMemoryVirtual:  system_video_memory_virtual,
      VideoRamLength:      system_videoram_length,
-     AuxMemoryPhysical:   system_aux_memory_physical,
-     AuxMemoryVirtual:    system_aux_memory_virtual,
-     AuxRamLength:        system_auxram_length,
      GetBusID:            system_get_busid,
-     GetDeviceID:         system_get_deviceid
+     GetDeviceID:         system_get_deviceid,
+#ifdef DFB_ARIB
+     CanvasSurfaceUnref:  system_canvas_surface_unref
+#endif
 };
 
 #define DFB_CORE_SYSTEM(shortname)                          \

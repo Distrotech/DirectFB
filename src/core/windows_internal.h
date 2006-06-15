@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __CORE__WINDOWS_INTERNAL_H__
 #define __CORE__WINDOWS_INTERNAL_H__
@@ -64,7 +73,9 @@ struct __DFB_CoreWindow {
      FusionObject            object;
 
      DFBWindowID             id;
-
+#ifdef DFB_ARIB
+     DFBWindowID             arib_id;        /* ARIB Window Id */
+#endif
      CoreWindowFlags         flags;
 
      DFBWindowCapabilities   caps;           /* window capabilities, to enable blending etc. */
@@ -118,24 +129,27 @@ struct __DFB_CoreWindowStack {
      /* stores information on handling the background on exposure */
      struct {
           DFBDisplayLayerBackgroundMode mode;
-                                        /* background handling mode:
-                                           don't care, solid color or image */
+                                       /* background handling mode:
+                                          don't care, solid color or image */
 
-          DFBColor            color;    /* color for solid background mode */
+          DFBColor            color;   /* color for solid background mode */
 
 
-          CoreSurface        *image;    /* surface for background image mode */
+          CoreSurface        *image;   /* surface for background image mode */
 
           GlobalReaction      image_reaction;
      } bg;
 
-     DirectLink          *devices;      /* input devices attached to the stack */
+#ifdef DFB_ARIB
+     int                 batch_count;
+     DFBRectangle        modify_rect;
+#endif
 
-     bool                 hw_mode;      /* recompositing is done by hardware */
+     DirectLink         *devices;      /* input devices attached to the stack */
 
-     void                *stack_data;   /* private data of window manager */
+     bool                hw_mode;      /* recompositing is done by hardware */
 
-     FusionSHMPoolShared *shmpool;
+     void               *stack_data;    /* private data of window manager */
 };
 
 

@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __DFB__CORE__SYSTEM_H__
 #define __DFB__CORE__SYSTEM_H__
@@ -178,14 +187,13 @@ typedef struct {
 
      unsigned int   (*VideoRamLength)();
 
-     unsigned long  (*AuxMemoryPhysical)( unsigned int offset );
-     void*          (*AuxMemoryVirtual)( unsigned int offset );
-     
-     unsigned int   (*AuxRamLength)();
-     
      void           (*GetBusID)( int *ret_bus, int *ret_dev, int *ret_func );
      void           (*GetDeviceID)( unsigned int *ret_vendor_id,
                                     unsigned int *ret_device_id );
+#ifdef DFB_ARIB
+     DFBResult      (*CanvasSurfaceUnref)( CoreDFB *core );
+#endif
+
 } CoreSystemFuncs;
 
 
@@ -235,15 +243,6 @@ dfb_system_video_memory_virtual( unsigned int offset );
 unsigned int
 dfb_system_videoram_length();
 
-unsigned long
-dfb_system_aux_memory_physical( unsigned int offset );
-
-void *
-dfb_system_aux_memory_virtual( unsigned int offset );
-
-unsigned int
-dfb_system_auxram_length();
-
 void
 dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func );
 
@@ -251,5 +250,9 @@ void
 dfb_system_get_deviceid( unsigned int *ret_vendor_id,
                          unsigned int *ret_device_id );
 
+#ifdef DFB_ARIB
+DFBResult
+dfb_system_canvas_surface_unref( CoreDFB *core );
+#endif
 #endif
 

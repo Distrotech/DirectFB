@@ -10,14 +10,38 @@ INCLUDES = \
 
 internalincludedir = $(INTERNALINCLUDEDIR)/media
 
+
+noinst_LTLIBRARIES = libdirectfb_media.la
+
+
+if ARIBDEV_CORE
+
+internalinclude_HEADERS = \
+	idirectfbdatabuffer.h		\
+	idirectfbfont.h			\
+	idirectfbaribfont.h		\
+	idirectfbaribdrcs.h		\
+	idirectfbimageprovider.h	\
+	idirectfbvideoprovider.h
+
+libdirectfb_media_la_SOURCES = \
+	idirectfbdatabuffer.c		\
+	idirectfbdatabuffer_file.c	\
+	idirectfbdatabuffer_memory.c	\
+	idirectfbdatabuffer_streamed.c	\
+	idirectfbfont.c			\
+	idirectfbaribfont.c		\
+	idirectfbaribdrcs.c		\
+	idirectfbimageprovider.c		\
+	idirectfbvideoprovider.c
+
+else
+
 internalinclude_HEADERS = \
 	idirectfbdatabuffer.h		\
 	idirectfbfont.h			\
 	idirectfbimageprovider.h	\
 	idirectfbvideoprovider.h
-
-
-noinst_LTLIBRARIES = libdirectfb_media.la
 
 libdirectfb_media_la_SOURCES = \
 	idirectfbdatabuffer.c		\
@@ -27,3 +51,5 @@ libdirectfb_media_la_SOURCES = \
 	idirectfbfont.c			\
 	idirectfbimageprovider.c		\
 	idirectfbvideoprovider.c
+
+endif

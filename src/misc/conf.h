@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #ifndef __CONF_H__
 #define __CONF_H__
@@ -80,7 +89,7 @@ typedef struct
 
      char     *fb_device;                         /* Used framebuffer device,
                                                      e.g. "/dev/fb0" */
-                                                     
+
      struct {
           int  bus;                               /* PCI Bus */
           int  dev;                               /* PCI Device */
@@ -99,7 +108,13 @@ typedef struct
           int                   depth;            /* primary layer depth */
           DFBSurfacePixelFormat format;           /* primary layer format */
      } mode;
-
+#ifdef DFB_ARIB
+     DFBSurfacePixelFormat a_format;              /* arib layer format */
+     DFBSurfacePixelFormat g_format;              /* gui  layer format */
+     bool      src_premultiply;                   /* Blt Flags: DSBLIT_SRC_PREMULTIPLY */
+     int       monitor_type;                      /* Display Monitor Type */
+     int       monitor_aspect;                    /* Display Monitor AspectRatio */
+#endif
      int       videoram_limit;                    /* limit amount of video
                                                      memory used by DirectFB */
 
@@ -138,17 +153,6 @@ typedef struct
      char      *h3600_device;                     /* H3600 Touchscreen Device */
 
      char      *mut_device;                       /* MuTouch Device */
-
-     char      *penmount_device;                  /* PenMount Device */
-
-     int        unichrome_revision;               /* Unichrome hardware
-                                                     revision number override */
-     
-     bool       dma;                              /* Enable DMA */
-     
-     int        agp;                              /* AGP mode */
-     int        agpmem_limit;                     /* Limit of AGP memory
-                                                     used by DirectFB */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

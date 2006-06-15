@@ -16,7 +16,7 @@ AC_PREREQ(2.52)
 #
 DIRECTFB_MAJOR_VERSION=0
 DIRECTFB_MINOR_VERSION=9
-DIRECTFB_MICRO_VERSION=26
+DIRECTFB_MICRO_VERSION=24
 DIRECTFB_INTERFACE_AGE=0
 DIRECTFB_BINARY_AGE=0
 DIRECTFB_VERSION=$DIRECTFB_MAJOR_VERSION.$DIRECTFB_MINOR_VERSION.$DIRECTFB_MICRO_VERSION
@@ -104,6 +104,26 @@ AC_SUBST(MAN2HTML)
 AM_CONDITIONAL(HAVE_MAN2HTML, test "$MAN2HTML" != "no")
 
 
+#
+# DFB_YCBCR
+#
+AC_ARG_ENABLE(ycbcr,
+  [  --enable-ycbcr            build ycbcr surface support [default=no]],,
+  enable_ycbcr=no)
+
+if test "$enable_ycbcr" = "yes"; then
+  AC_DEFINE(DFB_YCBCR,1,[define, if you are compiling for YCbCr surface support.])
+fi
+
+if test "$enable_ycbcr" = "yes"; then
+  YCBCRFLAGS="-DDFB_YCBCR"
+else
+  YCBDRFLAGS=""
+fi
+
+AC_SUBST(YCBCRFLAGS)
+
+
 dnl Test for OSX
 AC_ARG_ENABLE(osx,
   [  --enable-osx            build with Mac OS X support
@@ -146,8 +166,53 @@ fi
 
 AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
 
+dnl Test for Linux frame buffer device
+AC_ARG_ENABLE(fbdev,
+  [  --enable-fbdev            build with linux fbdev support [default=auto]],,
+  enable_fbdev=yes)
 
-AC_CHECK_HEADERS(linux/pci_regs.h linux/unistd.h asm/page.h)
+if test "$enable_fbdev" = "yes"; then
+  AC_CHECK_HEADER(linux/fb.h, fbdev_found=yes, fbdev_found=no)
+  if test "$fbdev_found" = no; then
+    enable_fbdev=no
+    AC_MSG_WARN([
+*** no linux/fb.h found -- building without linux fbdev support.])
+  fi
+fi
+
+#
+# DFB_ARIB
+#
+AC_ARG_ENABLE(aribdev,
+  [  --enable-aribdev            build with linux aribdev support [default=auto]],,
+  enable_aribdev=no)
+
+if test "$enable_aribdev" = "yes"; then
+  AC_CHECK_HEADER(linux/fb.h, aribdev_found=yes, aribdev_found=no)
+  if test "$aribdev_found" = no; then
+    enable_aribdev=no
+  fi
+  if test "$aribdev_found" = yes; then
+    enable_fbdev=no
+    AC_MSG_WARN([
+*** no linux/fb.h found -- building linux aribdev support.])
+  fi
+else
+  enable_aribdev=no
+fi
+
+if test "$enable_aribdev" = "yes"; then
+  ARIBFLAGS="$ARIBFLAGS -DDFB_ARIB"
+else
+  ARIBFLAGS="$ARIBFLAGS"
+fi
+
+
+AM_CONDITIONAL(ARIBDEV_CORE, test "$enable_aribdev" = "yes")
+AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
+
+
+AC_CHECK_HEADERS(linux/unistd.h asm/page.h)
 
 
 dnl Clear default CFLAGS
@@ -166,10 +231,9 @@ if test "$enable_extra_warnings" = "yes"; then
   CFLAGS="-W -Wno-sign-compare -Wno-unused-parameter -Wundef -Wcast-qual -Wcast-align -Waggregate-return -Wmissing-declarations -Winline $CFLAGS"
 fi
 
-# FIXME
-#if test "$GCC" = "yes"; then
-#  CFLAGS="-Wall -Wno-strict-aliasing $CFLAGS"
-#fi
+if test "$GCC" = "yes"; then
+  CFLAGS="-Wall $CFLAGS"
+fi
 
 
 #
@@ -185,7 +249,7 @@ case "$target_or_host" in
     have_x86=yes
     AC_DEFINE(ARCH_X86,1,[Define to 1 if you are compiling for ix86.])
     ;;
-    
+
   x86_64-*)
     have_x86=yes
     have_x86_64=yes
@@ -245,7 +309,7 @@ case "$target_or_host" in
     want_ppcasm=yes
     CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"
     LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
-    ;;    
+    ;;
 
   *-darwin*)
     need_libc_r=no
@@ -264,7 +328,7 @@ case "$target_or_host" in
     ;;
 esac
 
-AM_CONDITIONAL(HAVE_LINUX, test "$have_linux" = "yes")    
+AM_CONDITIONAL(HAVE_LINUX, test "$have_linux" = "yes")
 
 AM_CONDITIONAL(BUILDPPCASM, test "$have_ppc" = "yes" && test "$want_ppcasm" = "yes")
 
@@ -326,7 +390,7 @@ if test "$have_x86" = "yes"; then
   AC_DEFINE(HAVE_INB_OUTB_IOPL,1,
             [Define to 1 if inb, outb and iopl are available.])
   AC_MSG_CHECKING([for sys/io.h])
-  AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0); (void)x;], 
+  AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0); (void)x;],
     AC_DEFINE(HAVE_SYSIO,1,
               [Define to 1 if you have the <sys/io.h> header file.])
     have_sysio=yes
@@ -348,7 +412,7 @@ fi
 
 
 AC_ARG_ENABLE(debug,
-  [  --enable-debug            enable debugging [default=no]],, enable_debug=no)
+  [  --enable-debug            enable debug support [default=no]],, enable_debug=no)
 if test "$enable_debug" = "yes"; then
     CFLAGS="$CFLAGS -g3 -fno-inline"
     DIRECT_BUILD_DEBUG=1
@@ -358,19 +422,6 @@ fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "$enable_debug" = "yes")
 
 AC_SUBST(DIRECT_BUILD_DEBUG)
-
-
-AC_ARG_ENABLE(debug-support,
-  [  --enable-debug-support    enable debugging support [default=yes]],, enable_debug_support=yes)
-if test "$enable_debug_support" = "yes" || test "$enable_debug" = "yes"; then
-    enable_debug_support=yes
-    DIRECT_BUILD_DEBUGS=1
-else
-    DIRECT_BUILD_DEBUGS=0
-fi
-AM_CONDITIONAL(ENABLE_DEBUGS, test "$enable_debug_support" = "yes")
-
-AC_SUBST(DIRECT_BUILD_DEBUGS)
 
 
 AC_ARG_ENABLE(trace,
@@ -435,9 +486,29 @@ AC_ARG_ENABLE(voodoo,
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 
 
+AC_ARG_ENABLE(default,
+  [  --enable-default        enable Default (WM Module) [default=no]],, enable_default=yes)
+
+
 AC_ARG_ENABLE(unique,
   [  --enable-unique           enable Unique (WM Module) [default=no]],, enable_unique=no)
 
+# DFB_ARIB
+if test "$enable_aribdev" = "yes"; then
+  AC_ARG_ENABLE(arib,
+    [  --enable-arib           enable Arib (WM Module) [default=no]],, enable_arib=yes)
+  enable_default=no
+else
+  enable_arib=no
+fi
+
+# DFB_YCBCR
+AC_ARG_ENABLE(ycbcr,
+    [  --enable-ycbcr           enable YCbCr Surface [default=no]],, enable_ycbcr=no)
+
+
+AM_CONDITIONAL(ENABLE_DEFAULT, test "$enable_default" = "yes")
+AM_CONDITIONAL(ENABLE_ARIB, test "$enable_arib" = "yes")
 AM_CONDITIONAL(ENABLE_UNIQUE, test "$enable_unique" = "yes")
 
 
@@ -475,8 +546,8 @@ if test "$enable_mmx" = "yes"; then
         AC_MSG_RESULT(no)
         AC_MSG_WARN([
 ****************************************************************
- The installed assembler does not supports the SSE command set. 
- Update your binutils package, if you want to compile SSE code. 
+ The installed assembler does not supports the SSE command set.
+ Update your binutils package, if you want to compile SSE code.
 ****************************************************************])
       fi
 
@@ -487,8 +558,8 @@ if test "$enable_mmx" = "yes"; then
     AC_MSG_RESULT(no)
     AC_MSG_WARN([
 ****************************************************************
- The installed assembler does not supports the MMX command set. 
- Update your binutils package, if you want to compile MMX code. 
+ The installed assembler does not supports the MMX command set.
+ Update your binutils package, if you want to compile MMX code.
 ****************************************************************])
   fi
 
@@ -500,21 +571,6 @@ else
 fi
 
 AM_CONDITIONAL(BUILDMMX, test "$enable_mmx" = "yes")
-
-
-dnl Test for Linux frame buffer device
-AC_ARG_ENABLE(fbdev,
-  [  --enable-fbdev            build with linux fbdev support [default=auto]],,
-  enable_fbdev=yes)
-
-if test "$have_linux" = "no"; then
-  enable_fbdev=no
-  AC_MSG_WARN([
-*** no linux kernel -- building without linux fbdev support.])
-fi
-
-AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
-
 
 
 dnl Test for SDL
@@ -533,12 +589,12 @@ if test "$enable_sdl" = "yes"; then
     SDL_LIBS=`$SDL_CONFIG --libs`
     if test "$enable_osx" = "yes"; then
       AC_MSG_WARN([
-*** SDL is now unsupported on OSX.]) 
+*** SDL is now unsupported on OSX.])
       enable_sdl=no
    else
       SDL_CFLAGS=`$SDL_CONFIG --cflags`
       SDL_LIBS=`$SDL_CONFIG --libs`
-    fi 
+    fi
   fi
 fi
 
@@ -549,9 +605,9 @@ dnl Test for VNC
 AC_ARG_ENABLE(vnc,
   [  --enable-vnc              build with VNC support [default=auto]],,
   enable_vnc=yes)
-                                                                     
-                                                                     
-                                                                     
+
+
+
 if test "$enable_vnc" = "yes"; then
   AC_PATH_PROG(VNC_CONFIG, libvncserver-config, no)
   if test "$VNC_CONFIG" = "no"; then
@@ -563,10 +619,10 @@ if test "$enable_vnc" = "yes"; then
     VNC_LIBS=`$VNC_CONFIG --libs`
   fi
 fi
-                                                                     
-                                                                     
-                                                                     
-                                                                     
+
+
+
+
 AM_CONDITIONAL(VNC_CORE, test "$enable_vnc" = "yes")
 AC_SUBST(VNC_LIBS)
 AC_SUBST(VNC_CFLAGS)
@@ -614,7 +670,7 @@ if test "$enable_jpeg" = "yes"; then
         jpeg_ok=no)
       if test "$jpeg_ok" = yes; then
 	JPEG=yes
-	LIBJPEG='-ljpeg'
+	LIBJPEG='-L${CROSS_COMPILE_PREFIX}/lib -ljpeg'
       else
 	JPEG=no
 	AC_MSG_WARN([
@@ -721,6 +777,7 @@ fi
 AM_CONDITIONAL(PNG_PROVIDER, test "$PNG" = "yes")
 AM_CONDITIONAL(BUILD_DIRECTFB_CSOURCE, test "$PNG" = "yes")
 
+
 if test "$enable_png" != "no" && test "$PNG" != "yes"; then
   png_warning="
 PNG support is missing - many applications won't work correctly!"
@@ -728,11 +785,20 @@ fi
 
 
 dnl Allow to disable GIF support
+GIF=no
 AC_ARG_ENABLE(gif,
   [  --enable-gif              build GIF image provider [default=yes]],
-  enable_gif="$enableval", enable_gif=yes)
- 
-AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
+  GIF=no="$enableval", GIF=yes)
+
+AM_CONDITIONAL(GIF_PROVIDER, test "$GIF" = "yes")
+
+
+dnl Allow to disable MPEG2 support
+MPEG2=no
+AC_ARG_ENABLE(mpeg2,
+  [  --enable-mpeg2              build MPEG2 image provider [default=yes]],
+  MPEG2="$enableval", MPEG2=yes)
+AM_CONDITIONAL(MPEG2_PROVIDER, test "$MPEG2" = "yes")
 
 
 dnl Test for freetype
@@ -741,56 +807,83 @@ AC_ARG_ENABLE(freetype,
   enable_freetype="$enableval", enable_freetype=yes)
 
 if test "$enable_freetype" = "yes"; then
-  if test -n "$FREETYPE_CFLAGS" && test -n "$FREETYPE_LIBS"; then
-    FREETYPE=yes
-  else
-    AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
-    if test "$FREETYPE_CONFIG" = no; then
-      FREETYPE=no
-      AC_MSG_WARN([
+  AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
+  if test "$FREETYPE_CONFIG" = no; then
+    FREETYPE=no
+    AC_MSG_WARN([
 *** freetype-config not found -- FreeType font provider will not be built.])
-    else
-      FREETYPE=yes
-      FREETYPE_CFLAGS=`$FREETYPE_CONFIG --cflags`
-      FREETYPE_LIBS=`$FREETYPE_CONFIG --libs`
+  else
+    FREETYPE=yes
+    if test -z "$FREETYPE_CFLAGS"; then
+      FREETYPE_CFLAGS=`freetype-config --cflags`
+    fi
+    if test -z "$FREETYPE_LIBS"; then
+      FREETYPE_LIBS=`freetype-config --libs`
     fi
   fi
 fi
-
 AM_CONDITIONAL(FREETYPE_PROVIDER, test "$FREETYPE" = "yes")
+
 
 if test "$enable_freetype" != "no" && test "$FREETYPE" != "yes"; then
   freetype_warning="
 FreeType2 support is missing - many applications won't work correctly!"
 fi
 
+dnl 05.03.02 hiramatu
+dnl Test for SKEL
+SKEL=no
+if test "$enable_aribdev" = "yes"; then
+    SKEL=yes
+    SKEL_CFLAGS=`pkg-config skel --cflags`
+    SKEL_LIBS=`pkg-config skel --libs`
+fi
+AM_CONDITIONAL(SKEL_PROVIDER, test "$SKEL" = "yes")
+
+
+if test "$enable_aribdev" != "no" && test "$SKEL" != "yes"; then
+  skel_warning="
+SKEL Support is missing - ***************************************"
+fi
+
+
+
 dnl Test for video4linux
 V4L=no
-
 if test "$have_linux" = "yes"; then
   AC_ARG_ENABLE(video4linux,
     [  --enable-video4linux      build Video4Linux video provider [default=yes]],
     enable_v4l="$enableval", enable_v4l=yes)
 
   if test "$enable_v4l" = "yes"; then
-    V4L=yes
+    AC_CHECK_HEADER(linux/videodev.h,
+          V4L=yes,
+          AC_MSG_WARN([
+  *** Video4Linux headers not found -- Video4Linux video provider will not be built.])
+    )
   fi
 fi
-
 AM_CONDITIONAL(V4L_PROVIDER, test "$V4L" = "yes")
 
 
 dnl Test for video4linux
 V4L2=no
-
 if test "$V4L" = "yes"; then
   AC_ARG_ENABLE(video4linux2,
     [  --enable-video4linux2     build with Video4Linux2 support [default=no]],
     enable_v4l2="$enableval", enable_v4l2=no)
 
   if test "$enable_v4l2" = "yes"; then
-    V4L2=yes
-    AC_DEFINE( DFB_HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
+    dnl Test for video4linux 2
+    AC_EGREP_CPP(yes, [
+        #include <linux/videodev2.h>
+        #ifdef VIDIOC_REQBUFS
+          yes
+        #endif
+      ],
+      V4L2=yes
+      AC_DEFINE( DFB_HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
+    )
   fi
 fi
 
@@ -808,6 +901,7 @@ cle266=no
 unichrome=no
 nvidia=no
 radeon=no
+r200=no
 tdfx=no
 savage=no
 sis315=no
@@ -821,8 +915,8 @@ AC_ARG_WITH(gfxdrivers,
 [                            'all' builds all drivers (default), 'none' builds none ]
 [                            Possible gfxdrivers are: ]
 [                            ati128, cle266, cyber5k, i810, i830, mach64, matrox,]
-[                            neomagic, nsc, nvidia, radeon, savage,]
-[                            sis315, tdfx, unichrome], gfxdrivers="$withval",[gfxdrivers="all"])
+[                            neomagic, nsc, nvidia, radeon, r200, savage, sis315,]
+[                            tdfx, unichrome], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
@@ -835,13 +929,14 @@ if test "$gfxdrivers" = "all"; then
   checkfor_neomagic=yes
   checkfor_nsc=yes
   checkfor_nvidia=yes
-  checkfor_radeon=yes 
+  checkfor_radeon=yes
+  checkfor_r200=yes
   checkfor_savage=yes
   checkfor_sis315=yes
   checkfor_tdfx=yes
   checkfor_unichrome=yes
   AC_MSG_RESULT(all)
-else 
+else
   if test "$gfxdrivers" != "none"; then
     gfxdrivers=`echo $gfxdrivers | sed 's/,/ /g'`
     for gfxdriver in $gfxdrivers
@@ -880,6 +975,9 @@ else
           radeon)
                   checkfor_radeon=yes
                   ;;
+          r200)
+                  checkfor_r200=yes
+                  ;;
           savage)
                   checkfor_savage=yes
                   ;;
@@ -908,6 +1006,10 @@ fi
 
 if test "$checkfor_radeon" = "yes"; then
   radeon=yes
+fi
+
+if test "$checkfor_r200" = "yes"; then
+  r200=yes
 fi
 
 if test "$checkfor_mach64" = "yes"; then
@@ -963,23 +1065,24 @@ if test "$checkfor_unichrome" = "yes" && test "$have_sysio" = "yes"; then
 fi
 
 
+AC_SUBST(ARIBFLAGS)
+CPPFLAGS="$YCBCRFLAGS $ARIBFLAGS $CPPFLAGS"
+
+
 # lets check for input driver
 
 checkfor_dbox2remote=no
 checkfor_dreamboxremote=no
 checkfor_elo=no
-checkfor_gunze=no
 checkfor_h3600ts=no
 checkfor_joystick=no
 checkfor_keyboard=no
 checkfor_linux_input=no
 checkfor_lirc=no
 checkfor_mutouch=no
-checkfor_penmount=no
 checkfor_ps2mouse=no
 checkfor_serialmouse=no
 checkfor_sonypijogdial=no
-checkfor_ucb1x00=no
 checkfor_wm97xx=no
 
 AC_MSG_CHECKING(which inputdrivers should be built)
@@ -988,29 +1091,26 @@ AC_ARG_WITH(inputdrivers,
 [                             inputdrivers may be comma separated ]
 [                             'all' builds all drivers (default), 'none' builds none ]
 [                             Possible inputdrivers are: ]
-[                             dbox2remote, elo-input, gunze, h3600_ts, joystick, keyboard, ]
-[                             dreamboxremote, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
+[                             dbox2remote, elo-input, h3600_ts, joystick, keyboard, ]
+[                             dreamboxremote, linuxinput, lirc, mutouch, ps2mouse, ]
 [                             serialmouse, sonypijogdial, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
 
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
   checkfor_dreamboxremote=yes
-  checkfor_elo=no
-  checkfor_gunze=no
+  checkfor_elo=yes
   checkfor_h3600ts=yes
   checkfor_joystick=yes
   checkfor_keyboard=yes
   checkfor_linux_input=yes
   checkfor_lirc=yes
   checkfor_mutouch=yes
-  checkfor_penmount=yes
   checkfor_ps2mouse=yes
   checkfor_serialmouse=yes
   checkfor_sonypijogdial=yes
-  checkfor_ucb1x00="$have_arm"
   checkfor_wm97xx=yes
   AC_MSG_RESULT(all)
-else 
+else
   if test "$inputdrivers" != "none"; then
     inputdrivers=`echo $inputdrivers | sed 's/,/ /g'`
     for inputdriver in $inputdrivers
@@ -1024,9 +1124,6 @@ else
                   ;;
           elo-input)
                   checkfor_elo=yes
-                  ;;
-          gunze)
-                  checkfor_gunze=yes
                   ;;
           h3600_ts)
                   checkfor_h3600ts=yes
@@ -1046,9 +1143,6 @@ else
           mutouch)
                   checkfor_mutouch=yes
                   ;;
-          penmount)
-                  checkfor_penmount=yes
-                  ;;
           ps2mouse)
                   checkfor_ps2mouse=yes
                   ;;
@@ -1057,9 +1151,6 @@ else
                   ;;
           sonypijogdial)
                   checkfor_sonypijogdial=yes
-                  ;;
-          ucb1x00)
-                  checkfor_ucb1x00=yes
                   ;;
           wm97xx)
                   checkfor_wm97xx=yes
@@ -1088,30 +1179,24 @@ if test "$checkfor_dreamboxremote" = "yes"; then
     AC_MSG_WARN([*** DreamBox Remote input driver will not be built.]))
 fi
 
-enable_elo_input=no
+enable_elo_ts=no
 if test "$checkfor_elo" = "yes"; then
   dnl Test for ELO Touchscreen support
-  enable_elo_input=yes
-fi
-
-enable_gunze_input=no
-if test "$checkfor_gunze" = "yes"; then
-  dnl Test for Gunze Touchscreen support
-  enable_gunze_input=yes
+  enable_elo_ts=yes
 fi
 
 enable_h3600_ts=no
 if test "checkfor_h3600ts" = "yes"; then
   dnl Test for H3600 Touchscreen support
-  AC_CHECK_HEADER( [linux/h3600_ts.h], enable_h3600_ts=yes, enable_h3600_ts=no  
+  AC_CHECK_HEADER( [linux/h3600_ts.h], enable_h3600_ts=yes, enable_h3600_ts=no
     AC_MSG_WARN([*** H3600 Touchscreen driver will not be built.]))
 fi
 
 enable_joystick=no
 if test "$checkfor_joystick" = "yes"; then
   dnl Test for linux/joystick.h in the kernel
-  
-  AC_CHECK_HEADER([linux/joystick.h], enable_joystick=yes, enable_joystick=no 
+
+  AC_CHECK_HEADER([linux/joystick.h], enable_joystick=yes, enable_joystick=no
      AC_MSG_WARN([*** no linux/joystick.h -- Joystick driver will not be built.]))
 fi
 
@@ -1119,7 +1204,7 @@ enable_keyboard=no
 if test "$checkfor_keyboard" = "yes"; then
     enable_keyboard=yes
 fi
-    
+
 enable_linux_input=no
 if test "$checkfor_linux_input" = "yes"; then
     enable_linux_input=yes
@@ -1131,16 +1216,11 @@ if test "$checkfor_lirc" = "yes"; then
 fi
 
 enable_mutouch=no
-if test "$checkfor_mutouch" = "yes"; then  
+if test "$checkfor_mutouch" = "yes"; then
   dnl Allow to enable driver for Microtouch serial touchscreen
   dnl This driver is not built by default since it needs to be configured
   dnl by changing some defines in the source.
     enable_mutouch=yes
-fi
-
-enable_penmount=no
-if test "$checkfor_penmount" = "yes"; then
-    enable_penmount=yes
 fi
 
 enable_ps2mouse=no
@@ -1151,21 +1231,15 @@ fi
 enable_serial_mouse=no
 if test "$checkfor_serialmouse" = "yes"; then
   dnl Test for linux/serial.h in the kernel
-  AC_CHECK_HEADER([linux/serial.h], enable_serial_mouse=yes, enable_serial_mouse=no 
+  AC_CHECK_HEADER([linux/serial.h], enable_serial_mouse=yes, enable_serial_mouse=no
      AC_MSG_WARN([*** no linux/serial.h -- serial mouse driver will not be built.]))
 fi
 
 enable_sonypi_jogdial=no
 if test "$checkfor_sonypijogdial" = "yes"; then
   dnl Test for SonyPI Jogdial support
-  AC_CHECK_HEADER([linux/sonypi.h], enable_sonypi_jogdial=yes, enable_sonypi_jogdial=no 
+  AC_CHECK_HEADER([linux/sonypi.h], enable_sonypi_jogdial=yes, enable_sonypi_jogdial=no
     AC_MSG_WARN([*** no linux/sonypi.h -- SonyPI Jogdial driver will not be built.]))
-fi
-
-enable_ucb1x00_ts=no
-if test "$checkfor_ucb1x00" = "yes"; then
-  dnl Test for UCB1x00 Touchscreen support
-  enable_ucb1x00_ts=yes
 fi
 
 enable_wm97xx_ts=no
@@ -1173,7 +1247,8 @@ if test "$checkfor_wm97xx" = "yes"; then
   dnl Test for WM97xx Touchscreen support
   enable_wm97xx_ts=yes
 fi
- 
+
+
  dnl *** end of if $testlinux ***
 fi
 
@@ -1208,6 +1283,7 @@ AM_CONDITIONAL(GFX_NEOMAGIC, test "$neomagic" = "yes")
 AM_CONDITIONAL(GFX_NSC, test "$nsc" = "yes")
 AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
+AM_CONDITIONAL(GFX_R200, test "$r200" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
 AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
 AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
@@ -1216,25 +1292,24 @@ AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 AM_CONDITIONAL(DBOX2REMOTE, test "$enable_dbox2remote" = "yes")
 AM_CONDITIONAL(DREAMBOXREMOTE, test "$enable_dreamboxremote" = "yes")
 AM_CONDITIONAL(ELO_INPUT, test "$enable_elo_input" = "yes")
-AM_CONDITIONAL(GUNZE_INPUT, test "$enable_gunze_input" = "yes")
 AM_CONDITIONAL(H3600_TS, test "$enable_h3600_ts" = "yes")
 AM_CONDITIONAL(JOYSTICK_INPUT, test "$enable_joystick" = "yes")
 AM_CONDITIONAL(KEYBOARD_INPUT, test "$enable_keyboard" = "yes")
 AM_CONDITIONAL(LINUX_INPUT, test "$enable_linux_input" = "yes")
 AM_CONDITIONAL(LIRC_INPUT, test "$enable_lirc" = "yes")
 AM_CONDITIONAL(MUTOUCH_TS, test "$enable_mutouch" = "yes")
-AM_CONDITIONAL(PENMOUNT_TS, test "$enable_penmount" = "yes" )
 AM_CONDITIONAL(PS2MOUSE_INPUT, test "$enable_ps2mouse" = "yes")
 AM_CONDITIONAL(SERIAL_MOUSE_INPUT, test "$enable_serial_mouse" = "yes")
 AM_CONDITIONAL(SONYPI, test "$enable_sonypi_jogdial" = "yes")
 AM_CONDITIONAL(WM97XX_TS, test "$enable_wm97xx_ts" = "yes")
 
-AM_CONDITIONAL(UCB1X00_TS, test "$enable_ucb1x00_ts" = "yes")
+AM_CONDITIONAL(UCB1X00_TS, test "$have_arm" = "yes")
 
 AM_CONDITIONAL(BUILD_TOOLS, test "$with_tools" = "yes")
 AM_CONDITIONAL(CROSS_COMPILING, test "$cross_compiling" = "yes")
 
 CFLAGS="$CFLAGS $DFB_INTERNAL_CFLAGS"
+CFLAGS="$CFLAGS $DFB_INTERNAL_CFLAGS $DFB_AYCBCR_FBDEV_CFLAGS"
 DFB_LDFLAGS="$LDFLAGS $ZLIB_LIBS"
 
 
@@ -1253,9 +1328,8 @@ AC_ARG_WITH(sysroot,
 test x"$RUNTIME_SYSROOT" = x"no" && RUNTIME_SYSROOT=
 AC_SUBST(RUNTIME_SYSROOT)
 
-# Change the module directory only for builds that don't *support* debug
-if test "$enable_debug_support" = "no"; then
-  MODULEDIRNAME=directfb-$BINARY_VERSION-pure
+if test "$enable_debug" = "yes"; then
+  MODULEDIRNAME=directfb-$BINARY_VERSION-debug
 else
   MODULEDIRNAME=directfb-$BINARY_VERSION
 fi
@@ -1285,6 +1359,9 @@ AC_SUBST(LIBPNG)
 AC_SUBST(FREETYPE_PROVIDER)
 AC_SUBST(FREETYPE_CFLAGS)
 AC_SUBST(FREETYPE_LIBS)
+AC_SUBST(SKEL_PROVIDER)
+AC_SUBST(SKEL_CFLAGS)
+AC_SUBST(SKEL_LIBS)
 
 AC_SUBST(DATADIR)
 AC_SUBST(MODULEDIR)
@@ -1316,7 +1393,7 @@ lib/direct/direct.pc
 lib/fusion/Makefile
 lib/fusion/build.h
 lib/fusion/fusion.pc
-lib/fusion/shm/Makefile
+lib/fusion/shmalloc/Makefile
 
 lib/voodoo/Makefile
 lib/voodoo/build.h
@@ -1327,8 +1404,6 @@ patches/Makefile
 proxy/Makefile
 proxy/dispatcher/Makefile
 proxy/requestor/Makefile
-
-rules/Makefile
 
 src/Makefile
 src/core/Makefile
@@ -1346,9 +1421,11 @@ systems/x11/Makefile
 systems/osx/Makefile
 systems/sdl/Makefile
 systems/vnc/Makefile
+systems/aribdev/Makefile
 
 wm/Makefile
 wm/default/Makefile
+wm/arib/Makefile
 wm/unique/Makefile
 wm/unique/classes/Makefile
 wm/unique/data/Makefile
@@ -1367,6 +1444,7 @@ gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/radeon/Makefile
+gfxdrivers/r200/Makefile
 gfxdrivers/savage/Makefile
 gfxdrivers/sis315/Makefile
 gfxdrivers/tdfx/Makefile
@@ -1376,14 +1454,12 @@ inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
 inputdrivers/dreamboxremote/Makefile
 inputdrivers/elo/Makefile
-inputdrivers/gunze/Makefile
 inputdrivers/h3600_ts/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
 inputdrivers/linux_input/Makefile
 inputdrivers/lirc/Makefile
 inputdrivers/mutouch/Makefile
-inputdrivers/penmount/Makefile
 inputdrivers/ps2mouse/Makefile
 inputdrivers/serialmouse/Makefile
 inputdrivers/sonypi/Makefile
@@ -1392,6 +1468,7 @@ inputdrivers/wm97xx_ts/Makefile
 
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile
+interfaces/IDirectFBARIBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
 interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
@@ -1425,8 +1502,7 @@ Build options:
 Misc options:
   Multi Application Core    $enable_multi
   Voodoo (network support)  $enable_voodoo
-  Debug supported           $enable_debug_support
-  Debug enabled             $enable_debug
+  Debug mode                $enable_debug
   Trace support             $enable_trace
   MMX support               $enable_mmx
   SSE support               $enable_sse
@@ -1439,17 +1515,20 @@ Building Core Systems:
   OSX support               $enable_osx
   SDL support               $enable_sdl
   VNC support               $enable_vnc
+  Linux ARIBDev support     $enable_aribdev
+  YCbCr support		        $enable_ycbcr
 
 Building WM Modules:
-  Default                   yes
+  Default                   $enable_default
+  Arib                      $enable_arib
   UniQuE                    $enable_unique
 
 Building Tools              $with_tools
 
 Building Image Providers:
-  GIF                       $enable_gif 
+  GIF                       $GIF
   JPEG                      $JPEG
-  MPEG2 I-Frame             yes
+  MPEG2 I-Frame             $MPEG2
   PNG                       $PNG
 
 Building Video Providers:
@@ -1457,15 +1536,20 @@ Building Video Providers:
 
 Building Font implementations:
   FreeType2                 $FREETYPE
-  Default font              yes]);
+  Default font              yes
+
+Building ARIB Font implementations:
+  SKEL                      $SKEL
+]);
 
 if test "$have_linux" = "yes"; then
 AC_MSG_RESULT([
 Building Graphics Drivers:
   3Dfx Voodoo               $tdfx
-  ATI Mach64                $mach64 
-  ATI Rage 128              $ati
+  ATI Mach64                $mach64
   ATI Radeon                $radeon
+  ATI Rage 128              $ati
+  ATI R200                  $r200
   Intel i810                $i810
   Intel i830                $i830
   Matrox                    $matrox
@@ -1481,8 +1565,7 @@ Building Graphics Drivers:
 Building Input Drivers:
   DBox2 Remote              $enable_dbox2remote
   DreamBox Remote           $enable_dreamboxremote
-  ELO Touchscreen           $enable_elo_input
-  Gunze Touchscreen         $enable_gunze_input
+  ELO Touchscreen           $enable_elo_ts
   H3600 Touchscreen         $enable_h3600_ts
   Joystick                  $enable_joystick
   Keyboard                  $enable_keyboard
@@ -1492,9 +1575,9 @@ Building Input Drivers:
   PS/2 Mouse                $enable_ps2mouse
   Serial Mouse              $enable_serial_mouse
   SonyPI Jogdial            $enable_sonypi_jogdial
-  ucb1x00 Touchscreen       $enable_ucb1x00_ts
+  ucb1x00 Touchscreen       $have_arm
   WM97xx Touchscreen        $enable_wm97xx_ts]);
 fi
 
-AC_MSG_RESULT([$png_warning $jpeg_warning $freetype_warning
+AC_MSG_RESULT([$png_warning $jpeg_warning $freetype_warning $skel_warning
 ]);

@@ -1,6 +1,18 @@
 ## Makefile.am for DirectFB/interfaces
 
+if ARIBDEV_CORE
+
 SUBDIRS = \
 	IDirectFBFont		\
-	IDirectFBImageProvider	\
+	IDirectFBARIBFont	\
+	IDirectFBImageProvider \
 	IDirectFBVideoProvider
+
+else
+
+SUBDIRS = \
+	IDirectFBFont		\
+	IDirectFBImageProvider \
+	IDirectFBVideoProvider
+
+endif

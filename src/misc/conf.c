@@ -24,6 +24,15 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+/*
+ * (c) Copyright 2004-2006 Mitsubishi Electric Corp.
+ *
+ * All rights reserved.
+ *
+ * Written by Koichi Hiramatsu,
+ *            Seishi Takahashi,
+ *            Atsushi Hori
+ */
 
 #include <config.h>
 
@@ -50,7 +59,6 @@
 
 #include <misc/conf.h>
 
-
 DFBConfig *dfb_config = NULL;
 
 static const char *config_usage =
@@ -67,6 +75,13 @@ static const char *config_usage =
      "  mode=<width>x<height>          Set the default resolution\n"
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
+#ifdef DFB_ARIB
+     "  apixelformat=<apixelformat>    Set the arib pixel format\n"
+     "  gpixelformat=<gpixelformat>    Set the gui  pixel format\n"
+     "  [no-]src_premultiply           DSBLIT_SRC_PREMULTIPLY is set up to the blt flags\n"
+     "  monitor_type=<monitor_type>    1080i or D4 or D3 or D2 or D1\n"
+     "  monitor_aspect=<monitor_aspect>16x9 or 4x3 or 4x3Wide\n"
+#endif
      "  session=<num>                  Select multi app world (zero based, -1 = new)\n"
      "  remote=<host>[:<session>]      Select remote session to connect to\n"
      "  tmpfs=<directory>              Location of shared memory file\n"
@@ -78,16 +93,13 @@ static const char *config_usage =
      "  [no-]trace                     Enable stack trace support\n"
      "  log-file=<name>                Write all messages to a file\n"
      "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
-     "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
      "  force-windowed                 Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
      "  [no-]hardware                  Hardware acceleration\n"
-     "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n"
 #ifdef USE_MMX
      "  [no-]mmx                       Enable mmx support\n"
 #endif
-     "  [no-]agp[=<mode>]              Enable AGP support\n"
      "  font-format=<pixelformat>      Set the preferred font format\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
      "  [no-]sighandler                Enable signal handler\n"
@@ -113,7 +125,6 @@ static const char *config_usage =
      "  [no-]translucent-windows       Allow translucent windows\n"
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
-     "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n" 
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
      "  disable-module=<module_name>   suppress loading this module\n"
      "\n"
@@ -124,8 +135,6 @@ static const char *config_usage =
      "                                 Matrox cable type (default=composite)\n"
      "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
      "  mut-device=<device>            Use this device for the MuTouch driver\n"
-     "  penmount-device=<device>       Use this device for the PenMount driver\n"
-     "  unichrome-revision=<rev>       Override unichrome hardware revision\n"
      "\n"
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -155,15 +164,37 @@ typedef struct {
 } FormatString;
 
 static const FormatString format_strings[] = {
-     { "A1",       DSPF_A1       },
-     { "A4",       DSPF_A4       },
+#ifdef DFB_YCBCR
      { "A8",       DSPF_A8       },
      { "ALUT44",   DSPF_ALUT44   },
      { "ARGB",     DSPF_ARGB     },
      { "ARGB1555", DSPF_ARGB1555 },
      { "ARGB2554", DSPF_ARGB2554 },
      { "ARGB4444", DSPF_ARGB4444 },
-     { "AYUV",     DSPF_AYUV     },
+     { "AYCbCr",   DSPF_AYCbCr   },
+     { "AiRGB",    DSPF_AiRGB    },
+     { "AiYCbCr",  DSPF_AiYCbCr  },
+     { "I420",     DSPF_I420     },
+     { "LUT8",     DSPF_LUT8     },
+     { "LUT8AYCbCr", DSPF_LUT8AYCbCr },
+     { "NV12",     DSPF_NV12     },
+     { "NV16",     DSPF_NV16     },
+     { "NV21",     DSPF_NV21     },
+     { "RGB16",    DSPF_RGB16    },
+     { "RGB24",    DSPF_RGB24    },
+     { "RGB32",    DSPF_RGB32    },
+     { "RGB332",   DSPF_RGB332   },
+     { "UYVY",     DSPF_UYVY     },
+     { "YCbCr24",  DSPF_YCbCr24  },
+     { "YUY2",     DSPF_YUY2     },
+     { "YV12",     DSPF_YV12     }
+#else  // DFB_YCBCR
+     { "A8",       DSPF_A8       },
+     { "ALUT44",   DSPF_ALUT44   },
+     { "ARGB",     DSPF_ARGB     },
+     { "ARGB1555", DSPF_ARGB1555 },
+     { "ARGB2554", DSPF_ARGB2554 },
+     { "ARGB4444", DSPF_ARGB4444 },
      { "AiRGB",    DSPF_AiRGB    },
      { "I420",     DSPF_I420     },
      { "LUT8",     DSPF_LUT8     },
@@ -177,13 +208,13 @@ static const FormatString format_strings[] = {
      { "UYVY",     DSPF_UYVY     },
      { "YUY2",     DSPF_YUY2     },
      { "YV12",     DSPF_YV12     }
+#endif // DFB_YCBCR
 };
 
 #define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))
 
 static const FormatString font_format_strings[] = {
      { "A1",       DSPF_A1       },
-     { "A4",       DSPF_A4       },
      { "A8",       DSPF_A8       },
      { "ARGB",     DSPF_ARGB     },
      { "ARGB1555", DSPF_ARGB1555 },
@@ -318,7 +349,7 @@ static void config_allocate()
      dfb_config->layer_bg_color.g         = 0x7c;
      dfb_config->layer_bg_color.b         = 0xe8;
      dfb_config->layer_bg_mode            = DLBM_COLOR;
-     
+
      dfb_config->pci.bus                  = 1;
      dfb_config->pci.dev                  = 0;
      dfb_config->pci.func                 = 0;
@@ -338,10 +369,22 @@ static void config_allocate()
      dfb_config->buffer_mode              = -1;
      dfb_config->wm                       = D_STRDUP( "default" );
      dfb_config->decorations              = true;
-     dfb_config->unichrome_revision       = -1;
-     dfb_config->dma                      = false;
-     dfb_config->agp                      = 0;
-     
+#ifdef DFB_ARIB
+     dfb_config->layer_bg_color.a         = 0x00;
+     dfb_config->layer_bg_color.r         = 0x00;
+     dfb_config->layer_bg_color.g         = 0x00;
+     dfb_config->layer_bg_color.b         = 0x00;
+     dfb_config->mode.depth               = 32;
+     dfb_config->mode.width               = 800;
+     dfb_config->mode.height              = 600;
+     dfb_config->mode.format              = DSPF_ARGB;
+     dfb_config->a_format                 = DSPF_ARGB;
+     dfb_config->g_format                 = DSPF_ARGB;
+     dfb_config->src_premultiply          = false;
+     dfb_config->monitor_type             = DMONITOR_TYPE_1080I;
+     dfb_config->monitor_aspect           = DMONITOR_ASPECT_16_9;
+     dfb_config->wm                       = D_STRDUP( "arib" );
+#endif
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
 
@@ -412,17 +455,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "busid") == 0 || strcmp (name, "pci-id") == 0) {
           if (value) {
                int bus, dev, func;
-               
+
                if (sscanf( value, "%d:%d:%d", &bus, &dev, &func ) != 3) {
                     D_ERROR( "DirectFB/Config 'busid': Could not parse busid!\n");
                     return DFB_INVARG;
-               }                  
-               
+               }
+
                dfb_config->pci.bus  = bus;
                dfb_config->pci.dev  = dev;
                dfb_config->pci.func = func;
           }
-     } else                    
+     } else
      if (strcmp (name, "tmpfs" ) == 0) {
           if (value) {
                if (fusion_config->tmpfs)
@@ -539,6 +582,92 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+#ifdef DFB_ARIB
+     if (strcmp (name, "apixelformat" ) == 0) {
+          if (value) {
+               DFBSurfacePixelFormat format;
+
+               format = parse_pixelformat( value );
+               if (format == DSPF_UNKNOWN) {
+                    D_ERROR("DirectFB/Config 'apixelformat': Could not parse format!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->a_format = format;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'apixelformat': No format specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "gpixelformat" ) == 0) {
+          if (value) {
+               DFBSurfacePixelFormat format;
+
+               format = parse_pixelformat( value );
+               if (format == DSPF_UNKNOWN) {
+                    D_ERROR("DirectFB/Config 'gpixelformat': Could not parse format!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->g_format = format;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'gpixelformat': No format specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "src_premultiply" ) == 0) {
+          dfb_config->src_premultiply = true;
+     } else
+     if (strcmp (name, "no-src_premultiply" ) == 0) {
+          dfb_config->src_premultiply = false;
+     } else
+     if (strcmp (name, "monitor_type" ) == 0) {
+          if (value) {
+               char type[10];
+
+               if (sscanf( value, "%s", type ) < 1) {
+                    D_ERROR("DirectFB/Config 'monitor_type': Could not parse monitor_type!\n");
+                    return DFB_INVARG;
+               }
+               if (strcmp (type, "D4") == 0)
+                    dfb_config->monitor_type = DMONITOR_TYPE_D4;
+               else if (strcmp (type, "D3") == 0)
+                    dfb_config->monitor_type = DMONITOR_TYPE_D3;
+               else if (strcmp (type, "D2") == 0)
+                    dfb_config->monitor_type = DMONITOR_TYPE_D2;
+               else if (strcmp (type, "D1") == 0)
+                    dfb_config->monitor_type = DMONITOR_TYPE_D1;
+               else
+                    dfb_config->monitor_type = DMONITOR_TYPE_1080I;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'monitor_type': No monitor_type specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "monitor_aspect" ) == 0) {
+          if (value) {
+               char aspect[10];
+
+               if (sscanf( value, "%s", aspect ) < 1) {
+                    D_ERROR("DirectFB/Config 'monitor_type': Could not parse monitor_type!\n");
+                    return DFB_INVARG;
+               }
+               if (strcmp (aspect, "4x3Wide") == 0)
+                    dfb_config->monitor_aspect = DMONITOR_ASPECT_4_3WIDE;
+               else if (strcmp (aspect, "4x3") == 0)
+                    dfb_config->monitor_aspect = DMONITOR_ASPECT_4_3;
+               else
+                    dfb_config->monitor_aspect = DMONITOR_ASPECT_16_9;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'monitor_type': No monitor_type specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+#endif
      if (strcmp (name, "session" ) == 0) {
           if (value) {
                int session;
@@ -647,21 +776,20 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "fatal-level" ) == 0) {
-          if (strcasecmp (value, "none" ) == 0) {
-               direct_config->fatal = DCFL_NONE;
-          } else
-          if (strcasecmp (value, "assert" ) == 0) {
-               direct_config->fatal = DCFL_ASSERT;
-          } else
-          if (strcasecmp (value, "assume" ) == 0) {
-               direct_config->fatal = DCFL_ASSUME;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'fatal-level': Unknown level specified (use 'none', 'assert', 'assume')!\n");
-               return DFB_INVARG;
-          }
+#if 1	/* DFB_ARIB */
+     if (strcmp (name, "no-aribdebug" ) == 0) {
+          direct_config->aribdebug = false;
      } else
+     if (strcmp (name, "aribdebug" ) == 0) {
+          direct_config->aribdebug = true;
+     } else
+     if (strcmp (name, "no-aribtrace" ) == 0) {
+          direct_config->aribtrace = false;
+     } else
+     if (strcmp (name, "aribtrace" ) == 0) {
+          direct_config->aribtrace = true;
+     } else
+#endif
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;
      } else
@@ -674,56 +802,11 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-hardware" ) == 0) {
           dfb_config->software_only = true;
      } else
-     if (strcmp (name, "dma" ) == 0) {
-          dfb_config->dma = true;
-     } else
-     if (strcmp (name, "no-dma" ) == 0) {
-          dfb_config->dma = false;
-     } else
      if (strcmp (name, "mmx" ) == 0) {
           dfb_config->mmx = true;
      } else
      if (strcmp (name, "no-mmx" ) == 0) {
           dfb_config->mmx = false;
-     } else
-     if (strcmp (name, "agp" ) == 0) {
-          if (value) {
-               int mode;
-
-               if (sscanf( value, "%d", &mode ) < 1 || mode < 0 || mode > 8) {
-                    D_ERROR( "DirectFB/Config 'agp': "
-                             "invalid agp mode '%s'!\n", value );
-                    return DFB_INVARG;
-               }
-
-               dfb_config->agp = mode;
-          }
-          else {
-               dfb_config->agp = 8; /* maximum possible */
-          }
-     } else
-     if (strcmp (name, "no-agp" ) == 0) {
-          dfb_config->agp = 0;
-     } else
-     if (strcmp (name, "agpmem-limit" ) == 0) { 
-          if (value) {
-               int limit;
-
-               if (sscanf( value, "%d", &limit ) < 1) {
-                    D_ERROR( "DirectFB/Config 'agpmem-limit': "
-                             "Could not parse value!\n" );
-                    return DFB_INVARG;
-               }
-
-               if (limit < 0)
-                    limit = 0;
-
-               dfb_config->agpmem_limit = limit << 10;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'agpmem-limit': No value specified!\n");
-               return DFB_INVARG;
-          }
      } else
      if (strcmp (name, "vt" ) == 0) {
           dfb_config->vt = true;
@@ -772,7 +855,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "mouse-source" ) == 0) {
           if (value) {
-               D_FREE( dfb_config->mouse_source );	
+               D_FREE( dfb_config->mouse_source );
                dfb_config->mouse_source = D_STRDUP( value );
           }
           else {
@@ -1053,34 +1136,6 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR( "DirectFB/Config: No MuTouch device specified!\n" );
                return DFB_INVARG;
           }
-     } else
-     if (strcmp (name, "penmount-device" ) == 0) {
-          if (value) {
-               if (dfb_config->penmount_device)
-                    D_FREE( dfb_config->penmount_device );
-
-               dfb_config->penmount_device = D_STRDUP( value );
-          }
-          else {
-               D_ERROR( "DirectFB/Config: No PenMount device specified!\n" );
-               return DFB_INVARG;
-          }
-     } else
-     if (strcmp (name, "unichrome-revision" ) == 0) {
-          if (value) {
-               int rev;
-
-               if (sscanf( value, "%d", &rev ) < 1) {
-                    D_ERROR("DirectFB/Config 'unichrome-revision': Could not parse revision!\n");
-                    return DFB_INVARG;
-               }
-
-               dfb_config->unichrome_revision = rev;
-          }
-          else {
-               D_ERROR("DirectFB/Config 'unichrome-revision': No revision specified!\n");
-               return DFB_INVARG;
-          }
      }
      else
           return DFB_UNSUPPORTED;
@@ -1231,14 +1286,7 @@ DFBResult dfb_config_read( const char *filename )
 
      while (fgets( line, 400, f )) {
           char *name = line;
-          char *comment = strchr( line, '#');
-          char *value;
-          
-          if (comment) {
-               *comment = 0;
-          }
-          
-          value = strchr( line, '=' );
+          char *value = strchr( line, '=' );
 
           if (value) {
                *value++ = 0;
