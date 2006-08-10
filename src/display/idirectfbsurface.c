@@ -46,6 +46,8 @@
 #include <core/fonts.h>
 #include <core/state.h>
 #include <core/palette.h>
+#include <core/layers.h>
+#include <core/layer_region.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 
@@ -68,6 +70,7 @@
 
 D_DEBUG_DOMAIN( Surface, "IDirectFBSurface", "IDirectFBSurface Interface" );
 
+
 /**********************************************************************************************************************/
 
 static ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx );
@@ -84,6 +87,9 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      D_ASSERT( thiz != NULL );
 
      data = thiz->priv;
+
+     if(data->surface->layer_region)
+        dfb_layer_region_unref( data->surface->layer_region );
 
      if (data->surface)
           dfb_surface_detach( data->surface, &data->reaction );
@@ -431,20 +437,21 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        DFBSurfaceFlipFlags  flags )
 {
      DFBRegion    reg;
-     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, thiz, region, flags );
 
-     surface = data->surface;
-     if (!surface)
+     if (!data->surface)
           return DFB_DESTROYED;
 
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!(surface->caps & DSCAPS_FLIPPING))
+
+     if (!(data->surface->caps & DSCAPS_FLIPPING) && 
+                     !(data->surface->caps & DSCAPS_TRIPLE) || 
+                     !(data->surface->caps & DSCAPS_DOUBLE)) 
           return DFB_UNSUPPORTED;
 
      if (!data->area.current.w || !data->area.current.h ||
@@ -465,11 +472,29 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      D_DEBUG_AT( Surface, "  -> %d, %d - %dx%d\n", DFB_RECTANGLE_VALS_FROM_REGION( &reg ) );
 
-     if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
-         reg.x2 == surface->width - 1 && reg.y2 == surface->height - 1)
-          dfb_surface_flip_buffers( data->surface, false );
-     else
-          dfb_back_to_front_copy( data->surface, &reg );
+     //if no parent or buffered flip our surface
+     //don't auto flip our parents if its shared and there is a composite
+     if( !data->surface->parent ||  !data->compositeCallback  
+         || (data->surface->parent && (data->surface->parent != data->surface)) ) { 
+        //flip myself
+        if ((data->surface->caps & DSCAPS_FLIPPING) ){
+            if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
+                reg.x2 == data->surface->width - 1 && reg.y2 == data->surface->height - 1)
+                dfb_surface_flip_buffers( data->surface, false );
+            else
+                dfb_back_to_front_copy( data->surface, &reg );
+        }
+     }
+
+     /* User is going to composite flipped surfaces together*/
+     if( data->compositeCallback) {
+        data->compositeCallback(thiz,&reg,flags);
+     }
+
+     /* System wants to composite used by layers*/
+     if ( data->surface->coreCompositeCallback ) {
+        data->surface->coreCompositeCallback(data->surface,&reg,flags);
+     }
 
      return DFB_OK;
 }
@@ -1930,6 +1955,7 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
                                 IDirectFBSurface   **surface )
 {
      DFBResult ret;
+     IDirectFBSurface *isurface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1945,6 +1971,12 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
      /* Allocate interface */
      DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
+      /*reference the layer region if were tied to a layer*/
+      if( data->surface->layer_region ) {
+             if (dfb_layer_region_ref( data->surface->layer_region ))
+                 return DFB_FUSION;
+      }  
+ 
      if (rect || data->limit_set) {
           DFBRectangle wanted, granted;
           
@@ -1983,7 +2015,31 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
                                             data->caps | DSCAPS_SUBSURFACE );
      }
      
-     return ret;
+     if( ret )
+          return ret;
+  
+     /*set up the interface chains*/     
+     {
+          IDirectFBSurface_data *child_data = 
+               (IDirectFBSurface_data*)(*surface)->priv;
+
+          child_data->parent = thiz;
+
+          if(!data->first_child)
+               data->first_child = *surface; 
+          child_data->prev_sibling = data->last_child;
+
+          if( data->last_child) {
+               IDirectFBSurface_data *last_data = 
+                       (IDirectFBSurface_data*)(data->last_child)->priv;
+               last_data->next_sibling = *surface;
+          }
+          data->last_child = *surface; 
+          /*Copy parents local interface composite  callback*/
+          child_data->compositeCallback = data->compositeCallback; 
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -2067,6 +2123,346 @@ IDirectFBSurface_DisableAcceleration( IDirectFBSurface    *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_SetCompositeCallback( IDirectFBSurface    *thiz,
+                                      CompositeCallback  callback )
+{
+  DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+  D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+  data->compositeCallback = callback;
+  return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetDescriptionCallback( IDirectFBSurface    *thiz,
+                                      DescriptionCallback  callback )
+{
+  DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+  D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+  data->descriptionCallback = callback;
+  return DFB_OK;
+}
+
+/*
+ * Reconfigure a surface
+ */
+static DFBResult
+IDirectFBSurface_SetDescription( IDirectFBSurface    *thiz,
+                                      DFBSurfaceDescription *desc)
+{
+#define PRIV(interface) \
+     interface?(IDirectFBSurface_data*)interface->priv:NULL 
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     bool buffered;
+     bool resized;
+     bool unref_layer;
+     bool unref_surface;
+     DFBRectangle rect;
+     IDirectFBSurface_data old_data;
+     CoreSurface *surface;
+     CoreLayerRegion *new_layer;
+     DFBResult ret;
+
+     if (!desc)
+          return DFB_INVARG;
+
+     IDirectFBSurface_data *parent_data = PRIV(data->parent);
+
+     old_data = *data;
+
+     /*First handle a move to a sibling with a different parent*/
+     if( (desc->flags & DSDESC_PREV_SIBLING) || (desc->flags & DSDESC_NEXT_SIBLING) ) {
+          if( desc->flags & DSDESC_PREV_SIBLING ) {
+               IDirectFBSurface_data *prev = PRIV(desc->prev_sibling);
+               if(prev && prev->parent != data->parent){
+                  desc->flags |= DSDESC_PARENT;
+                  desc->parent = prev->parent;
+               }
+          }
+          else if ( desc->flags & DSDESC_NEXT_SIBLING ) {
+               IDirectFBSurface_data *next = PRIV(desc->next_sibling);
+               if(next && next->parent != data->parent){
+                  desc->flags |= DSDESC_PARENT;
+                  desc->parent = next->parent;
+               }
+          }
+     }
+
+     /*Next handle reparenting*/
+     if (desc->flags & DSDESC_PARENT && data->parent != desc->parent) {
+          /*remove*/
+          IDirectFBSurface_data *new_parent_data = PRIV(desc->parent);
+          IDirectFBSurface_data *prev = PRIV(data->prev_sibling);
+          IDirectFBSurface_data *next = PRIV(data->next_sibling);
+          {
+          /*Redo the layer binding maybe moved offscreen or to a new screen*/
+               new_layer = parent_data ?parent_data->surface->layer_region:NULL;
+               //if( data->surface->layer_region && 
+                //               data->surface->layer_region != new_layer )
+                    //unref_layer = true;
+          }
+          /*fixup old parent and remove*/
+          if( parent_data ) {
+               if( parent_data->first_child == thiz )
+                    parent_data->first_child = data->next_sibling;
+               if( parent_data->last_child == thiz )
+                    parent_data->last_child = data->prev_sibling;
+               if( next )
+                    next->prev_sibling = data->prev_sibling;
+               if( prev )
+                   prev->next_sibling = data->next_sibling;
+               data->prev_sibling = NULL;
+               data->next_sibling = NULL;
+          }
+
+          /*Now add to new parent */
+          parent_data = new_parent_data;
+          data->parent = desc->parent;
+
+          /* callback is inherited from parent unless set*/
+          data->compositeCallback = parent_data ? parent_data->compositeCallback:NULL; 
+          data->descriptionCallback = parent_data ? parent_data->descriptionCallback:NULL; 
+
+          /*add at end*/
+          if( data->parent) {
+                  
+               if( !parent_data->first_child)
+                    parent_data->first_child = thiz;
+
+               if( parent_data->last_child  ) {
+                    IDirectFBSurface_data *prev = PRIV(new_parent_data->last_child);
+                    prev->next_sibling = thiz;
+                    data->prev_sibling = new_parent_data->last_child;
+               }
+               parent_data->last_child = thiz;
+          }
+     }
+     /*end parent change*/
+
+     if( !data->parent && 
+               ((desc->flags & DSDESC_PREV_SIBLING) || (desc->flags & DSDESC_NEXT_SIBLING)) ) {
+          return DFB_INVARG;
+     }
+
+     /*fix up siblings */
+     if( ((desc->flags & DSDESC_PREV_SIBLING) || (desc->flags & DSDESC_NEXT_SIBLING)) ) {
+     
+               IDirectFBSurface *prev_sibling = NULL;
+               IDirectFBSurface_data *prev_sibling_data;
+               IDirectFBSurface *next_sibling = NULL;
+               IDirectFBSurface_data *next_sibling_data;
+               IDirectFBSurface_data *prev = PRIV(data->prev_sibling);
+               IDirectFBSurface_data *next = PRIV(data->next_sibling);
+               data->parent = desc->parent;
+
+               if(!parent_data->first_child )
+                    return DFB_INVARG;
+
+               if(desc->next_sibling)
+                   next = PRIV(desc->next_sibling);
+
+               
+               if( desc->flags &  DSDESC_PREV_SIBLING ) {
+                    prev_sibling = desc->prev_sibling;
+                    prev = PRIV(prev_sibling);
+                    if(prev)
+                         next_sibling = prev->next_sibling;
+                    if( prev_sibling && prev->parent != data->parent ) 
+                         return DFB_INVARG;
+               }
+               else 
+                 prev_sibling = NULL;
+
+
+               if( desc->flags &  DSDESC_NEXT_SIBLING ) {
+                    next_sibling = desc->next_sibling;
+                    next = PRIV(next_sibling);
+                    if(next)
+                         prev_sibling = next->prev_sibling;
+                    if( next_sibling && next->parent != data->parent ) 
+                         return DFB_INVARG;
+               }
+               else
+                 next_sibling == NULL;
+                                  
+               /*if they send both ?? */
+               if( desc->flags & DSDESC_PREV_SIBLING && desc->flags & DSDESC_NEXT_SIBLING ) {
+                     if( prev && prev->next_sibling != desc->prev_sibling )
+                         return DFB_INVARG;
+                     if( next && next->prev_sibling != desc->next_sibling )
+                         return DFB_INVARG;
+               }
+
+               if( !(desc->flags & DSDESC_PREV_SIBLING) && !(desc->flags & DSDESC_NEXT_SIBLING) ) {
+                    prev_sibling = parent_data->last_child;
+                    prev = PRIV(prev_sibling);
+               }
+
+               /*remove myself from the chain */
+               if(parent_data->first_child == thiz )
+                    parent_data->first_child = data->next_sibling;
+               if(parent_data->last_child == thiz )
+                    parent_data->last_child = data->prev_sibling;
+               if( prev )
+                    prev->next_sibling = data->next_sibling;
+               if( next ) 
+                    next->prev_sibling = data->prev_sibling;
+
+              /*redo its next sibling*/
+              if( prev_sibling ) {
+                    if( parent_data->last_child == prev_sibling )
+                         parent_data->last_child = thiz;
+                    data->prev_sibling = prev_sibling;
+                    IDirectFBSurface_data *ppriv = PRIV(prev_sibling);
+                    IDirectFBSurface_data *pnext = PRIV(ppriv->next_sibling);
+                    data->next_sibling = ppriv->next_sibling;
+                    pnext->prev_sibling = thiz;
+              }
+
+              if( next_sibling ) {
+                    /*link in sibling chain first with next*/
+                    if(parent_data->first_child == next_sibling )
+                         parent_data->first_child = thiz;
+                    data->next_sibling = next_sibling;
+                    /*redo its next sibling*/
+                    IDirectFBSurface_data *npriv = PRIV(next_sibling);
+                    IDirectFBSurface_data *nprev = PRIV(npriv->prev_sibling);
+                    data->prev_sibling = npriv->prev_sibling;
+                    /* insert into previous*/
+                    nprev->next_sibling = thiz;
+                   /*make thiz prevous for next */
+                    npriv->prev_sibling = thiz;
+              }
+      }
+
+     /* Setup composite before any surface changes*/
+     if ( desc->flags & DSDESC_COMPOSITE)
+          data->compositeCallback = desc->compositeCallback;
+
+     /* Setup description before any surface changes*/
+     if ( desc->flags & DSDESC_DESCRIPTION)
+          data->descriptionCallback = desc->descriptionCallback;
+
+    /*currently buffered ?*/
+    if(data->surface  &&  !( parent_data && data->surface == parent_data->surface) )
+          buffered = true;
+     /*
+      * Buffering changed subsurface for now don't try to see if we already match
+      */
+     if ( desc->flags & DSDESC_CAPS ) {
+        /*already buffered ?*/
+        if(buffered)  
+          dfb_surface_unref(data->surface);
+     }
+
+     rect = data->area.wanted;
+
+     if(desc->flags & DSDESC_X )
+        rect.x = desc->x;
+     if(desc->flags & DSDESC_Y )
+        rect.y = desc->y;
+     if( desc->flags & DSDESC_WIDTH )
+        rect.w = desc->width;
+     if(desc->flags & DSDESC_HEIGHT )
+        rect.h = desc->height;
+    
+    if(rect.w != data->area.wanted.w || rect.h != data->area.wanted.h)  
+       resized = true;
+
+
+    
+
+
+     if ( (desc->flags & DSDESC_CAPS) && 
+            (desc->caps & DSCAPS_TRIPLE ||desc->caps & DSCAPS_DOUBLE ) ) {
+        int policy = CSP_VIDEOLOW;
+
+        if (desc->caps & DSCAPS_VIDEOONLY)
+            policy = CSP_VIDEOONLY;
+        else if (desc->caps & DSCAPS_SYSTEMONLY)
+           policy = CSP_SYSTEMONLY;
+
+        ret=dfb_surface_create(dfb_core_get(),
+                              rect.w,rect.h,
+                              data->surface->format,
+                              policy,
+                              desc->caps,data->surface->palette,
+                              &surface);
+        if(ret)
+            return ret;
+
+         data->area.wanted = data->area.granted = data->area.current = rect;
+
+#if 0 
+        /*Set up the core surface chains this should really be in create*/
+
+        dfb_surfacemanager_lock( data->surface->manager );
+        {
+            data->surface->parent = data->surface;
+            if(!data->surface->parent->first_child)
+                data->surface->parent->first_child = data->surface; 
+            data->surface->prev_sibling = data->surface->last_child;
+
+            if( data->surface->last_child)
+                data->surface->parent->last_child->next_sibling = data->surface;
+            data->surface->parent->last_child = data->surface; 
+            /* copy Parents core surface composite callback*/
+            data->surface->coreCompositeCallback = data->surface->parent->coreCompositeCallback; 
+        }
+#endif
+        dfb_surface_notify_listeners( data->surface, CSNF_SIZEFORMAT );
+        dfb_surfacemanager_unlock( surface->manager );
+        return DFB_OK;
+        
+     } /* Makes a simple unbuffered */ 
+     else if (desc->flags & DSDESC_CAPS) {
+         if( parent_data )
+               data->surface = parent_data->surface;
+         else
+           D_DERROR(0, "IDirectFBSurface: Unknow surface type \n" );
+     }
+
+     /*
+      * Buffered resize
+      */
+      if( buffered ) {
+          if(resized )  
+               dfb_surface_reformat( dfb_core_get(), data->surface, rect.w, rect.h,surface->format);
+          data->area.wanted = data->area.granted = data->area.current = rect;
+      } /* Simple surface resize */
+      else {
+          DFBRectangle wanted, granted;
+          /* Compute wanted rectangle */
+          wanted = rect;
+          wanted.x += parent_data->area.wanted.x;
+          wanted.y += parent_data->area.wanted.y;
+          if (wanted.w <= 0 || wanted.h <= 0) {
+               wanted.w = 0;
+               wanted.h = 0;
+          }
+        
+          /* Compute granted rectangle */
+          granted = wanted;
+          dfb_rectangle_intersect( &granted, &parent_data->area.granted );
+          data->area.wanted = wanted; 
+          data->area.granted = data->area.current = granted;
+     }
+     if( old_data.surface->layer_region && 
+         old_data.surface->layer_region != new_layer )
+          dfb_layer_region_unref( old_data.surface->layer_region );
+    /*buffering changed ??*/
+    if(old_data.surface  &&  
+         !( parent_data && old_data.surface == parent_data->surface) )
+          dfb_surface_unref(old_data.surface);
+     /*
+      * Notify config listener that data changed
+      */
+     data->descriptionCallback(thiz,&old_data,data);
+#undef PRIV
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -2078,7 +2474,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 {
      DFBRectangle rect = { 0, 0, surface->width, surface->height };
 
-     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz,IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
@@ -2187,6 +2583,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->Dump = IDirectFBSurface_Dump;
      thiz->DisableAcceleration = IDirectFBSurface_DisableAcceleration;
+     thiz->SetDescription = IDirectFBSurface_SetDescription;
+     thiz->SetCompositeCallback = IDirectFBSurface_SetCompositeCallback;
+     thiz->SetDescriptionCallback = IDirectFBSurface_SetDescriptionCallback;
 
 
      dfb_surface_attach( surface,

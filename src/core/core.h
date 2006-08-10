@@ -86,6 +86,11 @@ DirectResult dfb_core_enum_layer_regions ( CoreDFB               *core,
 bool         dfb_core_is_master( CoreDFB *core );
 
 /*
+ * Returns the current core.
+ */
+CoreDFB *dfb_core_get();
+
+/*
  * Returns the core's fusion world.
  */
 FusionWorld *dfb_core_world( CoreDFB *core );

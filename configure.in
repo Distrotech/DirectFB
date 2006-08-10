@@ -155,7 +155,8 @@ if test x"$CFLAGS" = x"-g -O2"; then
   CFLAGS=
 fi
 
-CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
+dnl CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
+CFLAGS="-g"
 
 DFB_INTERNAL_CFLAGS="-D_GNU_SOURCE $DFB_INTERNAL_CFLAGS"
 

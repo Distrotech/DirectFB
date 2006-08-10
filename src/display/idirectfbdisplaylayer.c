@@ -61,7 +61,6 @@
 #include "idirectfbdisplaylayer.h"
 #include "idirectfbscreen.h"
 #include "idirectfbsurface.h"
-#include "idirectfbsurface_layer.h"
 
 
 D_DEBUG_DOMAIN( Layer, "IDirectFBDisplayLayer", "Display Layer Interface" );
@@ -165,6 +164,8 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      if (!interface)
           return DFB_INVARG;
 
+     *interface = NULL;
+
      if (data->level == DLSCL_SHARED) {
           D_WARN( "letting unprivileged IDirectFBDisplayLayer::GetSurface() "
                    "call pass until cooperative level handling is finished" );
@@ -175,13 +176,32 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
           return ret;
 
      DIRECT_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
+     {
+          DFBResult    ret;
+          CoreSurface *core_surface;
+          DIRECT_ALLOCATE_INTERFACE_DATA(surface,IDirectFBSurface);
 
-     ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL,
-                                             region, DSCAPS_NONE );
+          if (dfb_layer_region_ref( region ))
+               return DFB_FUSION;
+
+          ret = dfb_layer_region_get_surface( region, &core_surface );
+
+          if (ret) {
+               dfb_layer_region_unref( region );
+               DIRECT_DEALLOCATE_INTERFACE(surface);
+               return ret;
+          }
+
+          ret = IDirectFBSurface_Construct( surface, NULL,NULL,NULL,
+                                       core_surface, DSCAPS_NONE );
+
+          dfb_surface_unref( core_surface );
+          dfb_layer_region_unref( region );
+
+     }
 
      *interface = ret ? NULL : surface;
 
-     dfb_layer_region_unref( region );
 
      return ret;
 }

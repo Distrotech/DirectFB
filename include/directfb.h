@@ -573,8 +573,15 @@ typedef enum {
      DSDESC_PALETTE      = 0x00000020,  /* Initialize the surfaces palette
                                            with the entries specified in the
                                            description. */
+     DSDESC_X        = 0x00000040,  /* x field is valid */
+     DSDESC_Y        = 0x00000080,  /* y field is valid */
+     DSDESC_PARENT   = 0x00000100,  /* parent field is valid */
+     DSDESC_PREV_SIBLING = 0x00000200,  /* previous sibling field is valid */
+     DSDESC_NEXT_SIBLING = 0x00000400,  /* next sibling field is valid */
+     DSDESC_COMPOSITE = 0x00000800,  /* callback field is valid */
+     DSDESC_DESCRIPTION = 0x00001000,  /* description callback field is valid */
 
-     DSDESC_ALL          = 0x0000003F   /* all of these */
+     DSDESC_ALL          = 0x00001FFF   /* all of these */
 } DFBSurfaceDescriptionFlags;
 
 /*
@@ -1029,15 +1036,57 @@ typedef enum {
 
 
 /*
+ * Flipping flags controlling the behaviour of IDirectFBSurface::Flip().
+ */
+typedef enum {
+     DSFLIP_NONE         = 0x00000000,  /* None of these. */
+
+     DSFLIP_WAIT         = 0x00000001,  /* Flip() returns upon vertical sync. Flipping is still done
+                                           immediately unless DSFLIP_ONSYNC is specified, too.  */
+     DSFLIP_BLIT         = 0x00000002,  /* Copy from back buffer to front buffer rather than
+                                           just swapping these buffers. This behaviour is enforced
+                                           if the region passed to Flip() is not NULL or if the
+                                           surface being flipped is a sub surface. */
+     DSFLIP_ONSYNC       = 0x00000004,  /* Do the actual flipping upon the next vertical sync.
+                                           The Flip() method will still return immediately unless
+                                           DSFLIP_WAIT is specified, too. */
+
+     DSFLIP_PIPELINE     = 0x00000008,
+
+     DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
+} DFBSurfaceFlipFlags;
+
+
+/*
+ * Called to composite subsurfaces
+ */
+typedef void (*CompositeCallback) ( IDirectFBSurface *surface,
+                                    const DFBRegion     *region,
+                                    DFBSurfaceFlipFlags  flags );
+
+typedef struct _DFBSurfaceDescription DFBSurfaceDescription;
+/*
+ * Called when surface description changes
+ */
+typedef void (*DescriptionCallback) ( IDirectFBSurface *surface,
+                                      DFBSurfaceDescription *old_desc,
+                                      DFBSurfaceDescription *new_desc );
+/*
  * Description of the surface that is to be created.
  */
-typedef struct {
+struct _DFBSurfaceDescription {
      DFBSurfaceDescriptionFlags         flags;       /* field validation */
-
      DFBSurfaceCapabilities             caps;        /* capabilities */
+     int                                x;       /* pixel x position */
+     int                                y;      /* pixel y position */
      int                                width;       /* pixel width */
      int                                height;      /* pixel height */
      DFBSurfacePixelFormat              pixelformat; /* pixel format */
+     IDirectFBSurface                   *parent;
+     IDirectFBSurface                   *prev_sibling;
+     IDirectFBSurface                   *next_sibling;
+     CompositeCallback                  compositeCallback;
+     DescriptionCallback                descriptionCallback;
 
      struct {
           void                         *data;        /* data pointer of existing buffer */
@@ -1048,7 +1097,7 @@ typedef struct {
           const DFBColor               *entries;
           unsigned int                  size;
      } palette;                                      /* initial palette */
-} DFBSurfaceDescription;
+};
 
 /*
  * Description of the palette that is to be created.
@@ -2766,28 +2815,6 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      );
 )
 
-
-/*
- * Flipping flags controlling the behaviour of IDirectFBSurface::Flip().
- */
-typedef enum {
-     DSFLIP_NONE         = 0x00000000,  /* None of these. */
-
-     DSFLIP_WAIT         = 0x00000001,  /* Flip() returns upon vertical sync. Flipping is still done
-                                           immediately unless DSFLIP_ONSYNC is specified, too.  */
-     DSFLIP_BLIT         = 0x00000002,  /* Copy from back buffer to front buffer rather than
-                                           just swapping these buffers. This behaviour is enforced
-                                           if the region passed to Flip() is not NULL or if the
-                                           surface being flipped is a sub surface. */
-     DSFLIP_ONSYNC       = 0x00000004,  /* Do the actual flipping upon the next vertical sync.
-                                           The Flip() method will still return immediately unless
-                                           DSFLIP_WAIT is specified, too. */
-
-     DSFLIP_PIPELINE     = 0x00000008,
-
-     DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
-} DFBSurfaceFlipFlags;
-
 /*
  * Flags controlling the text layout.
  */
@@ -2884,6 +2911,7 @@ typedef enum {
 /********************
  * IDirectFBSurface *
  ********************/
+
 
 /*
  * <i>No summary yet...</i>
@@ -3460,6 +3488,28 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           const DFBRectangle       *rect,
           IDirectFBSurface        **ret_interface
      );
+
+     /*
+      * Composite callback is used to composite subsurfaces
+      * If your managing your own surface stack
+      */
+     DFBResult (*SetCompositeCallback)(
+          IDirectFBSurface *this,
+          CompositeCallback callback
+     );
+     /*
+      * Configure callback is used to determine the effect
+      * of a change in configuration for a surface
+      */
+     DFBResult (*SetDescriptionCallback)(
+          IDirectFBSurface *this,
+          DescriptionCallback callback
+     );
+
+     DFBResult (*SetDescription)( IDirectFBSurface    *thiz,
+                                  DFBSurfaceDescription *desc
+     );
+
 
 
    /** OpenGL **/

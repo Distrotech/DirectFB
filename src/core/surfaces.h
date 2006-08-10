@@ -149,6 +149,10 @@ struct _SurfaceBuffer
                                            always depends on this! */
 };
 
+typedef void (*CoreCompositeCallback) ( CoreSurface *surface,
+                                        const DFBRegion     *region,
+                                        DFBSurfaceFlipFlags  flags );
+
 struct _CoreSurface
 {
      FusionObject           object;
@@ -170,6 +174,14 @@ struct _CoreSurface
      int                    field;
 
      __u8                   alpha_ramp[4];
+    CoreLayerRegion        *layer_region;
+    CoreSurface            *parent;        /* parent buffer */
+    CoreSurface            *prev_sibling; 
+    CoreSurface            *next_sibling; 
+    CoreSurface            *first_child;  
+    CoreSurface            *last_child;  
+    CoreCompositeCallback  coreCompositeCallback;
+
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */

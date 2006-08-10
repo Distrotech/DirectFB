@@ -57,7 +57,6 @@
 #include <core/windows_internal.h> /* FIXME */
 
 #include <display/idirectfbsurface.h>
-#include <display/idirectfbsurface_window.h>
 
 #include <input/idirectfbinputbuffer.h>
 
@@ -326,8 +325,9 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 
           DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-          ret = IDirectFBSurface_Window_Construct( *surface,
-                                                   NULL, NULL, data->window,
+          ret = IDirectFBSurface_Construct( *surface,
+                                                   NULL, NULL,NULL,
+                                                   data->window->surface,
                                                    DSCAPS_DOUBLE );
           if (ret)
                return ret;

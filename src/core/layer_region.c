@@ -50,6 +50,8 @@
 D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
 
+
+
 static DFBResult set_region      ( CoreLayerRegion            *region,
                                    CoreLayerRegionConfig      *config,
                                    CoreLayerRegionConfigFlags  flags,
@@ -60,6 +62,16 @@ static DFBResult realize_region  ( CoreLayerRegion            *region );
 static DFBResult unrealize_region( CoreLayerRegion            *region );
 
 /******************************************************************************/
+
+void regionCompositeCallback( CoreSurface *surface,
+                                      const DFBRegion     *region,
+                                      DFBSurfaceFlipFlags  flags )
+{
+     CoreLayerRegion *layer = surface->layer_region;
+     if( !layer)
+          return;
+    dfb_layer_region_flip_update(layer,region,flags );
+}
 
 static void
 region_destructor( FusionObject *object, bool zombie )
@@ -353,6 +365,9 @@ dfb_layer_region_set_surface( CoreLayerRegion *region,
                     dfb_layer_region_unlock( region );
                     return DFB_FUSION;
                }
+               /*remember we belong to a layer*/
+               surface->layer_region = region;
+               surface->coreCompositeCallback = regionCompositeCallback;
 
                /* Attach the global listener. */
                dfb_surface_attach_global( region->surface,

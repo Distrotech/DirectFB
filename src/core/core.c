@@ -558,6 +558,12 @@ dfb_core_is_master( CoreDFB *core )
      return core->master;
 }
 
+CoreDFB *
+dfb_core_get()
+{
+  return core_dfb;
+}
+
 FusionWorld *
 dfb_core_world( CoreDFB *core )
 {

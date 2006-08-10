@@ -64,8 +64,6 @@
 #include <display/idirectfbpalette.h>
 #include <display/idirectfbscreen.h>
 #include <display/idirectfbsurface.h>
-#include <display/idirectfbsurface_layer.h>
-#include <display/idirectfbsurface_window.h>
 #include <display/idirectfbdisplaylayer.h>
 #include <input/idirectfbinputbuffer.h>
 #include <input/idirectfbinputdevice.h>
@@ -597,8 +595,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-                         return IDirectFBSurface_Window_Construct( *interface, NULL,
-                                                                   NULL, window,
+                         return IDirectFBSurface_Construct( *interface, NULL,NULL,
+                                                                   NULL, window->surface,
                                                                    caps );
                     }
                case DFSCL_FULLSCREEN:
@@ -672,8 +670,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-                    ret = IDirectFBSurface_Layer_Construct( *interface, NULL,
-                                                            NULL, region, caps );
+                    ret = IDirectFBSurface_Construct( *interface, NULL,NULL,
+                                                            NULL,surface, caps );
 
                     dfb_surface_unref( surface );
                     dfb_layer_region_unref( region );

@@ -224,6 +224,9 @@ create_region( CoreDFB                 *core,
           dfb_layer_region_unref( region );
           return ret;
      }
+     /* Link the region into the surface structure. */
+     dfb_layer_region_link( &surface->layer_region, region );
+     dfb_layer_region_unref( region );
 
      *ret_region  = region;
      *ret_surface = surface;
@@ -388,9 +391,6 @@ dfb_window_create( CoreWindowStack        *stack,
                     return ret;
                }
 
-               /* Link the region into the window structure. */
-               dfb_layer_region_link( &window->region, region );
-               dfb_layer_region_unref( region );
 
                /* Link the surface into the window structure. */
                dfb_surface_link( &window->surface, surface );

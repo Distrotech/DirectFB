@@ -37,6 +37,9 @@
 #include <core/coretypes.h>
 #include <core/state.h>
 
+//typedef void (*CompositeCallback) ( IDirectFBSurface *surface,
+ //                                   const DFBRegion     *region,
+  //                                  DFBSurfaceFlipFlags  flags );
 
 /*
  * private data struct of IDirectFBSurface
@@ -63,7 +66,14 @@ typedef struct {
                                                 only valid if clip_set != 0 */
 
      int                    locked;          /* which buffer is locked? */
-     CoreSurface            *surface;        /* buffer to show */
+     CoreSurface           *surface;        /* buffer to show */
+     IDirectFBSurface      *parent;        /* parent surface */
+     IDirectFBSurface      *prev_sibling;  
+     IDirectFBSurface      *next_sibling; 
+     IDirectFBSurface      *first_child;  
+     IDirectFBSurface      *last_child;  
+     CompositeCallback     compositeCallback;
+     DescriptionCallback   descriptionCallback;
      IDirectFBFont          *font;           /* font to use */
      CardState              state;           /* render state to use */
      DFBTextEncodingID      encoding;        /* text encoding */
@@ -83,7 +93,6 @@ typedef struct {
           __u32             value;           /* r/g/b in surface's format */
      } dst_key;                              /* dst key for blitting to
                                                 this surface */
-
      Reaction               reaction;
 } IDirectFBSurface_data;
 
