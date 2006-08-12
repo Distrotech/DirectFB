@@ -76,11 +76,10 @@ XWindow* xw;
 /******************************************************************************/
 
 static DFBResult dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config );
-static DFBResult dfb_x11_update_screen( CoreDFB *core, DFBRegion *region );
 static DFBResult dfb_x11_set_palette( CorePalette *palette );
 
-static DFBResult update_screen( CoreSurface *surface,
-                                int x, int y, int w, int h );
+static DFBResult dfb_x11_update_screen( CoreDFB *core, DFBRegion *region );
+
 
 
 
@@ -415,7 +414,7 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 
 /******************************************************************************/
 
-static DFBResult
+DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h )
 {
 
@@ -477,14 +476,14 @@ typedef enum {
 static DFBResult
 dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
+    XWindow *old=NULL;
     fusion_skirmish_prevail( &dfb_x11->lock );
 
 	if( xw != NULL ) {
-		xw_closeWindow(&xw);
-		xw=NULL;
+          //XXX HACK FIX ME
+          return;
+          //old = xw;
 	}
-	
-	// Match DFB requested pixelformat (if possible )	
 	
 // 	printf("Match DFB requested pixelformat (if possible )	\n");
 // 	switch (config->format)
@@ -527,6 +526,9 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 
 		 return DFB_FAILURE;
 	 }
+     if( old )
+	     xw_closeWindow(&old);
+
 	 fusion_skirmish_dismiss( &dfb_x11->lock );
 	     
      

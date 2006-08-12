@@ -46,7 +46,6 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/windows.h>
 
 #include <direct/interface.h>
 #include <direct/mem.h>

@@ -112,12 +112,15 @@ system_initialize( CoreDFB *core, void **data )
 
      *data = dfb_x11;
 
+	fusion_skirmish_prevail( &dfb_x11->lock );
      XInitThreads();
 	 dfb_x11->display = XOpenDisplay(NULL);
      if(!dfb_x11->display){
 		D_ERROR("X11: Error opening X_Display\n");
+         fusion_skirmish_dismiss( &dfb_x11->lock );
         return DFB_INIT;
      }
+    fusion_skirmish_dismiss( &dfb_x11->lock );
      return DFB_OK;
 }
 

@@ -129,10 +129,6 @@ struct __DFB_CoreLayerContext {
 
      DFBColorAdjustment          adjustment; /* Color adjustment of the layer.*/
 
-     CoreWindowStack            *stack;      /* Every layer has its own
-                                                windowstack as every layer has
-                                                its own pixel buffer. */
-
      FusionSHMPoolShared        *shmpool;
 };
 

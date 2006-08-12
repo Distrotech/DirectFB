@@ -224,10 +224,10 @@ IDirectFBSurface_GetPosition( IDirectFBSurface *thiz,
           return DFB_INVARG;
 
      if (x)
-          *x = data->area.wanted.x;
+          *x = data->x;
 
      if (y)
-          *y = data->area.wanted.y;
+          *y = data->y;
 
      return DFB_OK;
 }
@@ -449,10 +449,21 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
           return DFB_LOCKED;
 
 
-     if (!(data->surface->caps & DSCAPS_FLIPPING) && 
-                     !(data->surface->caps & DSCAPS_TRIPLE) || 
-                     !(data->surface->caps & DSCAPS_DOUBLE)) 
+     if (!data->compositeCallback && 
+                     !(data->surface->caps & DSCAPS_FLIPPING) && 
+                     (!(data->surface->caps & DSCAPS_TRIPLE) || 
+                     !(data->surface->caps & DSCAPS_DOUBLE))
+        ) { 
+          printf(" FLIP NOT SUPPORTED !!! %p flipping=%d tr=%d d=%d total=%d\n",data->compositeCallback,(data->surface->caps & DSCAPS_FLIPPING),
+                          (data->surface->caps & DSCAPS_TRIPLE),(data->surface->caps & DSCAPS_DOUBLE),
+                 !(
+                     !(data->surface->caps & DSCAPS_FLIPPING) && 
+                     (!(data->surface->caps & DSCAPS_TRIPLE) || 
+                     !(data->surface->caps & DSCAPS_DOUBLE))
+                  )
+                         );
           return DFB_UNSUPPORTED;
+     }
 
      if (!data->area.current.w || !data->area.current.h ||
          (region && (region->x1 > region->x2 || region->y1 > region->y2)))
@@ -474,25 +485,33 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      //if no parent or buffered flip our surface
      //don't auto flip our parents if its shared and there is a composite
-     if( !data->surface->parent ||  !data->compositeCallback  
-         || (data->surface->parent && (data->surface->parent != data->surface)) ) { 
+     if( !(flags & DSFLIP_COMPOSITE) && !data->surface->coreCompositeCallback ) {
+
         //flip myself
         if ((data->surface->caps & DSCAPS_FLIPPING) ){
+             printf("REGULAR FLIPPING \n");
             if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
                 reg.x2 == data->surface->width - 1 && reg.y2 == data->surface->height - 1)
                 dfb_surface_flip_buffers( data->surface, false );
             else
                 dfb_back_to_front_copy( data->surface, &reg );
         }
-     }
+        if( data->compositeCallback ) { 
+            flags |= DSFLIP_COMPOSITE; 
+            thiz->Flip(thiz,region,flags);
+        }
+        return;
+     } 
 
      /* User is going to composite flipped surfaces together*/
      if( data->compositeCallback) {
+             printf("COMPOSITE FLIPPING \n");
         data->compositeCallback(thiz,&reg,flags);
      }
 
      /* System wants to composite used by layers*/
      if ( data->surface->coreCompositeCallback ) {
+             printf("CORE COMPOSITE FLIPPING \n");
         data->surface->coreCompositeCallback(data->surface,&reg,flags);
      }
 
@@ -505,7 +524,7 @@ IDirectFBSurface_SetField( IDirectFBSurface    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "REGULAR%s( %p )\n", __FUNCTION__, thiz );
 
      if (!data->surface)
           return DFB_DESTROYED;
@@ -1956,6 +1975,7 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
 {
      DFBResult ret;
      IDirectFBSurface *isurface;
+     DFBRectangle wanted, granted;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1967,18 +1987,20 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
 
      if (!surface)
           return DFB_INVARG;
+
           
      /* Allocate interface */
      DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
       /*reference the layer region if were tied to a layer*/
+#if 0
       if( data->surface->layer_region ) {
              if (dfb_layer_region_ref( data->surface->layer_region ))
                  return DFB_FUSION;
       }  
+#endif
  
      if (rect || data->limit_set) {
-          DFBRectangle wanted, granted;
           
           /* Compute wanted rectangle */
           if (rect) {
@@ -2001,19 +2023,16 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
 
           dfb_rectangle_intersect( &granted, &data->area.granted );
           
-          /* Construct */
-          ret = IDirectFBSurface_Construct( *surface, 
+     }else {
+         wanted.w = data->surface->width;
+         wanted.h = data->surface->height;
+         granted = wanted;
+     }
+     /* Construct */
+     ret = IDirectFBSurface_Construct( *surface, 
                                             &wanted, &granted, &data->area.insets,
-                                            data->surface,
+                                            /*data->surface*/NULL,
                                             data->caps | DSCAPS_SUBSURFACE );
-     }
-     else {
-          /* Construct */
-          ret = IDirectFBSurface_Construct( *surface, 
-                                            NULL, NULL, &data->area.insets,
-                                            data->surface, 
-                                            data->caps | DSCAPS_SUBSURFACE );
-     }
      
      if( ret )
           return ret;
@@ -2023,7 +2042,11 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
           IDirectFBSurface_data *child_data = 
                (IDirectFBSurface_data*)(*surface)->priv;
 
+          child_data->x = wanted.x;
+          child_data->y = wanted.y;
+
           child_data->parent = thiz;
+          child_data->surface = NULL;
 
           if(!data->first_child)
                data->first_child = *surface; 
@@ -2171,6 +2194,7 @@ IDirectFBSurface_SetDescription( IDirectFBSurface    *thiz,
      IDirectFBSurface_data *parent_data = PRIV(data->parent);
 
      old_data = *data;
+
 
      /*First handle a move to a sibling with a different parent*/
      if( (desc->flags & DSDESC_PREV_SIBLING) || (desc->flags & DSDESC_NEXT_SIBLING) ) {
@@ -2346,16 +2370,18 @@ IDirectFBSurface_SetDescription( IDirectFBSurface    *thiz,
           data->descriptionCallback = desc->descriptionCallback;
 
     /*currently buffered ?*/
-    if(data->surface  &&  !( parent_data && data->surface == parent_data->surface) )
+    if(data->surface  &&  ( parent_data && data->surface != parent_data->surface) )
           buffered = true;
      /*
       * Buffering changed subsurface for now don't try to see if we already match
       */
+#if 0
      if ( desc->flags & DSDESC_CAPS ) {
         /*already buffered ?*/
-        if(buffered)  
+        if(data->surface && buffered)  
           dfb_surface_unref(data->surface);
      }
+#endif
 
      rect = data->area.wanted;
 
@@ -2384,15 +2410,21 @@ IDirectFBSurface_SetDescription( IDirectFBSurface    *thiz,
         else if (desc->caps & DSCAPS_SYSTEMONLY)
            policy = CSP_SYSTEMONLY;
 
+        //rect.x=rect.y=0;
         ret=dfb_surface_create(dfb_core_get(),
                               rect.w,rect.h,
-                              data->surface->format,
+                              parent_data->surface->format,
                               policy,
-                              desc->caps,data->surface->palette,
+                              desc->caps,parent_data->surface->palette,
                               &surface);
         if(ret)
             return ret;
-
+        rect.x=rect.y=0;
+        
+        ret = IDirectFBSurface_Construct(thiz, 
+                                            &rect,&rect,&data->area.insets,
+                                            surface,data->caps|DSCAPS_SUBSURFACE );
+         data->surface = surface;
          data->area.wanted = data->area.granted = data->area.current = rect;
 
 #if 0 
@@ -2409,7 +2441,7 @@ IDirectFBSurface_SetDescription( IDirectFBSurface    *thiz,
                 data->surface->parent->last_child->next_sibling = data->surface;
             data->surface->parent->last_child = data->surface; 
             /* copy Parents core surface composite callback*/
-            data->surface->coreCompositeCallback = data->surface->parent->coreCompositeCallback; 
+            //data->surface->coreCompositeCallback = data->surface->parent->coreCompositeCallback; 
         }
 #endif
         dfb_surface_notify_listeners( data->surface, CSNF_SIZEFORMAT );
@@ -2459,7 +2491,7 @@ IDirectFBSurface_SetDescription( IDirectFBSurface    *thiz,
      /*
       * Notify config listener that data changed
       */
-     data->descriptionCallback(thiz,&old_data,data);
+     //data->descriptionCallback(thiz,&old_data,data);
 #undef PRIV
 }
 
@@ -2472,16 +2504,18 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       CoreSurface            *surface,
                                       DFBSurfaceCapabilities  caps )
 {
-     DFBRectangle rect = { 0, 0, surface->width, surface->height };
+     DFBRectangle rect = { 0, 0, wanted->w,wanted->h };
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz,IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
      data->ref = 1;
-     data->caps = caps | surface->caps;
+     data->caps = caps;
+     if( surface )
+          data->caps |= surface->caps;
 
-     if (dfb_surface_ref( surface )) {
+     if ( surface  && dfb_surface_ref( surface )) {
           DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
      }
@@ -2587,7 +2621,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetCompositeCallback = IDirectFBSurface_SetCompositeCallback;
      thiz->SetDescriptionCallback = IDirectFBSurface_SetDescriptionCallback;
 
-
+     if(surface )
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );
 

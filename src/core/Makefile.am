@@ -41,12 +41,7 @@ internalinclude_HEADERS = \
 	state.h			\
 	surfaces.h		\
 	surfacemanager.h	\
-	system.h		\
-	windows.h		\
-	windows_internal.h	\
-	windowstack.h		\
-	wm.h			\
-	wm_module.h
+	system.h		
 
 
 noinst_LTLIBRARIES = libdirectfb_core.la
@@ -70,7 +65,5 @@ libdirectfb_core_la_SOURCES = \
 	state.c			\
 	surfaces.c		\
 	surfacemanager.c	\
-	system.c		\
-	windows.c		\
-	windowstack.c		\
-	wm.c
+	system.c		
+

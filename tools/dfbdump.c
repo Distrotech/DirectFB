@@ -55,10 +55,12 @@
 #include <core/layers.h>
 #include <core/layers_internal.h>
 #include <core/surfaces.h>
+#if 0
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h>
 #include <core/wm.h>
+#endif
 
 static DirectFBPixelFormatNames( format_names );
 
@@ -324,6 +326,7 @@ dump_contexts( CoreLayer *layer )
      dfb_core_enum_layer_contexts( NULL, context_callback, layer );
 }
 
+#if 0
 static DFBEnumerationResult
 window_callback( CoreWindow *window,
                  void       *ctx )
@@ -397,10 +400,12 @@ window_callback( CoreWindow *window,
 
      return DFENUM_OK;
 }
+#endif
 
 static void
 dump_windows( CoreLayer *layer )
 {
+#if 0
      DFBResult         ret;
      CoreLayerShared  *shared;
      CoreLayerContext *context;
@@ -440,6 +445,7 @@ dump_windows( CoreLayer *layer )
      dfb_windowstack_unlock( stack );
 
      fusion_skirmish_dismiss( &shared->lock );
+#endif
 }
 
 static DFBEnumerationResult

@@ -1345,7 +1345,6 @@ src/gfx/generic/Makefile
 src/input/Makefile
 src/media/Makefile
 src/misc/Makefile
-src/windows/Makefile
 
 systems/Makefile
 systems/fbdev/Makefile

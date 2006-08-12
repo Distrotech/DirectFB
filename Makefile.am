@@ -20,7 +20,6 @@ SUBDIRS = \
 	src 			\
 	systems			\
 	$(TOOLS_DIR)		\
-	wm			\
 	interfaces 		\
 	$(PROXY_DIR)		\
 	$(LINUXONLY_DIRS)	\

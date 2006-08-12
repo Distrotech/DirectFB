@@ -119,24 +119,6 @@ DFBResult dfb_layer_context_set_clip_regions   ( CoreLayerContext            *co
                                                  DFBBoolean                   positive );
 
 
-/*
- * window control
- */
-DFBResult dfb_layer_context_create_window( CoreLayerContext       *context,
-                                           int                     x,
-                                           int                     y,
-                                           int                     width,
-                                           int                     height,
-                                           DFBWindowCapabilities   caps,
-                                           DFBSurfaceCapabilities  surface_caps,
-                                           DFBSurfacePixelFormat   pixelformat,
-                                           CoreWindow            **window );
-
-CoreWindow      *dfb_layer_context_find_window( CoreLayerContext       *context,
-                                                DFBWindowID             id );
-
-CoreWindowStack *dfb_layer_context_windowstack( const CoreLayerContext *context );
-
 bool             dfb_layer_context_active     ( const CoreLayerContext *context );
 
 /*

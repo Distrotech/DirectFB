@@ -7,6 +7,12 @@ INCLUDES = \
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src
 
+AM_CPPFLAGS = \
+     -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"         \
+     -DSOPATH=\"@SOPATH@\"         \
+     -DMODULEDIR=\"${RUNTIME_SYSROOT}@MODULEDIR@\"     \
+     "-DBUILDTIME=\"`date -u "+%Y-%m-%d %H:%M"`\""
+
 
 internalincludedir = $(INTERNALINCLUDEDIR)/display
 

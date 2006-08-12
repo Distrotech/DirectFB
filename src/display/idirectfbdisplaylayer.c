@@ -45,13 +45,11 @@
 #include <core/layer_context.h>
 #include <core/layer_control.h>
 #include <core/layer_region.h>
+#include <core/layers_internal.h>
+#include <misc/conf.h>
 #include <core/state.h>
-#include <core/windows.h>
-#include <core/windowstack.h>
-
-#include <windows/idirectfbwindow.h>
-
 #include <gfx/convert.h>
+#include <gfx/util.h>
 
 #include <direct/debug.h>
 #include <direct/interface.h>
@@ -63,7 +61,11 @@
 #include "idirectfbsurface.h"
 
 
+
 D_DEBUG_DOMAIN( Layer, "IDirectFBDisplayLayer", "Display Layer Interface" );
+
+
+#define CURSORFILE  DATADIR"/cursor.dat"
 
 /*
  * private data struct of IDirectFB
@@ -76,10 +78,162 @@ typedef struct {
      CoreLayer                       *layer;   /* core layer data */
      CoreLayerContext                *context; /* shared or exclusive context */
      CoreLayerRegion                 *region;  /* primary region of the context */
-     CoreWindowStack                 *stack;   /* stack of shared context */
+     struct {
+          int                enabled;     /* is cursor enabled ? */
+          int                x, y;        /* cursor position */
+          DFBDimension       size;        /* cursor shape size */
+          DFBPoint           hot;         /* hot spot */
+          CoreSurface       *surface;     /* shape */
+          __u8               opacity;     /* cursor opacity */
+          DFBRegion          region;      /* cursor is clipped by this region */
+          int                numerator;   /* cursor acceleration */
+          int                denominator;
+          int                threshold;
+
+          bool               set;         /* cursor enable/disable has
+                                             been called at least one time */
+
+          CoreSurfacePolicy  policy;
+     } cursor;
+
 } IDirectFBDisplayLayer_data;
 
 
+static DFBResult
+create_cursor_surface( IDirectFBDisplayLayer_data *data,
+                       int              width,
+                       int              height )
+{
+     DFBResult          ret;
+     CoreSurface       *surface;
+     CoreLayer         *layer;
+     CoreLayerContext  *context;
+
+     D_DEBUG_AT( Layer, "%s( %p, %dx%d )\n", __FUNCTION__, data, width, height );
+
+     D_ASSERT( data != NULL );
+     D_ASSERT( data->cursor.surface == NULL );
+
+     context = data->context;
+
+     D_ASSERT( context != NULL );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     D_ASSERT( layer != NULL );
+
+     data->cursor.x   = data->context->config.width  / 2;
+     data->cursor.y   = data->context->config.height / 2;
+     data->cursor.hot.x   = 0;
+     data->cursor.hot.y   = 0;
+     data->cursor.size.w  = width;
+     data->cursor.size.h  = height;
+     data->cursor.opacity = 0xFF;
+
+     if (context->config.buffermode == DLBM_WINDOWS)
+          D_WARN( "cursor not yet visible with DLBM_WINDOWS" );
+
+     /* Create the cursor surface. */
+     ret = dfb_surface_create( layer->core, width, height, DSPF_ARGB,
+                               data->cursor.policy, DSCAPS_NONE, NULL, &surface );
+     if (ret) {
+          D_ERROR( "Core/Layer: Failed creating a surface for software cursor!\n" );
+          return ret;
+     }
+
+     dfb_surface_globalize( surface );
+
+     data->cursor.surface = surface;
+
+     return DFB_OK;
+}
+/*
+ * internal function that installs the cursor window
+ * and fills it with data from 'cursor.dat'
+ */
+static DFBResult
+load_default_cursor( IDirectFBDisplayLayer_data *data )
+{
+     DFBResult ret;
+     int       i;
+     int       pitch;
+     void     *cdata;
+     FILE     *f;
+
+     D_DEBUG_AT( Layer, "%s( %p )\n", __FUNCTION__, data );
+
+     D_ASSERT( data != NULL );
+
+     if (!data->cursor.surface) {
+          ret = create_cursor_surface( data, 40, 40 );
+          if (ret)
+               return ret;
+     }
+     else {
+          data->cursor.hot.x  = 0;
+          data->cursor.hot.y  = 0;
+          data->cursor.size.w = 40;
+          data->cursor.size.h = 40;
+     }
+
+     /* lock the surface of the window */
+     ret = dfb_surface_soft_lock( data->cursor.surface, DSLF_WRITE, &cdata, &pitch, false );
+     if (ret) {
+          D_ERROR( "Core/WindowStack: cannot lock the surface for cursor window data!\n" );
+          return ret;
+     }
+
+     /* initialize as empty cursor */
+     memset( cdata, 0, 40 * pitch );
+
+     /* open the file containing the cursors image data */
+     f = fopen( CURSORFILE, "rb" );
+     if (!f) {
+          ret = errno2result( errno );
+
+          /* ignore a missing cursor file */
+          if (ret == DFB_FILENOTFOUND)
+               ret = DFB_OK;
+          else
+               D_PERROR( "Core/Layer: `" CURSORFILE "` could not be opened!\n" );
+
+          goto finish;
+     }
+
+     /* read from file directly into the cursor window surface */
+     for (i=0; i<40; i++) {
+          if (fread( cdata, MIN (40*4, pitch), 1, f ) != 1) {
+               ret = errno2result( errno );
+
+               D_ERROR( "Core/WindowStack: unexpected end or read error of cursor data!\n" );
+
+               goto finish;
+          }
+#ifdef WORDS_BIGENDIAN
+          {
+               int i = MIN (40, pitch/4);
+               __u32 *tmp_data = data;
+
+               while (i--) {
+                    *tmp_data = (*tmp_data & 0xFF000000) >> 24 |
+                                (*tmp_data & 0x00FF0000) >>  8 |
+                                (*tmp_data & 0x0000FF00) <<  8 |
+                                (*tmp_data & 0x000000FF) << 24;
+                    ++tmp_data;
+               }
+          }
+#endif
+          cdata += pitch;
+     }
+
+finish:
+     if (f)
+          fclose( f );
+
+     dfb_surface_unlock( data->cursor.surface, false );
+
+     return ret;
+}
 
 static void
 IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
@@ -179,6 +333,8 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      {
           DFBResult    ret;
           CoreSurface *core_surface;
+          DFBRectangle rect = { 0,0,data->context->config.width,
+                  data->context->config.height };
           DIRECT_ALLOCATE_INTERFACE_DATA(surface,IDirectFBSurface);
 
           if (dfb_layer_region_ref( region ))
@@ -192,7 +348,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
                return ret;
           }
 
-          ret = IDirectFBSurface_Construct( surface, NULL,NULL,NULL,
+          ret = IDirectFBSurface_Construct( surface,&rect,NULL,NULL,
                                        core_surface, DSCAPS_NONE );
 
           dfb_surface_unref( core_surface );
@@ -259,7 +415,6 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
 
                     data->context = context;
                     data->region  = region;
-                    data->stack   = dfb_layer_context_windowstack( data->context );
                 }
 
                break;
@@ -286,8 +441,6 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
 
                data->context = context;
                data->region  = region;
-               data->stack   = dfb_layer_context_windowstack( data->context );
-
                break;
 
           default:
@@ -550,165 +703,71 @@ IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer       *thiz,
      return DFB_ACCESSDENIED;
 }
 
-static DFBResult
-IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer         *thiz,
-                                         DFBDisplayLayerBackgroundMode  background_mode )
-{
-     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     if (data->level == DLSCL_SHARED)
-          return DFB_ACCESSDENIED;
-
-     switch (background_mode) {
-          case DLBM_DONTCARE:
-          case DLBM_COLOR:
-          case DLBM_IMAGE:
-          case DLBM_TILE:
-               break;
-
-          default:
-               return DFB_INVARG;
-     }
-
-     return dfb_windowstack_set_background_mode( data->stack, background_mode );
-}
-
-static DFBResult
-IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
-                                          IDirectFBSurface      *surface )
-{
-     IDirectFBSurface_data *surface_data;
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-
-     if (!surface)
-          return DFB_INVARG;
-
-     if (data->level == DLSCL_SHARED)
-          return DFB_ACCESSDENIED;
-
-     surface_data = (IDirectFBSurface_data*)surface->priv;
-     if (!surface_data)
-          return DFB_DEAD;
-
-     if (!surface_data->surface)
-          return DFB_DESTROYED;
-
-     return dfb_windowstack_set_background_image( data->stack,
-                                                  surface_data->surface );
-}
-
-static DFBResult
-IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
-                                          __u8 r, __u8 g, __u8 b, __u8 a )
-{
-     DFBColor color = { a: a, r: r, g: g, b: b };
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     if (data->level == DLSCL_SHARED)
-          return DFB_ACCESSDENIED;
-
-     return dfb_windowstack_set_background_color( data->stack, &color );
-}
-
-static DFBResult
-IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
-                                    const DFBWindowDescription  *desc,
-                                    IDirectFBWindow            **window )
-{
-     CoreWindow            *w;
-     DFBResult              ret;
-     unsigned int           width        = 128;
-     unsigned int           height       = 128;
-     int                    posx         = 0;
-     int                    posy         = 0;
-     DFBWindowCapabilities  caps         = 0;
-     DFBSurfaceCapabilities surface_caps = DSCAPS_NONE;
-     DFBSurfacePixelFormat  format       = DSPF_UNKNOWN;
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-
-     if (desc->flags & DWDESC_WIDTH)
-          width = desc->width;
-     if (desc->flags & DWDESC_HEIGHT)
-          height = desc->height;
-     if (desc->flags & DWDESC_PIXELFORMAT)
-          format = desc->pixelformat;
-     if (desc->flags & DWDESC_POSX)
-          posx = desc->posx;
-     if (desc->flags & DWDESC_POSY)
-          posy = desc->posy;
-     if (desc->flags & DWDESC_CAPS)
-          caps = desc->caps;
-     if (desc->flags & DWDESC_SURFACE_CAPS)
-          surface_caps = desc->surface_caps;
-
-     if ((caps & ~DWCAPS_ALL) || !window)
-          return DFB_INVARG;
-
-     if (width < 1 || width > 4096 || height < 1 || height > 4096)
-          return DFB_INVARG;
-
-     ret = dfb_layer_context_create_window( data->context,
-                                            posx, posy, width, height, caps,
-                                            surface_caps, format, &w );
-     if (ret)
-          return ret;
-
-     DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
-
-     return IDirectFBWindow_Construct( *window, w, data->layer );
-}
-
-static DFBResult
-IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
-                                 DFBWindowID             id,
-                                 IDirectFBWindow       **window )
-{
-     CoreWindow *w;
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
-
-     if (!window)
-          return DFB_INVARG;
-   
-      //remove for now
-     //if (data->level == DLSCL_SHARED)
-     //    return DFB_ACCESSDENIED;
-
-     w = dfb_layer_context_find_window( data->context, id );
-     if (!w)
-          return DFB_IDNOTFOUND;
-
-     DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
-
-     return IDirectFBWindow_Construct( *window, w, data->layer );
-}
 
 static DFBResult
 IDirectFBDisplayLayer_EnableCursor( IDirectFBDisplayLayer *thiz, int enable )
 {
+     DFBResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_windowstack_cursor_enable( data->stack, enable );
+     if (dfb_layer_region_lock( data->region ))
+          return DFB_FUSION;
+
+     data->cursor.set = true;
+
+     if (dfb_config->no_cursor || data->cursor.enabled == enable) {
+          dfb_layer_region_unlock( data->region );
+          return DFB_OK;
+     }
+
+     if (enable && !data->cursor.surface) {
+          ret = load_default_cursor( data );
+          if (ret) {
+               dfb_layer_region_unlock( data->region );
+               return ret;
+          }
+     }
+
+     /* Keep state. */
+     data->cursor.enabled = enable;
+
+     /* Notify WM. */
+     //dfb_wm_update_cursor( data, enable ? CCUF_ENABLE : CCUF_DISABLE );
+
+     /* Unlock the layer data. */
+     dfb_layer_region_unlock( data->region );
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBDisplayLayer_GetCursorPosition( IDirectFBDisplayLayer *thiz,
-                                         int *x, int *y )
+                                         int *ret_x, int *ret_y )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (!x && !y)
+     if (!ret_x && !ret_y)
           return DFB_INVARG;
 
-     return dfb_windowstack_get_cursor_position( data->stack, x, y );
+     D_ASSERT( data != NULL );
+     D_ASSUME( ret_x != NULL || ret_y != NULL );
+
+     if (dfb_layer_region_lock( data->region ))
+          return DFB_FUSION;
+
+     if (ret_x)
+          *ret_x = data->cursor.x;
+
+     if (ret_y)
+          *ret_y = data->cursor.y;
+
+     /* Unlock the region. */
+     dfb_layer_region_unlock( data->region );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -719,7 +778,35 @@ IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz, int x, int y )
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_windowstack_cursor_warp( data->stack, x, y );
+     D_ASSERT( data != NULL );
+
+     /* Lock the region. */
+     if (dfb_layer_region_lock( data->region ))
+          return DFB_FUSION;
+
+     if (x < 0)
+          x = 0;
+     else if (x > data->context->config.width - 1)
+          x = data->context->config.width - 1;
+
+     if (y < 0)
+          y = 0;
+     else if (y > data->context->config.height - 1)
+          y = data->context->config.height - 1;
+
+     if (data->cursor.x != x || data->cursor.y != y) {
+          data->cursor.x = x;
+          data->cursor.y = y;
+
+          /* Notify the WM. */
+          //if (data->cursor.enabled)
+               //dfb_wm_update_cursor( data, CCUF_POSITION );
+     }
+
+     /* Unlock the region. */
+     dfb_layer_region_unlock( data->region );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -736,8 +823,19 @@ IDirectFBDisplayLayer_SetCursorAcceleration( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_windowstack_cursor_set_acceleration( data->stack, numerator,
-                                                     denominator, threshold );
+     D_ASSERT( data != NULL );
+
+     if (dfb_layer_region_lock( data->region ))
+          return DFB_FUSION;
+
+     data->cursor.numerator   = numerator;
+     data->cursor.denominator = denominator;
+     data->cursor.threshold   = threshold;
+
+     /* Unlock the region. */
+     dfb_layer_region_unlock( data->region );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -746,6 +844,9 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
                                       int                    hot_x,
                                       int                    hot_y )
 {
+     DFBResult              ret;
+     CoreSurface           *cursor;
+     CoreCursorUpdateFlags  flags = CCUF_SHAPE;
      IDirectFBSurface_data *shape_data;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
@@ -764,9 +865,62 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
          hot_y >= shape_data->surface->height)
           return DFB_INVARG;
 
-     return dfb_windowstack_cursor_set_shape( data->stack,
-                                              shape_data->surface,
-                                              hot_x, hot_y );
+     D_DEBUG_AT( Layer, "%s( %p, %p, hot %d, %d ) <- size %dx%d\n",
+                 __FUNCTION__, data, shape, hot_x, hot_y, shape_data->surface->width, shape_data->surface->height );
+
+     D_ASSERT( data != NULL );
+     D_ASSERT( shape != NULL );
+
+     if (dfb_config->no_cursor)
+          return DFB_OK;
+
+     if (dfb_layer_region_lock( data->region ))
+          return DFB_FUSION;
+
+     cursor = data->cursor.surface;
+     if (!cursor) {
+          D_ASSUME( !data->cursor.enabled );
+
+          /* Create the a surface for the shape. */
+          ret = create_cursor_surface( data, shape_data->surface->width, shape_data->surface->height );
+          if (ret) {
+               dfb_layer_region_unlock( data->region );
+               return ret;
+          }
+
+          cursor = data->cursor.surface;
+     }
+     else if (data->cursor.size.w != shape_data->surface->width || data->cursor.size.h != shape_data->surface->height) {
+          dfb_surface_reformat( NULL, cursor, shape_data->surface->width, shape_data->surface->height, DSPF_ARGB );
+
+          data->cursor.size.w = shape_data->surface->width;
+          data->cursor.size.h = shape_data->surface->height;
+
+          /* Notify about new size. */
+          flags |= CCUF_SIZE;
+     }
+
+     if (data->cursor.hot.x != hot_x || data->cursor.hot.y != hot_y) {
+          data->cursor.hot.x = hot_x;
+          data->cursor.hot.y = hot_y;
+
+          /* Notify about new position. */
+          flags |= CCUF_POSITION;
+     }
+
+     /* Copy the content of the new shape. */
+     dfb_gfx_copy( shape_data->surface, cursor, NULL );
+
+     cursor->caps = ((cursor->caps & ~DSCAPS_PREMULTIPLIED) | (shape_data->surface->caps & DSCAPS_PREMULTIPLIED));
+
+     /* Notify the WM. */
+     //if (data->cursor.enabled)
+          //dfb_wm_update_cursor( data, flags );
+
+     /* Unlock the region. */
+     dfb_layer_region_unlock( data->region );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -778,7 +932,25 @@ IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_windowstack_cursor_set_opacity( data->stack, opacity );
+     D_DEBUG_AT( Layer, "%s( %p, 0x%02x )\n", __FUNCTION__, data, opacity );
+
+     D_ASSERT( data != NULL );
+
+     /* Lock the region. */
+     if (dfb_layer_region_lock( data->region ))
+          return DFB_FUSION;
+
+     /* Set new opacity. */
+     data->cursor.opacity = opacity;
+
+     /* Notify WM. */
+     //if (data->cursor.enabled)
+          //dfb_wm_update_cursor( data, CCUF_OPACITY );
+
+     /* Unlock the region. */
+     dfb_layer_region_unlock( data->region );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -867,7 +1039,6 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      data->layer   = layer;
      data->context = context;
      data->region  = region;
-     data->stack   = dfb_layer_context_windowstack( context );
 
      dfb_layer_get_description( data->layer, &data->desc );
 
@@ -889,13 +1060,8 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetConfiguration      = IDirectFBDisplayLayer_GetConfiguration;
      thiz->TestConfiguration     = IDirectFBDisplayLayer_TestConfiguration;
      thiz->SetConfiguration      = IDirectFBDisplayLayer_SetConfiguration;
-     thiz->SetBackgroundMode     = IDirectFBDisplayLayer_SetBackgroundMode;
-     thiz->SetBackgroundColor    = IDirectFBDisplayLayer_SetBackgroundColor;
-     thiz->SetBackgroundImage    = IDirectFBDisplayLayer_SetBackgroundImage;
      thiz->GetColorAdjustment    = IDirectFBDisplayLayer_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBDisplayLayer_SetColorAdjustment;
-     thiz->CreateWindow          = IDirectFBDisplayLayer_CreateWindow;
-     thiz->GetWindow             = IDirectFBDisplayLayer_GetWindow;
      thiz->WarpCursor            = IDirectFBDisplayLayer_WarpCursor;
      thiz->SetCursorAcceleration = IDirectFBDisplayLayer_SetCursorAcceleration;
      thiz->EnableCursor          = IDirectFBDisplayLayer_EnableCursor;

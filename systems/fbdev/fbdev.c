@@ -67,7 +67,6 @@
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/state.h>
-#include <core/windows.h>
 
 #include <gfx/convert.h>
 

@@ -54,7 +54,6 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/windows.h>
 
 #include <misc/util.h>
 
@@ -72,12 +71,6 @@ typedef struct {
      Reaction         reaction;
 } AttachedDevice;
 
-typedef struct {
-     DirectLink   link;
-
-     CoreWindow  *window;       /* pointer to core window struct */
-     Reaction     reaction;
-} AttachedWindow;
 
 /*
  * private data struct of IDirectFBInputDevice
@@ -116,8 +109,6 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
 static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
                                                        void       *ctx );
 
-static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
-                                                        void       *ctx );
 
 static void *IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg );
 
@@ -131,7 +122,6 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 {
      IDirectFBEventBuffer_data *data = thiz->priv;
      AttachedDevice            *device;
-     AttachedWindow            *window;
      EventBufferItem           *item;
      DirectLink                *n;
 
@@ -158,7 +148,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 
           D_FREE( device );
      }
-
+/*
      direct_list_foreach_safe (window, n, data->windows) {
           if (window->window) {
                dfb_window_detach( window->window, &window->reaction );
@@ -167,6 +157,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
                
           D_FREE( window );
      }
+*/
 
      direct_list_foreach_safe (item, n, data->events)
           D_FREE( item );
@@ -658,54 +649,6 @@ DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
      return DFB_ITEMNOTFOUND;
 }
 
-DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
-                                             CoreWindow           *window )
-{
-     AttachedWindow *attached;
-
-     D_ASSERT( window != NULL );
-     
-     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
-
-     attached = D_CALLOC( 1, sizeof(AttachedWindow) );
-     attached->window = window;
-
-     dfb_window_ref( window );
-
-     direct_list_prepend( &data->windows, &attached->link );
-
-     dfb_window_attach( window, IDirectFBEventBuffer_WindowReact,
-                        data, &attached->reaction );
-
-     return DFB_OK;
-}
-
-DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
-                                             CoreWindow           *window )
-{
-     AttachedWindow *attached;
-     DirectLink     *link;
-
-     D_ASSERT( window != NULL );
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
-     
-     direct_list_foreach_safe (attached, link, data->windows) {
-          if (attached->window == window) {
-               direct_list_remove( &data->windows, &attached->link );
-               
-               dfb_window_detach( attached->window, &attached->reaction );
-               dfb_window_unref( attached->window );
-               
-               D_FREE( attached );
-               
-               return DFB_OK;
-          }
-     }
-
-     return DFB_ITEMNOTFOUND;
-}
-
 /* file internals */
 
 static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
@@ -741,41 +684,6 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
      item->evt.clazz = DFEC_INPUT;
 
      IDirectFBEventBuffer_AddItem( data, item );
-
-     return RS_OK;
-}
-
-static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
-                                                        void       *ctx )
-{
-     const DFBWindowEvent      *evt  = msg_data;
-     IDirectFBEventBuffer_data *data = ctx;
-     EventBufferItem           *item;
-
-     item = D_CALLOC( 1, sizeof(EventBufferItem) );
-
-     item->evt.window = *evt;
-     item->evt.clazz  = DFEC_WINDOW;
-
-     IDirectFBEventBuffer_AddItem( data, item );
-
-     if (evt->type == DWET_DESTROYED) {
-          AttachedWindow *window;
-
-          direct_list_foreach (window, data->windows) {
-               if (!window->window)
-                    continue;
-
-               if (dfb_window_id( window->window ) == evt->window_id) {
-                    /* FIXME: free memory later, because reactor writes to it
-                       after we return RS_REMOVE */
-                    dfb_window_unref( window->window );
-                    window->window = NULL;
-               }
-          }
-
-          return RS_REMOVE;
-     }
 
      return RS_OK;
 }

@@ -48,6 +48,8 @@ typedef struct {
      int                    ref;             /* reference counter */
 
      DFBSurfaceCapabilities caps;            /* capabilities */
+     int x;
+     int y;
 
      struct {
          DFBRectangle       wanted;          /* passed to GetSubSurface */

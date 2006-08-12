@@ -59,8 +59,6 @@
 #include <core/layer_region.h>
 #include <core/layers.h>
 #include <core/input.h>
-#include <core/windows.h>
-#include <core/windows_internal.h>
 
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -276,7 +274,7 @@ static DFBInputDeviceKeySymbol     id_to_symbol( DFBInputDeviceKeyIdentifier id,
 /**********************************************************************************************************************/
 
 static ReactionFunc dfb_input_globals[MAX_INPUT_GLOBALS+1] = {
-/* 0 */   _dfb_windowstack_inputdevice_listener,
+/* 0 */   NULL,
           NULL
 };
 

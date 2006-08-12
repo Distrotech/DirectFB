@@ -31,6 +31,22 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 
+/* FIXME: move to cursor.h when it's there */
+typedef enum {
+     CCUF_NONE      = 0x00000000,
+
+     CCUF_ENABLE    = 0x00000001,
+     CCUF_DISABLE   = 0x00000002,
+
+     CCUF_POSITION  = 0x00000010,
+     CCUF_SIZE      = 0x00000020,
+     CCUF_SHAPE     = 0x00000040,
+     CCUF_OPACITY   = 0x00000080,
+
+     CCUF_ALL       = 0x000000F3
+} CoreCursorUpdateFlags;
+
+
 /*
  * initializes interface struct and private data
  */

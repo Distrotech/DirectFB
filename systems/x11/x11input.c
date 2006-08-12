@@ -48,6 +48,7 @@
 #include <direct/mem.h>
 #include <direct/thread.h>
 
+#include "primary.h" 
 #include "xwindow.h"
 
 #include "x11.h"
@@ -357,11 +358,20 @@ x11EventThread( DirectThread *thread, void *driver_data )
 		
         usleep(10000);
 
-//        fusion_skirmish_prevail( &dfb_x11->lock );
+        //fusion_skirmish_prevail( &dfb_x11->lock );
 
 		// --- Mouse events ---
         do {
              hasEvent = false;
+
+             if (XCheckMaskEvent(dfb_x11->display, ExposureMask, &xEvent)) 
+             {
+                 CoreSurface *surface;
+                 hasEvent = true;
+                 //printf(" HANDLE EXPOSE \n");
+                 surface = dfb_x11->primary;
+                 //update_screen( surface, 0, 0, surface->width, surface->height );
+             }
 
              if (XCheckMaskEvent(dfb_x11->display, iMouseEventMask, &xEvent)) 
              {
@@ -395,7 +405,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
         } while ( hasEvent );
 						
 
-//          fusion_skirmish_dismiss( &dfb_x11->lock );
+          //fusion_skirmish_dismiss( &dfb_x11->lock );
 
           motion_realize( data );
 
@@ -489,9 +499,6 @@ driver_open_device( CoreInputDevice  *device,
      /* set private data pointer */
      *driver_data = data;
 
-     
-     XInitThreads();
-     
      return DFB_OK;
 }
 

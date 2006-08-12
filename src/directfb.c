@@ -49,9 +49,6 @@
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
-#include <core/windows.h>
-#include <core/windowstack.h>
-#include <core/wm.h>
 
 #include <gfx/convert.h>
 
@@ -204,7 +201,6 @@ DirectFBCreate( IDirectFB **interface )
      if (dfb_core_is_master( core_dfb )) {
           CoreLayer                  *layer;
           CoreLayerContext           *context;
-          CoreWindowStack            *stack;
 
           ret = apply_configuration( idirectfb_singleton );
           if (ret) {
@@ -223,15 +219,6 @@ DirectFBCreate( IDirectFB **interface )
              return ret;
           }
 
-          stack = dfb_layer_context_windowstack( context );
-          D_ASSERT( stack != NULL );
-         
-          /* not fatal */
-          ret = dfb_wm_start_desktop( stack );
-          if (ret) {
-               D_ERROR( "DirectFB/DirectFBCreate: "
-                        "Could not start desktop!\n" );
-          }
      }
 
      *interface = idirectfb_singleton;
@@ -277,7 +264,6 @@ apply_configuration( IDirectFB *dfb )
      DFBResult                   ret;
      CoreLayer                  *layer;
      CoreLayerContext           *context;
-     CoreWindowStack            *stack;
      DFBDisplayLayerConfig       layer_config;
      DFBDisplayLayerConfigFlags  fail;
 
@@ -292,9 +278,6 @@ apply_configuration( IDirectFB *dfb )
           return ret;
      }
 
-     stack = dfb_layer_context_windowstack( context );
-
-     D_ASSERT( stack != NULL );
 
      /* set default desktop configuration */
      layer_config.flags = DLCONF_BUFFERMODE;
@@ -371,74 +354,6 @@ apply_configuration( IDirectFB *dfb )
      if (layer_config.flags)
           dfb_layer_context_set_configuration( context, &layer_config );
 
-     /* temporarily disable background */
-     dfb_windowstack_set_background_mode( stack, DLBM_DONTCARE );
-
-     /* set desktop background color */
-     dfb_windowstack_set_background_color( stack, &dfb_config->layer_bg_color );
-
-     /* set desktop background image */
-     if (dfb_config->layer_bg_mode == DLBM_IMAGE ||
-         dfb_config->layer_bg_mode == DLBM_TILE)
-     {
-          DFBSurfaceDescription   desc;
-          IDirectFBImageProvider *provider;
-          IDirectFBSurface       *image;
-          IDirectFBSurface_data  *image_data;
-
-          ret = dfb->CreateImageProvider( dfb, dfb_config->layer_bg_filename, &provider );
-          if (ret) {
-               DirectFBError( "Failed loading background image", ret );
-               dfb_layer_context_unref( context );
-               return DFB_INIT;
-          }
-
-          dfb_layer_context_get_configuration( context, &layer_config );
-
-          if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
-               desc.flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
-               desc.width  = layer_config.width;
-               desc.height = layer_config.height;
-          }
-          else {
-               provider->GetSurfaceDescription( provider, &desc );
-          }
-
-          desc.flags |= DSDESC_PIXELFORMAT;
-          desc.pixelformat = layer_config.pixelformat;
-
-          ret = dfb->CreateSurface( dfb, &desc, &image );
-          if (ret) {
-               DirectFBError( "Failed creating surface for background image", ret );
-
-               provider->Release( provider );
-
-               dfb_layer_context_unref( context );
-               return DFB_INIT;
-          }
-
-          ret = provider->RenderTo( provider, image, NULL );
-          if (ret) {
-               DirectFBError( "Failed loading background image", ret );
-
-               image->Release( image );
-               provider->Release( provider );
-
-               dfb_layer_context_unref( context );
-               return DFB_INIT;
-          }
-
-          provider->Release( provider );
-
-          image_data = (IDirectFBSurface_data*) image->priv;
-
-          dfb_windowstack_set_background_image( stack, image_data->surface );
-
-          image->Release( image );
-     }
-
-     /* now set the background mode */
-     dfb_windowstack_set_background_mode( stack, dfb_config->layer_bg_mode );
 
      dfb_layer_context_unref( context );
 

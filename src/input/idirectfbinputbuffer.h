@@ -46,10 +46,4 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
 DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
                                                   CoreInputDevice      *device );
 
-DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
-                                             CoreWindow           *window );
-DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
-                                             CoreWindow           *window );
-
-
 #endif

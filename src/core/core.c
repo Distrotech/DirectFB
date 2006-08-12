@@ -52,7 +52,6 @@
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/system.h>
-#include <core/windows.h>
 
 #include <direct/build.h>
 #include <direct/debug.h>
@@ -79,7 +78,6 @@ extern CorePart dfb_core_input;
 extern CorePart dfb_core_layers;
 extern CorePart dfb_core_screens;
 extern CorePart dfb_core_system;
-extern CorePart dfb_core_wm;
 
 /******************************************************************************/
 
@@ -102,7 +100,6 @@ struct __DFB_CoreDFBShared {
      FusionObjectPool    *layer_region_pool;
      FusionObjectPool    *palette_pool;
      FusionObjectPool    *surface_pool;
-     FusionObjectPool    *window_pool;
 
      FusionSHMPoolShared *shmpool;
      FusionSHMPoolShared *shmpool_data; /* for raw data, e.g. surface buffers */
@@ -163,11 +160,10 @@ static CorePart *core_parts[] = {
      &dfb_core_clipboard,
      &dfb_core_colorhash,
      &dfb_core_system,
-     &dfb_core_input,
      &dfb_core_gfxcard,
      &dfb_core_screens,
      &dfb_core_layers,
-     &dfb_core_wm
+     &dfb_core_input
 };
 
 #define NUM_CORE_PARTS ((int)(sizeof(core_parts)/sizeof(CorePart*)))
@@ -465,26 +461,6 @@ dfb_core_create_surface( CoreDFB *core )
      D_ASSERT( core->shared->surface_pool != NULL );
 
      return (CoreSurface*) fusion_object_create( core->shared->surface_pool, core->world );
-}
-
-CoreWindow *
-dfb_core_create_window( CoreDFB *core )
-{
-     CoreDFBShared *shared;
-
-     D_ASSUME( core != NULL );
-
-     if (!core)
-          core = core_dfb;
-
-     D_MAGIC_ASSERT( core, CoreDFB );
-
-     shared = core->shared;
-
-     D_MAGIC_ASSERT( shared, CoreDFBShared );
-     D_ASSERT( core->shared->window_pool != NULL );
-
-     return (CoreWindow*) fusion_object_create( core->shared->window_pool, core->world );
 }
 
 DirectResult
@@ -805,7 +781,6 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
      if (!emergency) {
-          fusion_object_pool_destroy( shared->window_pool, core->world );
           fusion_object_pool_destroy( shared->layer_region_pool, core->world );
           fusion_object_pool_destroy( shared->layer_context_pool, core->world );
           fusion_object_pool_destroy( shared->surface_pool, core->world );
@@ -842,7 +817,6 @@ dfb_core_initialize( CoreDFB *core )
      shared->layer_region_pool  = dfb_layer_region_pool_create( core->world );
      shared->palette_pool       = dfb_palette_pool_create( core->world );
      shared->surface_pool       = dfb_surface_pool_create( core->world );
-     shared->window_pool        = dfb_window_pool_create( core->world );
 
      for (i=0; i<NUM_CORE_PARTS; i++) {
           DFBResult ret;

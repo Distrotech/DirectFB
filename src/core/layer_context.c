@@ -45,12 +45,7 @@
 #include <core/screen.h>
 #include <core/surfaces.h>
 #include <core/system.h>
-#include <core/windows.h>
-#include <core/windowstack.h>
-#include <core/wm.h>
-
 #include <core/layers_internal.h>
-#include <core/windows_internal.h>
 
 #include <fusion/shmalloc.h>
 
@@ -102,12 +97,6 @@ context_destructor( FusionObject *object, bool zombie )
 
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
-
-     /* Destroy the window stack. */
-     if (context->stack) {
-          dfb_windowstack_destroy( context->stack );
-          context->stack = NULL;
-     }
 
      /* Destroy the region vector. */
      fusion_vector_destroy( &context->regions );
@@ -192,19 +181,6 @@ dfb_layer_context_create( CoreLayer         *layer,
      /* Activate the object. */
      fusion_object_activate( &context->object );
 
-
-     /* Create the window stack. */
-     context->stack = dfb_windowstack_create( context );
-     if (!context->stack) {
-          dfb_layer_context_unref( context );
-          return D_OOSHM();
-     }
-
-     /* Tell the window stack about its size. */
-     dfb_windowstack_resize( context->stack,
-                             context->config.width,
-                             context->config.height );
-
      /* Return the new context. */
      *ret_context = context;
 
@@ -252,10 +228,6 @@ dfb_layer_context_activate( CoreLayerContext *context )
           layer->funcs->SetColorAdjustment( layer, layer->driver_data,
                                             layer->layer_data, &context->adjustment );
 
-     /* Resume window stack. */
-     if (context->stack)
-          dfb_wm_set_active( context->stack, true );
-
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
@@ -290,10 +262,6 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      }
 
      context->active = false;
-
-     /* Suspend window stack. */
-     if (context->stack)
-          dfb_wm_set_active( context->stack, false );
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -636,22 +604,6 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                     if (region->surface)
                          deallocate_surface( layer, region );
                }
-          }
-
-          /* Update the window stack. */
-          if (context->stack) {
-               CoreWindowStack *stack = context->stack;
-
-               /* Update hardware flag. */
-               stack->hw_mode = (region_config.buffermode == DLBM_WINDOWS);
-
-               /* Tell the windowing core about the new size. */
-               dfb_windowstack_resize( stack,
-                                       region_config.width,
-                                       region_config.height );
-
-               /* FIXME: call only if really needed */
-               dfb_windowstack_repaint_all( stack );
           }
 
           /* Unlock the region and give up the local reference. */
@@ -1140,87 +1092,6 @@ dfb_layer_context_set_clip_regions( CoreLayerContext *context,
      return ret;
 }
 
-DFBResult
-dfb_layer_context_create_window( CoreLayerContext        *context,
-                                 int                      x,
-                                 int                      y,
-                                 int                      width,
-                                 int                      height,
-                                 DFBWindowCapabilities    caps,
-                                 DFBSurfaceCapabilities   surface_caps,
-                                 DFBSurfacePixelFormat    pixelformat,
-                                 CoreWindow             **ret_window )
-{
-     DFBResult        ret;
-     CoreWindow      *window;
-     CoreWindowStack *stack;
-     CoreLayer       *layer;
-
-     D_ASSERT( context != NULL );
-     D_ASSERT( context->stack != NULL );
-     D_ASSERT( ret_window != NULL );
-
-     layer = dfb_layer_at( context->layer_id );
-
-     D_ASSERT( layer != NULL );
-     D_ASSERT( layer->funcs != NULL );
-
-     if (dfb_layer_context_lock( context ))
-         return DFB_FUSION;
-
-     stack = context->stack;
-
-     if (!stack->cursor.set) {
-          ret = dfb_windowstack_cursor_enable( stack, true );
-          if (ret) {
-               dfb_layer_context_unlock( context );
-               return ret;
-          }
-     }
-
-     ret = dfb_window_create( stack, x, y, width, height, caps,
-                              surface_caps, pixelformat, &window );
-     if (ret) {
-          dfb_layer_context_unlock( context );
-          return ret;
-     }
-
-     *ret_window = window;
-
-     dfb_layer_context_unlock( context );
-
-     return DFB_OK;
-}
-
-CoreWindow *
-dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
-{
-     CoreWindowStack *stack;
-     CoreWindow      *window;
-
-     D_ASSERT( context != NULL );
-     D_ASSERT( context->stack != NULL );
-
-     stack = context->stack;
-
-     if (dfb_layer_context_lock( context ))
-         return NULL;
-
-     if (dfb_wm_window_lookup( stack, id, &window ) || dfb_window_ref( window ))
-          window = NULL;
-
-     dfb_layer_context_unlock( context );
-
-     return window;
-}
-
-CoreWindowStack *
-dfb_layer_context_windowstack( const CoreLayerContext *context )
-{
-     D_ASSERT( context != NULL );
-
-     return context->stack;
-}
 
 bool
 dfb_layer_context_active( const CoreLayerContext *context )

@@ -39,5 +39,8 @@ int dfb_x11_call_handler( int   caller,
                           void *call_ptr,
                           void *ctx );
 
+DFBResult update_screen( CoreSurface *surface,
+                                int x, int y, int w, int h );
+
 #endif // __X11__PRIMARY_H__
 

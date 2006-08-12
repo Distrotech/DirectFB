@@ -1052,6 +1052,7 @@ typedef enum {
                                            DSFLIP_WAIT is specified, too. */
 
      DSFLIP_PIPELINE     = 0x00000008,
+     DSFLIP_COMPOSITE    = 0x00000010, /*Internal flip flag*/
 
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
