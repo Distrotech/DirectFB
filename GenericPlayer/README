@@ -1,0 +1,122 @@
+
+Generic Player
+
+A abstraction of the concept of a Web Browser that turns everything into a plugin.
+
+Generic Player is a IIL Interface Implementation Language designed to implement abstract interfaces in a language neutral manner that allows easy binding via any computer language that can directly read memory or in the runtimes of those that cannot. It differs from similar concepts such as COM XPCOM and language specific interface concepts in that it is language neutral and does not assume traditional C functions or the full C type system. Instead each implementation is modeled as a mini interpreter and a custom type system is provided to publish and modifiy types at runtime.
+
+Note on DOM implementation:
+Generic Player will eventallly support and api similar to DOM level 3.
+The biggest difference is UTF8 without embedded nulls similar to java is the default instead
+of DOM string. UTF16 is a variable length format and sufferes all the problems of utf8 in addition to
+Endian problems. For these reasons and for performance and compatibility with C GenericPlayer is
+coded assuming utf8. A UTF16 interface can be created and used to interact with the UTF8 core if
+desired since GenericPlayer is designed to deal with internal or architecture xml not end user documents thus utf8 is better suited to XML as form a declarative programming perspective.
+
+
+Generic Player can be considered the inverse or implementation of the semantic web it takes a mimeType and exposes it as a concrete implementation of an abstract interface. The goal is to make sematic concepts programmable.
+
+
+Status:
+
+The system currently allows a plugin to publish C functions and structures.
+
+The next step is to introduce something like RDF to map these values to
+abstract concepts but using generic XML.
+
+So you have a generic concept of a screen display graphics card
+
+When you say load your screen/display plugin
+the adaptor will map these value to the abstract types 
+and publish the implemenation types.
+
+Right now the goal is to publish implementation information types.
+
+
+The abstract plugin binds too the implementation via the mapping
+of abstract types to concrete types this plugin is a mix of generic methods
+and binding of plugin specific calls after analysis.
+
+So lets say your running direct on the linux frame buffer or directfb.
+The Screen/display binds a generic dom interface for setting and retrieving
+screen resolutions.
+
+If its something abstract that does not want to support this functionality.
+The dom simply won't have the nodes so by moving up to a dom presentation for
+this we can use the robust handling of namespaces and missing/additional functionality possible with a XML document.
+
+A combination of the dom and binding of low level functions can be used to provide a javascript or other scripting language bridge to the plugin this api can itself
+be done as a xml binding meta file
+
+Of course I need to finish the actual dom handling plugin first before we can
+finish the Generic Player.
+
+Generic player starts with the ability to load a shared library. This library
+then publishes a low level interface for direct programming including direct access for other programs that understand its data structures. Say you know about X11 you can add a sub plugin to provide a implementation optimized for X11 displays a initial implementation is provided.
+
+The next level is dealing with the plugin in a generic manner via mapping of the native types to dom object and script objects.
+
+This also allows dependent sub plugins to work simply via the generic interface.
+For example the window concept requires that the window provider implement a simple ARGB surface that is locked and unlocked and supports fillRect and a simple blit for drawing.
+
+Thus the interaction of plugins uses the concept of escalation you always have the most abstract binding and its up to you if you want to use implementation dependent aspects. The runtime system allows you to read/write values and call methods on implementation dependent data structures without understanding the exact implementation vi the abstract/c struct function binding.
+
+Of course the goal is that the abstract interfaces work 99.999% of the time and 
+implementation dependent code becomes less common and at worst is only rarely loaded in a sub module.
+
+To support this frame work for placing platform types in generic trees lists hashtables object and other data structures is provided. This reduces the reposibility of the plugin to simple providing the mapping between a structure member holding the implementation data and the abstract interface. 
+Eventually the data structures will be bound to a generic xml interface.
+In addition the generic data structures allow the system to query the plugin for information and get it back in the preferred format say a list or tree and this would include returning a subset of information in the implementation type.
+
+As and example take a address book plugin it can provide a rich set of possible data that can be queryed and this approach allows the user of the data to retrive it in the format that it wants instead of having to understand the exact implementation data structures and functions of the plugin. Since we support dynamic C structures and abstract binding this can be down to the level of the definition of the structure that holds the actual data including members and layout. The framework easily supports arbitage between the plugin and plugin user to allow the determination of a shared format.
+
+
+
+Implementation:
+
+The implementation is based on a dynamic type system thats created at runtime.
+The key concept is C structure layout is defined at runtime and all functions take a fixed set of C structs as arguments.
+
+
+The single function entry point is defined as follows.
+
+GPFunction( GPType* type, void* data)
+
+The return value are result is embdded in the data. The GPType is a generical description of a C structure. See Implementation for details. Generally the data is allocated on a stack either the C stack or language stack and is only valid for the context of the caller and is a structure representing the argument. The type variable is the runtime description of the members of this structure and a implementation defined variable to help with dispatch. 
+
+
+
+FrontEnd:
+The language does not yet have a text file format but if it did it probably should look like
+this.
+
+
+gp {
+    GPType {
+        uchar* name;
+        GPList* methods={
+            int method1( int x ) throws Exception
+            {
+
+            }
+        }
+    }
+}
+
+or a method can be added to extend a type
+using the fully qualified name
+
+void gp.GPType.method2( uchar* name )
+{
+
+}
+gp.GPType.appendMethod(gp.GPType.method2);
+
+Basically a cross between C++/Java/Javascript is probably the right language.
+JSON 
+http://www.json.org/
+whould also be a good starting point its the one I plan to use in particular
+http://oss.metaparadigm.com/json-c/
+
+
+

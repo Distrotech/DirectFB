@@ -1,0 +1,10 @@
+
+
+export LD_LIBRARY_PATH=runtime/.libs:plugins
+
+if [ $1x == gx ] ; then
+gdb player/.libs/gpplayer 
+else 
+player/gpplayer $@
+fi
+

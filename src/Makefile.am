@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/src
 
-SUBDIRS = core display gfx input media misc windows
+SUBDIRS = core drawable display gfx input media misc windows
 
 INCLUDES = \
 	-I$(top_builddir)/include	\
@@ -32,14 +32,15 @@ libdirectfb_la_LDFLAGS = \
 	$(DFB_LDFLAGS)
 
 libdirectfb_la_LIBADD = \
-	display/libdirectfb_display.la	\
-	media/libdirectfb_media.la	\
-	windows/libdirectfb_windows.la	\
-	input/libdirectfb_input.la	\
-	misc/libdirectfb_misc.la	\
-	gfx/libdirectfb_gfx.la		\
-	core/libdirectfb_core.la	\
-	../lib/direct/libdirect.la	\
+	display/libdirectfb_display.la		\
+	media/libdirectfb_media.la		\
+	windows/libdirectfb_windows.la		\
+	input/libdirectfb_input.la		\
+	misc/libdirectfb_misc.la		\
+	gfx/libdirectfb_gfx.la			\
+	drawable/libdirectfb_drawable.la	\
+	core/libdirectfb_core.la		\
+	../lib/direct/libdirect.la		\
 	../lib/fusion/libfusion.la
 
 

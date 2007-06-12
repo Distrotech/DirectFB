@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: kjs
+Description: kjs javascript interpeter
+Version: @VERSION@
+
+@PKGCONFIG_REQUIRES@: 
+Libs: -L${libdir} -lkjs
+Libs.private: 
+Cflags: -I${includedir} -I${includedir}/kjs  -I${includedir}/kjs/wtf -I${includedir}/kjs/pcre -I${includedir}/kjs/pcre

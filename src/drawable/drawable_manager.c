@@ -113,15 +113,21 @@ DirectResult drawable_manager_attach_surface ( CoreSurface *surface )
      return DFB_OK;
 }
 
+/*
 static int
-drawable_manager_call_handler( int   caller,
+drawable_manager_call( int   caller,
                       int   call_arg,
                       void *call_ptr,
                       void *ctx )
+*/
+DirectResult
+drawable_manager_call( DrawableManager *manager,
+                      DrawableManagerCallID call,
+                      void *ptr )
 {
      DirectResult  ret;
-     DrawableManager       *manager = ctx;
-     DrawableManagerCallID  call   = call_arg;
+     /*DrawableManager       *manager = ctx;*/
+     /*DrawableManagerCallID  call   = call_arg;*/
 
      D_MAGIC_ASSERT( manager, DrawableManager );
 
@@ -373,6 +379,7 @@ unregister_process( DrawableManager        *manager,
 
      return DFB_OK;
 }
+
 DirectResult
 drawable_manager_shutdown( DrawableManager *manager,
                  FusionWorld *world )
@@ -383,7 +390,7 @@ drawable_manager_shutdown( DrawableManager *manager,
      D_MAGIC_ASSERT( manager, DrawableManager );
      D_ASSERT( world != NULL );
 
-     D_ASSERT( m_managerManager == manager );
+     D_ASSERT( m_manager == manager );
      D_ASSERT( m_world == world );
 
      D_ASSERT( manager->processes != NULL );

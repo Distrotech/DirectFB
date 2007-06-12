@@ -23,6 +23,7 @@ internalinclude_HEADERS = \
 	coretypes.h		\
 	core_parts.h		\
 	core_system.h		\
+	core_drawable.h		\
 	core.h			\
 	fonts.h			\
 	gfxcard.h		\
@@ -57,6 +58,7 @@ libdirectfb_core_la_SOURCES = \
 	colorhash.c		\
 	core.c			\
 	core_parts.c		\
+	core_drawable.c		\
 	fonts.c			\
 	gfxcard.c		\
 	input.c			\

@@ -1,0 +1,36 @@
+AC_PREREQ(2.57)
+AC_INIT([GenericPlayer],0.1,[mike.emmel@gmail.com])
+AC_CONFIG_SRCDIR([Makefile.am])
+AM_INIT_AUTOMAKE([foreign dist-bzip2])
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_PROG_LIBTOOL
+dnl AC_PROG_INSTALL
+dnl AC_PROG_LN_S
+dnl AC_PROG_MAKE_SET
+
+if $PKG_CONFIG --exists x11 xext xrender; then
+    PKG_CHECK_MODULES(X11, x11)
+else
+  AC_CHECK_HEADER(X11/X.h, x11_found=yes, x11_found=yes)
+  if test "$x11_found" = no; then
+    AC_MSG_WARN([*** no X11/X.h found -- building without X11 support.])
+  else
+    X11_LIBS="-L/usr/X11R6/lib -lX11 -lXext"
+    X11_CFLAGS="-I/usr/X11R6/include"
+  fi
+fi
+
+
+
+AC_OUTPUT([
+gp.pc
+Makefile
+runtime/Makefile
+player/Makefile
+plugins/Makefile
+plugins/DOM/Makefile
+plugins/Window/Makefile
+plugins/Window/X11/Makefile
+])

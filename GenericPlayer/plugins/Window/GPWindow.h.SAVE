@@ -1,0 +1,289 @@
+/*
+ * Copyright (C) 2004, 2006 Apple Computer, Inc.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE COMPUTER, INC. ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE COMPUTER, INC. OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+ */
+
+#ifndef GPWindow_h
+#define GPWindow_h
+#include "GPRuntime.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define GPWindowDef "\
+\
+gp.GPWindow.Plugin(\
+    gp.GPWindow.Plugin.function(function)\
+    gp.GPWindow.Plugin.impl(void*))\
+\
+    gp.GPWindow.Plugin.PluginFunc({gp.GPWindow.Plugin}\
+            gp.GPPlugin/GPPluginFunc))\
+\
+    gp.GPWindow.Plugin.DestroyFunc({gp.GPWindow.Plugin}\
+            gp.GPWindow.Plugin.DestroyFunc.plugin(gp.GPWindow.Plugin*))\
+\
+    gp.GPWindow.Plugin.ProcessEventFunc({gp.GPWindow.Plugin}\
+            gp.GPWindow.ProcessEvent.plugin(gp.GPWindow.Plugin*))\
+\
+    gp.GPWindow.Plugin.GPWindowFunc({gp.GPWindow.Plugin}\
+            gp.GPWindow.Plugin.GPWindowFunc.result(gp.GPWindow*)\
+            gp.GPWindow.Plugin.GPWindowFunc.plugin(gp.GPPlugin*)\
+            gp.GPWindow.Plugin.GPWindowFunc.inWindow(gp.GPWindow*))\
+\
+gp.GPWindow.Plugin.RegisterDOMPluginFunc({gp.GPWindow.Plugin}\
+    gp.GPWindow.Plugin.RegisterDOMPluginFunc.plugin(gp.GPPlugin*)\
+    gp.GPWindow.Plugin.RegisterDOMPluginFunc.domPlugin(gp.GPPlugin*))\
+\
+gp.GPWindow.Wrapper(\
+    gp.GPWindow.Wrapper.function(function)\
+    gp.GPWindow.Wrapper.window(GPWindow*)\
+    gp.GPWindow.Wrapper.impl(void*))\
+\
+gp.GPWindow(\
+    gp.GPWindow.function(function)\
+    gp.GPWindow.plugin(gp.GPWindow.Plugin*)\
+    gp.GPWindow.wrappers(gp.GPWindow.Wrapper**)\
+    gp.GPWindow.allocated(bool)\
+    gp.GPWindow.impl(void*))\
+\
+    gp.GPWindow.DestroyFunc({gp.GPWindow}\
+            gp.GPWindow.DestroyFunc.window(gp.GPWindow*))\
+\
+    gp.GPWindow.SetVisibleFunc({gp.GPWindow}\
+            gp.GPWindow.SetVisibleFunc.window(gp.GPWindow*)\
+            gp.GPWindow.SetVisibleFunc.visible(bool)\
+            gp.GPWindow.SetVisibleFunc.toFront(bool))\
+\
+    gp.GPWindow.ToFrontFunc({gp.GPWindow}\
+            gp.GPWindow.ToFrontFunc.window(gp.GPWindow*))\
+\
+    gp.GPWindow.ToBackFunc({gp.GPWindow}\
+            gp.GPWindow.ToBackFunc.window(gp.GPWindow*))\
+\
+    gp.GPWindow.SetPositionFunc({gp.GPWindow}\
+            gp.GPWindow.SetPositionFunc.window(gp.GPWindow*)\
+            gp.GPWindow.SetPositionFunc.x(int)\
+            gp.GPWindow.SetPositionFunc.y(int))\
+\
+    gp.GPWindow.SetSizeFunc({gp.GPWindow}\
+            gp.GPWindow.SetSizeFunc.window(gp.GPWindow*)\
+            gp.GPWindow.SetSizeFunc.width(int)\
+            gp.GPWindow.SetSizeFunc.height(int))\
+\
+    gp.GPWindow.SetBoundsFunc({gp.GPWindow}\
+            gp.GPWindow.SetBoundsFunc.window(gp.GPWindow*)\
+            gp.GPWindow.SetBoundsFunc.x(int)\
+            gp.GPWindow.SetBoundsFunc.y(int)\
+            gp.GPWindow.SetBoundsFunc.width(int)\
+            gp.GPWindow.SetBoundsFunc.height(int))\
+\
+    gp.GPWindow.SetBorderFunc({gp.GPWindow}\
+            gp.GPWindow.SetBorderFunc.window(gp.GPWindow*)\
+            gp.GPWindow.SetBorderFunc.border(uchar*))\
+\
+    gp.GPWindow.SetTitleFunc({gp.GPWindow}\
+            gp.GPWindow.SetTitleFunc.window(gp.GPWindow*)\
+            gp.GPWindow.SetTitleFunc.title(uchar*))\
+\
+    gp.GPWindow.ClearFunc({gp.GPWindow}\
+            gp.GPWindow.ClearFunc.window(gp.GPWindow*) \
+            gp.GPWindow.ClearFunc.x(int) \
+            gp.GPWindow.ClearFunc.y(int) \
+            gp.GPWindow.ClearFunc.width(int) \
+            gp.GPWindow.ClearFunc.height(int))"
+
+    
+
+#define GPWINDOW_MIMETYPE "image/window"
+
+typedef struct _GPWindow GPWindow;
+
+typedef struct { 
+    GPPlugin plugin;
+} GPWindowPlugin;
+
+typedef struct { 
+    GPWindowPlugin* plugin;
+} GPWindowPluginProcessEventFunc;
+
+
+/*Wrapper is for use by language specific bindings C++ JS java etc*/
+typedef struct { 
+    GPFunction function;
+    GPWindow* window;
+    void* impl;
+} GPWindowWrapper;
+
+struct _GPWindow { 
+    GPFunction function;
+    GPWindowPlugin* plugin;
+    GPWindowWrapper** wrappers;
+    int x;
+    int y;
+    int width;
+    int height;
+    bool allocated;
+    void* impl;
+};
+
+typedef struct { 
+    GPWindow* result;
+    GPWindowPlugin* plugin;
+    /*initalize a pre allocated window*/
+    GPWindow* inWindow;
+} GPWindowFunc;
+
+typedef struct { 
+    GPWindowPlugin* plugin;
+    GPPlugin* domPlugin;
+} gp_GPWindow_RegisterDOMPluginFunc;
+
+
+typedef struct { 
+    GPWindow* window;
+} GPWindowDestroyFunc;
+
+typedef struct { 
+    GPWindow* window;
+    bool visible;
+    bool toFront;
+} GPWindowSetVisibleFunc;
+
+typedef struct { 
+    GPWindow* window;
+} GPWindowToFrontFunc;
+
+typedef struct { 
+    GPWindow* window;
+} GPWindowToBackFunc;
+
+typedef struct { 
+    GPWindow* window;
+    int x;
+    int y;
+} GPWindowSetPositionFunc;
+
+typedef struct { 
+    GPWindow* window;
+    int width;
+    int height;
+} GPWindowSetSizeFunc;
+
+typedef struct { 
+    GPWindow* window;
+    int x;
+    int y;
+    int width;
+    int height;
+} GPWindowSetBoundsFunc;
+
+typedef struct { 
+    GPWindow* window;
+    char* border;
+} GPWindowSetBorderFunc;
+
+typedef struct { 
+    GPWindow* window;
+    char* title;
+} GPWindowSetTitleFunc;
+
+typedef struct { 
+    GPWindow* window;
+    int x;
+    int y;
+    int width;
+    int height;
+} GPWindowClearFunc;
+
+static inline void GPWindowPlugin_processEvent(GPWindowPlugin* plugin)
+{
+    static GPType* func;
+    GPWindowPluginProcessEventFunc data = {plugin:plugin};
+    if(!func)
+        func = GPType_get("gp.GPWindow.Plugin.ProcessEventFunc");
+    func->function(func,&data);
+}
+
+
+static inline GPWindow* GPWindowPlugin_GPWindow(GPWindowPlugin* plugin,GPWindow* inWindow)
+{
+    static GPType* func;
+    GPWindowFunc data = {result:NULL,plugin:plugin,inWindow:inWindow};
+    if(!func)
+        func = GPType_get("gp.GPWindow.Plugin.GPWindowFunc");
+    func->function(func,&data);
+    return data.result;
+}
+
+static inline void gp_GPWindow_registerDOMPlugin(GPWindowPlugin* plugin,GPPlugin* domPlugin)
+{
+    static GPType* func;
+    GPWindowFunc data = {plugin:plugin,domPlugin:domPlugin};
+    if(!func)
+        func = GPType_get("gp.GPWindow.Plugin.RegisterDOMPluginFunc");
+    func->function(func,&data);
+}
+
+static inline void GPWindow_destroy(GPWindow* window)
+{
+    static GPType* func;
+    GPWindowDestroyFunc data = {window:window};
+    if(!func)
+        func = GPType_get("gp.GPWindow.DestroyFunc");
+    func->function(func,&data);
+}
+
+static inline void GPWindow_setVisible(GPWindow* window,bool visible, bool toFront)
+{
+    static GPType* func;
+    GPWindowSetVisibleFunc data = {window:window,visible:visible,toFront:toFront};
+    if(!func)
+        func = GPType_get("gp.GPWindow.SetVisibleFunc");
+    func->function(func,&data);
+}
+
+
+static inline void GPWindow_setBounds(GPWindow* window,int x,int y, int width, int height)
+{
+    static GPType* func;
+    GPWindowSetBoundsFunc data = {window:window,x:x,y:y,width:width,height:height};
+    if(!func)
+        func = GPType_get("gp.GPWindow.SetBoundsFunc");
+    func->function(func,&data);
+}
+
+static inline void GPWindow_clear(GPWindow* window,int x,int y, int width, int height)
+{
+    static GPType* func;
+    GPWindowClearFunc data = {window:window,x:x,y:y,width:width,height:height};
+    if(!func)
+        func = GPType_get("gp.GPWindow.ClearFunc");
+    func->function(func,&data);
+}
+
+#ifdef __cplusplus
+}  /* end extern "C" */
+#endif
+
+#endif /*GPWindow_h*/

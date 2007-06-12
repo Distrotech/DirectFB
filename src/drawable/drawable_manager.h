@@ -100,12 +100,12 @@ struct __Drawable_DrawableManagerDrawable {
 
      int                    magic;
 
-     DrawableManager                *drawable_manager;
+     DrawableManager       *drawable_manager;
      FusionSHMPoolShared   *shmpool;
 
-     DrawableProcess         *process;
+     DrawableProcess       *process;
 
-     DFBDrawableID            id;
+     DFBDrawableID         id;
 
 };
 

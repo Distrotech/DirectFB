@@ -26,32 +26,19 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORE__DRAWABLE_H__
-#define __CORE__DRAWABLE_H__
+#ifndef __X11__PRIMARY_H__
+#define __X11__PRIMARY_H__
 
-#include <directfb.h>
-#include <time.h>
+#include <core/layers.h>
+#include <core/screens.h>
 
-typedef struct {
-     void              *data;
-} CoreDrawableLocal;
+extern ScreenFuncs       x11PrimaryScreenFuncs;
+extern DisplayLayerFuncs x11PrimaryLayerFuncs;
 
-typedef struct {
-     FusionSkirmish       lock;
-     char                *name;
-     void                *data;
-     unsigned int         size;
-     struct timeval      timestamp;
-     FusionSHMPoolShared *shmpool;
-} CoreDrawable;
+int dfb_x11_call_handler( int   caller,
+                          int   call_arg,
+                          void *call_ptr,
+                          void *ctx );
 
-DFBResult dfb_drawable_set( const char     *name,
-                             const void     *data,
-                             unsigned int    size);
-
-DFBResult dfb_drawable_get( char         **name,
-                             void         **data,
-                             unsigned int  *size );
-
-#endif
+#endif // __X11__PRIMARY_H__
 

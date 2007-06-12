@@ -392,6 +392,7 @@ typedef unsigned int DFBDisplayLayerSourceID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 typedef unsigned int DFBTextEncodingID;
+typedef unsigned int DFBDrawableID;
 
 typedef u32 DFBDisplayLayerIDs;
 

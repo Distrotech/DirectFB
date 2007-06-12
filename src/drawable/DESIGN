@@ -1,5 +1,6 @@
 
-drawable provides a declarative drawing model for directfb the design is based on Elightenments Evas Canvas.
+The drawable provides a declarative drawing model for directfb.
+The design is based on Elightenments Evas Canvas.
 
 
 The core design is fairly simple.
@@ -7,10 +8,16 @@ The core design is fairly simple.
 At the heart is a DrawableOP responsible for drawing pixels.
 For example blits and fillRects.
 
-Next we have the concept of containers two that are supported directly
-are drawable which is a tree and drawlist which is a list of DrawablOPS.
+Next we have the concept of containers.
+Two types of containers are supported directly:
+- Drawable which is a tree.
+- Drawlist which is a list of DrawablOPS.
 
-These container or composite structures are themselves registered as a DrawawbleOP and responsible for drawing their children ops by walking their internal data structures.
-Other container ops such as groups or complex players such as a movie player or dynamic draw list are possible.
+These containers or composite structures are themselves registered 
+as a DrawawbleOP and responsible for drawing their children ops 
+by walking their internal data structures.
+
+Other container ops such as groups or complex players 
+such as a movie player or dynamic draw list are possible.
 
 
