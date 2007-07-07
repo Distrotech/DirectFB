@@ -36,6 +36,7 @@ libdirectfb_sdl_la_SOURCES = \
 	primary.h		\
 	sdl.c			\
 	sdl.h			\
+	sdlgfx.c		\
 	sdl_surface_pool.c
 
 libdirectfb_sdl_la_LIBADD = \

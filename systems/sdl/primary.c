@@ -335,7 +335,7 @@ primaryAllocateSurface( CoreLayer              *layer,
      conf.size.w = config->width;
      conf.size.h = config->height;
      conf.format = config->format;
-     conf.caps   = DSCAPS_SYSTEMONLY;
+     conf.caps   = DSCAPS_VIDEOONLY;
 
      if (config->buffermode != DLBM_FRONTONLY)
           conf.caps |= DSCAPS_DOUBLE;
