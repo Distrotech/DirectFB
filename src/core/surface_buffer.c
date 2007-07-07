@@ -74,6 +74,13 @@ dfb_surface_buffer_new( CoreSurface             *surface,
      buffer->flags   = flags;
      buffer->format  = surface->config.format;
 
+     if (surface->config.caps & DSCAPS_VIDEOONLY)
+          buffer->policy = CSP_VIDEOONLY;
+     else if (surface->config.caps & DSCAPS_SYSTEMONLY)
+          buffer->policy = CSP_SYSTEMONLY;
+     else
+          buffer->policy = CSP_VIDEOLOW;
+
      D_MAGIC_SET( buffer, CoreSurfaceBuffer );
 
      *ret_buffer = buffer;
