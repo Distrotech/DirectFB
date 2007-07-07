@@ -81,6 +81,11 @@ typedef struct {
      DFBResult (*DestroyPool)( CoreSurfacePool            *pool,
                                void                       *pool_data );
 
+
+
+     DFBResult (*TestConfig) ( CoreSurfacePool            *pool,
+                               void                       *pool_data,
+                               const CoreSurfaceConfig    *config );
      /*
       * Buffer management
       */

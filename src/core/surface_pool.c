@@ -192,8 +192,9 @@ dfb_surface_pool_negotiate( CoreSurfaceBuffer       *buffer,
                             CoreSurfaceAccessFlags   access,
                             CoreSurfacePool        **ret_pool )
 {
-     int i;
-     int best = -1;
+     int          i;
+     int          best = -1;
+     CoreSurface *surface;
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( ret_pool != NULL );
@@ -201,13 +202,24 @@ dfb_surface_pool_negotiate( CoreSurfaceBuffer       *buffer,
      D_DEBUG_AT( Core_SurfacePool, "dfb_surface_pool_negotiate( %p [%s], 0x%02x )\n",
                  buffer, dfb_pixelformat_name( buffer->format ), access );
 
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
      for (i=0; i<pool_count; i++) {
           CoreSurfacePool *pool = pools[i];
 
           D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x [%s]\n", pool->desc.access, pool->desc.name );
 
           if (D_FLAGS_ARE_SET( pool->desc.access, access )) {
+               const SurfacePoolFuncs *funcs;
+
                D_DEBUG_AT( Core_SurfacePool, "     %d / %d\n", pool->desc.priority, best );
+
+               funcs = get_funcs( pool );
+               D_ASSERT( funcs != NULL );
+
+               if (funcs->TestConfig && funcs->TestConfig( pool, pool->data, &surface->config ))
+                    continue;
 
                if (best < (int)pool->desc.priority) {
                     best = pool->desc.priority;
