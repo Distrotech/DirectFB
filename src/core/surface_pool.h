@@ -43,6 +43,12 @@ typedef enum {
      CSPCAPS_ALL    = 0x00000000
 } CoreSurfacePoolCapabilities;
 
+typedef enum {
+     CSPP_DEFAULT,
+     CSPP_PREFERED,
+     CSPP_ULTIMATE
+} CoreSurfacePoolPriority;
+
 /*
  * Increase this number when changes result in binary incompatibility!
  */
@@ -54,6 +60,7 @@ typedef enum {
 typedef struct {
      CoreSurfacePoolCapabilities   caps;
      CoreSurfaceAccessFlags        access;
+     CoreSurfacePoolPriority       priority;
      char                          name[DFB_SURFACE_POOL_DESC_NAME_LENGTH];
 } CoreSurfacePoolDescription;
 
@@ -137,7 +144,6 @@ struct __DFB_CoreSurfacePool {
 
      FusionSHMPoolShared        *shmpool;
 };
-
 
 
 

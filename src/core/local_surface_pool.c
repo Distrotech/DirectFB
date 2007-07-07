@@ -1,13 +1,13 @@
 /*
-   (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2004  convergence GmbH.
+   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
               Sven Neumann <neo@directfb.org>,
-              Ville Syrj‰l‰ <syrjala@sci.fi> and
+              Ville Syrj√§l√§ <syrjala@sci.fi> and
               Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
@@ -69,8 +69,9 @@ localInitPool( CoreDFB                    *core,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
-     ret_desc->caps   = CSPCAPS_NONE;
-     ret_desc->access = CSAF_CPU_READ | CSAF_CPU_WRITE;
+     ret_desc->caps     = CSPCAPS_NONE;
+     ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE;
+     ret_desc->priority = CSPP_PREFERED;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "System Memory" );
 

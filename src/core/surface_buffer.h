@@ -74,6 +74,8 @@ typedef struct {
      void                    *addr;
      unsigned long            base;
      unsigned int             pitch;
+
+     void                    *handle;
 } CoreSurfaceBufferLock;
 
 /*

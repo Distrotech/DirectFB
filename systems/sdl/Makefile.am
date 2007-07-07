@@ -32,10 +32,11 @@ libdirectfb_sdl_la_LDFLAGS = \
 	-module
 
 libdirectfb_sdl_la_SOURCES = \
-	primary.c	\
-	primary.h	\
-	sdl.c		\
-	sdl.h
+	primary.c		\
+	primary.h		\
+	sdl.c			\
+	sdl.h			\
+	sdl_surface_pool.c
 
 libdirectfb_sdl_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \

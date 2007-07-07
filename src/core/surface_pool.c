@@ -124,7 +124,8 @@ dfb_surface_pool_initialize( CoreDFB                 *core,
           return ret;
      }
 
-     D_DEBUG_AT( Core_SurfacePool, "  -> %p [%d], %p\n", pool, pool->pool_id, funcs );
+     D_DEBUG_AT( Core_SurfacePool, "  -> %p - '%s' [%d] (%d), %p\n",
+                 pool, pool->desc.name, pool->pool_id, pool->desc.priority, funcs );
 
      /* Return the new pool. */
      *ret_pool = pool;
@@ -192,6 +193,7 @@ dfb_surface_pool_negotiate( CoreSurfaceBuffer       *buffer,
                             CoreSurfacePool        **ret_pool )
 {
      int i;
+     int best = -1;
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( ret_pool != NULL );
@@ -205,9 +207,20 @@ dfb_surface_pool_negotiate( CoreSurfaceBuffer       *buffer,
           D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x [%s]\n", pool->desc.access, pool->desc.name );
 
           if (D_FLAGS_ARE_SET( pool->desc.access, access )) {
-               *ret_pool = pool;
-               return DFB_OK;
+               D_DEBUG_AT( Core_SurfacePool, "     %d / %d\n", pool->desc.priority, best );
+
+               if (best < (int)pool->desc.priority) {
+                    best = pool->desc.priority;
+
+                    *ret_pool = pool;
+               }
           }
+     }
+
+     if (best != -1) {
+          D_DEBUG_AT( Core_SurfacePool, "  => %s\n", (*ret_pool)->desc.name );
+
+          return DFB_OK;
      }
 
      return DFB_UNSUPPORTED;
