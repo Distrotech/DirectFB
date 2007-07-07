@@ -60,7 +60,7 @@ DFB_GRAPHICS_DRIVER( sdlgfx )
                (DSDRAW_NOFX)
 
 #define SDL_DRAWING_FUNCTIONS \
-               (DFXL_NONE)
+               (DFXL_FILLRECTANGLE)
 
 #define SDL_BLITTING_FLAGS \
                (DSBLIT_SRC_COLORKEY)
@@ -77,6 +77,9 @@ typedef struct {
      SDL_Surface *dest;
      SDL_Surface *source;
 
+     u32          color;
+
+     bool         color_valid;
      bool         key_valid;
 } SDLDeviceData;
 
@@ -130,14 +133,33 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      SDLDriverData *sdrv = (SDLDriverData*) drv;
      SDLDeviceData *sdev = (SDLDeviceData*) dev;
 
-     if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY))
-          sdev->key_valid = false;
-
      sdev->dest   = state->dst.handle;
      sdev->source = state->src.handle;
 
+     if (state->modified & (SMF_SOURCE | SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY))
+          sdev->key_valid = false;
+
+     if (state->modified & (SMF_DESTINATION | SMF_COLOR))
+          sdev->color_valid = false;
+
      switch (accel) {
           case DFXL_FILLRECTANGLE:
+               if (!sdev->color_valid) {
+                    switch (state->destination->config.format) {
+                         case DSPF_RGB16:
+                         case DSPF_RGB32:
+                              sdev->color = dfb_color_to_pixel( state->destination->config.format,
+                                                                state->color.r,
+                                                                state->color.g,
+                                                                state->color.b );
+                              break;
+
+                         default:
+                              D_BUG( "unexpected format" );
+                    }
+
+                    sdev->color_valid = true;
+               }
                break;
 
           case DFXL_BLIT:
@@ -163,7 +185,15 @@ static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 
 static bool sdlFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
-     return false;
+     SDLDeviceData *sdev = (SDLDeviceData*) dev;
+     SDL_Rect       dr;
+
+     dr.x = rect->x;
+     dr.y = rect->y;
+     dr.w = rect->w;
+     dr.h = rect->h;
+
+     return SDL_FillRect( sdev->dest, &dr, sdev->color ) == 0;
 }
 
 static bool sdlDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
