@@ -45,7 +45,7 @@
 #include <core/coretypes.h>
 
 #include <core/layers.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <misc/gfx_util.h>
 #include <direct/interface.h>
@@ -267,12 +267,12 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
                                      const DFBRectangle     *dest_rect )
 {
+     DFBResult              ret;
      DFBRegion              clip;
      DFBRectangle           rect;
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
-     int err;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
@@ -297,23 +297,26 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     err = destination->GetPixelFormat( destination, &format );
-     if (err)
-          return err;
+     ret = destination->GetPixelFormat( destination, &format );
+     if (ret)
+          return ret;
 
      /* actual loading and rendering */
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
-          void  *dst;
-          int    pitch;
+          CoreSurfaceBuffer     *buffer;
+          CoreSurfaceBufferLock  lock;
 
-          err = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
-          if (err)
-               return err;
+          buffer = dfb_surface_get_buffer( dst_surface, CSBR_BACK );
+          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+          ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_WRITE, &lock );
+          if (ret)
+               return ret;
 
           dfb_scale_linear_32( data->image, data->image_width, data->image_height,
-                               dst, pitch, &rect, dst_surface, &clip );
+                               lock.addr, lock.pitch, &rect, dst_surface, &clip );
 
-          dfb_surface_unlock( dst_surface, 0 );
+          dfb_surface_buffer_unlock( &lock );
 
           if (data->render_callback) {
                DIRenderCallbackResult r;

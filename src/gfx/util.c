@@ -38,7 +38,6 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
-#include <core/surfacemanager.h>
 
 #include <gfx/util.h>
 
@@ -68,6 +67,7 @@ dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect 
 void
 dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect, int x, int y, bool from_back )
 {
+#if FIXME_SC_2
      SurfaceBuffer *tmp;
 
      pthread_mutex_lock( &copy_lock );
@@ -79,8 +79,8 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
 
      copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
 
-     copy_state.clip.x2     = destination->width - 1;
-     copy_state.clip.y2     = destination->height - 1;
+     copy_state.clip.x2     = destination->config.size.w - 1;
+     copy_state.clip.y2     = destination->config.size.h - 1;
      copy_state.source      = source;
      copy_state.destination = destination;
 
@@ -115,11 +115,13 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
      dfb_state_stop_drawing( &copy_state );
 
      pthread_mutex_unlock( &copy_lock );
+#endif
 }
 
 void
 dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 {
+#if FIXME_SC_2
      SurfaceBuffer *tmp;
      DFBRectangle   rect;
 
@@ -132,8 +134,8 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
      else {
           rect.x = 0;
           rect.y = 0;
-          rect.w = surface->width;
-          rect.h = surface->height;
+          rect.w = surface->config.size.w;
+          rect.h = surface->config.size.h;
      }
 
      pthread_mutex_lock( &btf_lock );
@@ -145,8 +147,8 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 
      btf_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
 
-     btf_state.clip.x2     = surface->width - 1;
-     btf_state.clip.y2     = surface->height - 1;
+     btf_state.clip.x2     = surface->config.size.w - 1;
+     btf_state.clip.y2     = surface->config.size.h - 1;
      btf_state.source      = surface;
      btf_state.destination = surface;
 
@@ -168,13 +170,15 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
      dfb_state_stop_drawing( &btf_state );
 
      pthread_mutex_unlock( &btf_lock );
+#endif
 }
 
 void
 dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
 {
+#if FIXME_SC_1
      SurfaceBuffer *tmp;
-     DFBRectangle   rect = { 0, 0, surface->width - 1, surface->height - 1 };
+     DFBRectangle   rect = { 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 };
 
      if (region && !dfb_rectangle_intersect_by_region( &rect, region ))
           return;
@@ -193,8 +197,8 @@ dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
 
      cd_state.modified   |= SMF_CLIP | SMF_DESTINATION;
 
-     cd_state.clip.x2     = surface->width - 1;
-     cd_state.clip.y2     = surface->height - 1;
+     cd_state.clip.x2     = surface->config.size.w - 1;
+     cd_state.clip.y2     = surface->config.size.h - 1;
      cd_state.destination = surface;
 
      dfb_surfacemanager_lock( surface->manager );
@@ -212,6 +216,7 @@ dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
      dfb_state_stop_drawing( &cd_state );
 
      pthread_mutex_unlock( &cd_lock );
+#endif
 }
 
 

@@ -37,7 +37,7 @@
 #include <core/layer_region.h>
 #include <core/layer_control.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <misc/conf.h>

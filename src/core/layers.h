@@ -33,6 +33,9 @@
 
 #include <core/coretypes.h>
 
+#include <core/gfxcard.h>
+
+
 struct __DFB_CoreLayerRegionConfig {
      int                        width;            /* width of the source in pixels */
      int                        height;           /* height of the source in pixels */
@@ -284,7 +287,7 @@ CoreLayer *dfb_layers_register( CoreScreen        *screen,
  * The original function table is written to 'primary_funcs' before to allow
  * drivers to use existing functionality from the original implementation.
  */
-CoreLayer *dfb_layers_hook_primary( GraphicsDevice     *device,
+CoreLayer *dfb_layers_hook_primary( CoreGraphicsDevice *device,
                                     void               *driver_data,
                                     DisplayLayerFuncs  *funcs,
                                     DisplayLayerFuncs  *primary_funcs,
@@ -294,7 +297,7 @@ CoreLayer *dfb_layers_hook_primary( GraphicsDevice     *device,
  * Replace functions of the primary layer implementation completely by passing
  * an alternative driver function table.
  */
-CoreLayer *dfb_layers_replace_primary( GraphicsDevice     *device,
+CoreLayer *dfb_layers_replace_primary( CoreGraphicsDevice *device,
                                        void               *driver_data,
                                        DisplayLayerFuncs  *funcs );
 

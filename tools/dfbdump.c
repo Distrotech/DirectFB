@@ -57,8 +57,8 @@
 #include <core/layer_context.h>
 #include <core/layers.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
-#include <core/surfacemanager.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h>
@@ -107,11 +107,11 @@ buffer_size( CoreSurface *surface, SurfaceBuffer *buffer, bool video )
 {
      return video ?
           (buffer->video.health == CSH_INVALID ?
-           0 : buffer->video.pitch * DFB_PLANE_MULTIPLY( surface->format,
-                                                         surface->height )) :
+           0 : buffer->video.pitch * DFB_PLANE_MULTIPLY( surface->config.format,
+                                                         surface->config.size.h )) :
           (buffer->system.health == CSH_INVALID ?
-           0 : buffer->system.pitch * DFB_PLANE_MULTIPLY( surface->format,
-                                                          surface->height ));
+           0 : buffer->system.pitch * DFB_PLANE_MULTIPLY( surface->config.format,
+                                                          surface->config.size.h ));
 }
 
 static int
@@ -119,10 +119,10 @@ buffer_sizes( CoreSurface *surface, bool video )
 {
      int mem = buffer_size( surface, surface->front_buffer, video );
 
-     if (surface->caps & DSCAPS_FLIPPING)
+     if (surface->config.caps & DSCAPS_FLIPPING)
           mem += buffer_size( surface, surface->back_buffer, video );
 
-     if (surface->caps & DSCAPS_TRIPLE)
+     if (surface->config.caps & DSCAPS_TRIPLE)
           mem += buffer_size( surface, surface->idle_buffer, video );
 
      return mem;
@@ -137,10 +137,10 @@ buffer_locks( CoreSurface *surface, bool video )
 
      int locks = video ? front->video.locked : front->system.locked;
 
-     if (surface->caps & DSCAPS_FLIPPING)
+     if (surface->config.caps & DSCAPS_FLIPPING)
           locks += video ? back->video.locked : back->system.locked;
 
-     if (surface->caps & DSCAPS_TRIPLE)
+     if (surface->config.caps & DSCAPS_TRIPLE)
           locks += video ? idle->video.locked : idle->system.locked;
 
      return locks;
@@ -176,10 +176,10 @@ surface_callback( FusionObjectPool *pool,
 
      printf( "%3d   ", refs );
 
-     printf( "%4d x %4d   ", surface->width, surface->height );
+     printf( "%4d x %4d   ", surface->config.size.w, surface->config.size.h );
 
      for (i=0; format_names[i].format; i++) {
-          if (surface->format == format_names[i].format)
+          if (surface->config.format == format_names[i].format)
                printf( "%8s ", format_names[i].name );
      }
 
@@ -207,22 +207,22 @@ surface_callback( FusionObjectPool *pool,
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
           printf( "preallocated " );
 
-     if (surface->caps & DSCAPS_SYSTEMONLY)
+     if (surface->config.caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
 
-     if (surface->caps & DSCAPS_VIDEOONLY)
+     if (surface->config.caps & DSCAPS_VIDEOONLY)
           printf( "video only   " );
 
-     if (surface->caps & DSCAPS_INTERLACED)
+     if (surface->config.caps & DSCAPS_INTERLACED)
           printf( "interlaced   " );
 
-     if (surface->caps & DSCAPS_DOUBLE)
+     if (surface->config.caps & DSCAPS_DOUBLE)
           printf( "double       " );
 
-     if (surface->caps & DSCAPS_TRIPLE)
+     if (surface->config.caps & DSCAPS_TRIPLE)
           printf( "triple       " );
 
-     if (surface->caps & DSCAPS_PREMULTIPLIED)
+     if (surface->config.caps & DSCAPS_PREMULTIPLIED)
           printf( "premultiplied" );
 
      printf( "\n" );
@@ -263,10 +263,10 @@ chunk_callback( SurfaceBuffer *buffer,
 
      printf( "%9d %8d  ", offset, length );
 
-     printf( "%4d x %4d   ", surface->width, surface->height );
+     printf( "%4d x %4d   ", surface->config.size.w, surface->config.size.h );
 
      for (i=0; format_names[i].format; i++) {
-          if (surface->format == format_names[i].format)
+          if (surface->config.format == format_names[i].format)
                printf( "%8s ", format_names[i].name );
      }
 
@@ -276,22 +276,22 @@ chunk_callback( SurfaceBuffer *buffer,
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
           printf( "preallocated " );
 
-     if (surface->caps & DSCAPS_SYSTEMONLY)
+     if (surface->config.caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
 
-     if (surface->caps & DSCAPS_VIDEOONLY)
+     if (surface->config.caps & DSCAPS_VIDEOONLY)
           printf( "video only   " );
 
-     if (surface->caps & DSCAPS_INTERLACED)
+     if (surface->config.caps & DSCAPS_INTERLACED)
           printf( "interlaced   " );
 
-     if (surface->caps & DSCAPS_DOUBLE)
+     if (surface->config.caps & DSCAPS_DOUBLE)
           printf( "double       " );
 
-     if (surface->caps & DSCAPS_TRIPLE)
+     if (surface->config.caps & DSCAPS_TRIPLE)
           printf( "triple       " );
 
-     if (surface->caps & DSCAPS_PREMULTIPLIED)
+     if (surface->config.caps & DSCAPS_PREMULTIPLIED)
           printf( "premultiplied" );
 
      printf( "\n" );

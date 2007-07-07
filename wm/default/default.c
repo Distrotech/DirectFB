@@ -53,7 +53,7 @@
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/palette.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>
@@ -417,18 +417,21 @@ window_at_pointer( CoreWindowStack *stack,
                     return window;
                }
                else {
-                    void        *data;
-                    int          pitch;
-                    CoreSurface *surface = window->surface;
+                    CoreSurface           *surface = window->surface;
+                    CoreSurfaceBuffer     *buffer  = dfb_surface_get_buffer( surface, CSBR_FRONT );
+                    DFBSurfacePixelFormat  format  = surface->config.format;
+                    CoreSurfaceBufferLock  lock;
 
-                    if ( dfb_surface_soft_lock( wmdata->core, surface, DSLF_READ,
-                                                &data, &pitch, true ) == DFB_OK ) {
+                    if (dfb_surface_buffer_lock( buffer, CSAF_CPU_READ, &lock ) == DFB_OK) {
+                         void *data  = lock.addr;
+                         int   pitch = lock.pitch;
+
                          if (options & DWOP_ALPHACHANNEL) {
                               int alpha = -1;
 
-                              D_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
+                              D_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( format ) );
 
-                              switch (surface->format) {
+                              switch (format) {
                                    case DSPF_AiRGB:
                                         alpha = 0xff - (*(u32*)(data + 4 * wx + pitch * wy) >> 24);
                                         break;
@@ -461,12 +464,12 @@ window_at_pointer( CoreWindowStack *stack,
                                    }
 
                                    default:
-                                        D_ONCE( "unknown format 0x%x", surface->format );
+                                        D_ONCE( "unknown format 0x%x", surface->config.format );
                                         break;
                               }
 
                               if (alpha) { /* alpha == -1 on error */
-                                   dfb_surface_unlock( surface, true );
+                                   dfb_surface_buffer_unlock( &lock );
                                    return window;
                               }
 
@@ -474,7 +477,7 @@ window_at_pointer( CoreWindowStack *stack,
                          if (options & DWOP_COLORKEYING) {
                               int pixel = 0;
                               u8 *p;
-                              switch (surface->format) {
+                              switch (format) {
                                    case DSPF_ARGB:
                                    case DSPF_AiRGB:
                                    case DSPF_RGB32:
@@ -524,18 +527,18 @@ window_at_pointer( CoreWindowStack *stack,
                                         break;
 
                                    default:
-                                        D_ONCE( "unknown format 0x%x", surface->format );
+                                        D_ONCE( "unknown format 0x%x", surface->config.format );
                                         break;
                               }
 
                               if ( pixel != config->color_key ) {
-                                   dfb_surface_unlock( surface, true );
+                                   dfb_surface_buffer_unlock( &lock );
                                    return window;
                               }
 
                          }
 
-                         dfb_surface_unlock( surface, true );
+                         dfb_surface_buffer_unlock( &lock );
                     }
                }
           }
@@ -573,7 +576,7 @@ switch_focus( CoreWindowStack *stack,
                D_ASSERT( to->primary_region != NULL );
 
                if (dfb_layer_region_get_surface( to->primary_region, &surface ) == DFB_OK) {
-                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->config.format ))
                          dfb_surface_set_palette( surface, to->surface->palette );
 
                     dfb_surface_unref( surface );
@@ -677,8 +680,8 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
      src.h = region->y2 - region->y1 + 1;
      /* Initialize source clipping rectangle */
      clip.x = clip.y = 0;
-     clip.w = stack->cursor.surface->width;
-     clip.h = stack->cursor.surface->height;
+     clip.w = stack->cursor.surface->config.size.w;
+     clip.h = stack->cursor.surface->config.size.h;
      /* Intersect rectangles */
      if (!dfb_rectangle_intersect( &src, &clip ))
           return;
@@ -696,7 +699,7 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
 
      /* Different compositing methods depending on destination format. */
      if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
-          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )) {
                /*
                 * Always use compliant Porter/Duff SRC_OVER,
                 * if the destination has an alpha channel.
@@ -720,7 +723,7 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
                dfb_state_set_src_blend( state, DSBF_ONE );
 
                /* Need to premultiply source with As*Ac or only with Ac? */
-               if (! (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED))
+               if (! (stack->cursor.surface->config.caps & DSCAPS_PREMULTIPLIED))
                     flags |= DSBLIT_SRC_PREMULTIPLY;
                else if (flags & DSBLIT_BLEND_COLORALPHA)
                     flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -745,7 +748,7 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
                 * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
                 * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
                 */
-               if (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED) {
+               if (stack->cursor.surface->config.caps & DSCAPS_PREMULTIPLIED) {
                     /* Need to premultiply source with Ac? */
                     if (flags & DSBLIT_BLEND_COLORALPHA)
                          flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -817,12 +820,12 @@ draw_window( CoreWindow *window, CardState *state,
      }
 
      /* Use automatic deinterlacing. */
-     if (window->surface->caps & DSCAPS_INTERLACED)
+     if (window->surface->config.caps & DSCAPS_INTERLACED)
           flags |= DSBLIT_DEINTERLACE;
 
      /* Different compositing methods depending on destination format. */
      if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
-          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->config.format )) {
                /*
                 * Always use compliant Porter/Duff SRC_OVER,
                 * if the destination has an alpha channel.
@@ -846,7 +849,7 @@ draw_window( CoreWindow *window, CardState *state,
                dfb_state_set_src_blend( state, DSBF_ONE );
 
                /* Need to premultiply source with As*Ac or only with Ac? */
-               if (! (window->surface->caps & DSCAPS_PREMULTIPLIED))
+               if (! (window->surface->config.caps & DSCAPS_PREMULTIPLIED))
                     flags |= DSBLIT_SRC_PREMULTIPLY;
                else if (flags & DSBLIT_BLEND_COLORALPHA)
                     flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -871,7 +874,7 @@ draw_window( CoreWindow *window, CardState *state,
                 * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
                 * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
                 */
-               if (window->surface->caps & DSCAPS_PREMULTIPLIED) {
+               if (window->surface->config.caps & DSCAPS_PREMULTIPLIED) {
                     /* Need to premultiply source with Ac? */
                     if (flags & DSBLIT_BLEND_COLORALPHA)
                          flags |= DSBLIT_SRC_PREMULTCOLOR;
@@ -893,7 +896,7 @@ draw_window( CoreWindow *window, CardState *state,
      if (window->config.options & DWOP_SCALE) {
           DFBRegion    clip = state->clip;
           DFBRectangle dst  = window->config.bounds;
-          DFBRectangle src  = { 0, 0, window->surface->width, window->surface->height };
+          DFBRectangle src  = { 0, 0, window->surface->config.size.w, window->surface->config.size.h };
 
           /* Change clipping region. */
           dfb_state_set_clip( state, region );
@@ -905,8 +908,8 @@ draw_window( CoreWindow *window, CardState *state,
           dfb_state_set_clip( state, &clip );
      }
      else {
-          D_ASSERT( window->surface->width  == window->config.bounds.w );
-          D_ASSERT( window->surface->height == window->config.bounds.h );
+          D_ASSERT( window->surface->config.size.w  == window->config.bounds.w );
+          D_ASSERT( window->surface->config.size.h == window->config.bounds.h );
 
           /* Blit from the window to the region being updated. */
           dfb_gfxcard_blit( &src, region->x1, region->y1, state );
@@ -938,7 +941,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                DFBColor    *color = &stack->bg.color;
 
                /* Set the background color. */
-               if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
+               if (DFB_PIXELFORMAT_IS_INDEXED( dest->config.format ))
                     dfb_state_set_color_index( state,  /* FIXME: don't search every time */
                                                dfb_palette_search( dest->palette, color->r,
                                                                    color->g, color->b, color->a ) );
@@ -962,13 +965,15 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
 
                /* Check the size of the background image. */
-               if (bg->width == stack->width && bg->height == stack->height) {
+               if (bg->config.size.w == stack->width && bg->config.size.h == stack->height) {
                     /* Simple blit for 100% fitting background image. */
                     dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
                }
                else {
                     DFBRegion    clip = state->clip;
-                    DFBRectangle src  = { 0, 0, bg->width, bg->height };
+                    DFBRectangle src  = { 0, 0,
+                                          bg->config.size.w,
+                                          bg->config.size.h };
 
                     /* Change clipping region. */
                     dfb_state_set_clip( state, region );
@@ -999,7 +1004,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
           case DLBM_TILE: {
                CoreSurface  *bg   = stack->bg.image;
                DFBRegion     clip = state->clip;
-               DFBRectangle  src  = { 0, 0, bg->width, bg->height };
+               DFBRectangle  src  = { 0, 0, bg->config.size.w, bg->config.size.h };
 
                /* Set blitting source. */
                state->source    = bg;
@@ -1466,8 +1471,8 @@ update_window( CoreWindow          *window,
 
      if (region) {
           if (scale_region && (window->config.options & DWOP_SCALE)) {
-               int sw = window->surface->width;
-               int sh = window->surface->height;
+               int sw = window->surface->config.size.w;
+               int sh = window->surface->config.size.h;
 
                /* horizontal */
                if (bounds->w > sw) {
@@ -1719,10 +1724,11 @@ resize_window( CoreWindow *window,
           return DFB_LIMITEXCEEDED;
 
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
-          ret = dfb_surface_reformat( wm_data->core, window->surface,
+          return DFB_UNIMPLEMENTED;
+/*FIXME_SC_2          ret = dfb_surface_reformat( wm_data->core, window->surface,
                                       width, height, window->surface->format );
           if (ret)
-               return ret;
+               return ret;*/
      }
 
      bounds->w = width;
@@ -1800,10 +1806,12 @@ set_window_bounds( CoreWindow *window,
           return DFB_LIMITEXCEEDED;
 
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
-          ret = dfb_surface_reformat( wm_data->core, window->surface,
-                                      width, height, window->surface->format );
+          return DFB_UNIMPLEMENTED;
+/*FIXME_SC_2          ret = dfb_surface_reformat( wm_data->core, window->surface,
+                                      width, height, window->surface->config.format );
           if (ret)
                return ret;
+               */
      }
 
      old_region.x1 = window->config.bounds.x - x;
@@ -2343,9 +2351,11 @@ handle_wm_key( CoreWindowStack     *stack,
                break;
 
           case DIKS_PRINT:
-               if (dfb_config->screenshot_dir && focused && focused->surface)
-                    dfb_surface_dump( wmdata->core, focused->surface, dfb_config->screenshot_dir, "dfb_window" );
+               if (dfb_config->screenshot_dir && focused && focused->surface) {
+                    CoreSurfaceBuffer *buffer = dfb_surface_get_buffer( focused->surface, CSBR_FRONT );
 
+                    dfb_surface_buffer_dump( buffer, dfb_config->screenshot_dir, "dfb_window" );
+               }
                break;
 
           default:
@@ -3275,22 +3285,24 @@ wm_set_window_config( CoreWindow             *window,
 
      if (flags & CWCF_OPTIONS) {
           if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE)) {
-               if (window->config.bounds.w != window->surface->width ||
-                   window->config.bounds.h != window->surface->height)
+               if (window->config.bounds.w != window->surface->config.size.w ||
+                   window->config.bounds.h != window->surface->config.size.h)
                {
-                    ret = dfb_surface_reformat( wmdata->core, window->surface,
+                    return DFB_UNIMPLEMENTED;
+/*FIXME_SC_2                    ret = dfb_surface_reformat( wmdata->core, window->surface,
                                                 window->config.bounds.w,
                                                 window->config.bounds.h,
-                                                window->surface->format );
+                                                window->surface->config.format );
                     if (ret) {
                          D_DERROR( ret, "WM/Default: Could not resize surface "
                                         "(%dx%d -> %dx%d) to remove DWOP_SCALE!\n",
-                                   window->surface->width,
-                                   window->surface->height,
+                                   window->surface->config.size.w,
+                                   window->surface->config.size.h,
                                    window->config.bounds.w,
                                    window->config.bounds.h );
                          return ret;
                     }
+*/
                }
           }
 
@@ -3608,13 +3620,15 @@ wm_update_cursor( CoreWindowStack       *stack,
 
      if (!data->cursor_bs) {
           CoreSurface *cursor_bs;
+          DFBSurfaceCapabilities caps = DSCAPS_NONE;
 
           D_ASSUME( flags & CCUF_ENABLE );
 
+          dfb_surface_caps_apply_policy( stack->cursor.policy, &caps );
+
           /* Create the cursor backing store surface. */
-          ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                    context->config.pixelformat, stack->cursor.policy,
-                                    DSCAPS_NONE, NULL, &cursor_bs );
+          ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+                                           context->config.pixelformat, caps, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                return ret;
@@ -3668,12 +3682,13 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      if (flags & CCUF_SIZE) {
-          ret = dfb_surface_reformat( wmdata->core, data->cursor_bs,
+/*FIXME_SC_2          ret = dfb_surface_reformat( wmdata->core, data->cursor_bs,
                                       stack->cursor.size.w, stack->cursor.size.h,
                                       data->cursor_bs->format );
           if (ret)
                D_DERROR( ret, "WM/Default: Failed resizing backing store for cursor from %dx%d to %dx%d!\n",
                          data->cursor_bs->width, data->cursor_bs->height, stack->cursor.size.w, stack->cursor.size.h );
+*/
      }
 
      if (flags & CCUF_DISABLE) {

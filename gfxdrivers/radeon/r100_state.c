@@ -34,7 +34,7 @@
 
 #include <core/state.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/convert.h>
 
@@ -176,16 +176,16 @@ void r100_set_destination( RadeonDriverData *rdrv,
                case DSPF_I420:
                     rdev->gui_master_cntl = GMC_DST_8BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_RGB8;
-                    rdev->dst_offset_cb = offset + pitch * surface->height;
+                    rdev->dst_offset_cb = offset + pitch * surface->config.size.h;
                     rdev->dst_offset_cr = rdev->dst_offset_cb + 
-                                          pitch/2 * surface->height/2;
+                                          pitch/2 * surface->config.size.h/2;
                     break;
                case DSPF_YV12:
                     rdev->gui_master_cntl = GMC_DST_8BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_RGB8;
-                    rdev->dst_offset_cr = offset + pitch * surface->height;
+                    rdev->dst_offset_cr = offset + pitch * surface->config.size.h;
                     rdev->dst_offset_cb = rdev->dst_offset_cr +
-                                          pitch/2 * surface->height/2;
+                                          pitch/2 * surface->config.size.h/2;
                     break;
                default:
                     D_BUG( "unexpected pixelformat" );
@@ -248,8 +248,8 @@ void r100_set_source( RadeonDriverData *rdrv,
      
      rdev->src_offset = radeon_buffer_offset( rdev, buffer );
      rdev->src_pitch  = buffer->video.pitch;
-     rdev->src_width  = surface->width;
-     rdev->src_height = surface->height;
+     rdev->src_width  = surface->config.size.w;
+     rdev->src_height = surface->config.size.h;
      
      switch (buffer->format) {
           case DSPF_LUT8:

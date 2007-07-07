@@ -44,7 +44,8 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
+#include <core/surface_buffer.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -87,7 +88,7 @@ static DFBResult update_screen( CoreSurface *surface,
 
 static DFBResult
 primaryInitScreen( CoreScreen           *screen,
-                   GraphicsDevice       *device,
+                   CoreGraphicsDevice   *device,
                    void                 *driver_data,
                    void                 *screen_data,
                    DFBScreenDescription *description )
@@ -112,8 +113,8 @@ primaryGetScreenSize( CoreScreen *screen,
      D_ASSERT( dfb_x11 != NULL );
 
      if (dfb_x11->primary) {
-          *ret_width  = dfb_x11->primary->width;
-          *ret_height = dfb_x11->primary->height;
+          *ret_width  = dfb_x11->primary->config.size.w;
+          *ret_height = dfb_x11->primary->config.size.h;
      }
      else {
           if (dfb_config->mode.width)
@@ -295,7 +296,7 @@ primaryFlipRegion( CoreLayer           *layer,
                    CoreSurface         *surface,
                    DFBSurfaceFlipFlags  flags )
 {
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
      return dfb_x11_update_screen( dfb_x11_core, NULL );
 }
@@ -325,14 +326,18 @@ primaryAllocateSurface( CoreLayer              *layer,
                         CoreLayerRegionConfig  *config,
                         CoreSurface           **ret_surface )
 {
-     DFBSurfaceCapabilities caps = DSCAPS_SYSTEMONLY;
+     CoreSurfaceConfig conf;
+
+     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     conf.size.w = config->width;
+     conf.size.h = config->height;
+     conf.format = config->format;
+     conf.caps   = DSCAPS_SYSTEMONLY;
 
      if (config->buffermode != DLBM_FRONTONLY)
-          caps |= DSCAPS_DOUBLE;
+          conf.caps |= DSCAPS_DOUBLE;
 
-     return dfb_surface_create( NULL, config->width, config->height,
-                                config->format, CSP_SYSTEMONLY,
-                                caps, NULL, ret_surface );
+     return dfb_surface_create( dfb_x11_core, &conf, NULL, ret_surface );
 }
 
 static DFBResult
@@ -343,22 +348,22 @@ primaryReallocateSurface( CoreLayer             *layer,
                           CoreLayerRegionConfig *config,
                           CoreSurface           *surface )
 {
-     DFBResult ret;
+//     DFBResult ret;
 
      /* FIXME: write surface management functions
                for easier configuration changes */
 
-     switch (config->buffermode) {
+/*     switch (config->buffermode) {
           case DLBM_BACKVIDEO:
           case DLBM_BACKSYSTEM:
-               surface->caps |= DSCAPS_DOUBLE;
+               surface->config.caps |= DSCAPS_DOUBLE;
 
                ret = dfb_surface_reconfig( surface,
                                            CSP_SYSTEMONLY, CSP_SYSTEMONLY );
                break;
 
           case DLBM_FRONTONLY:
-               surface->caps &= ~DSCAPS_DOUBLE;
+               surface->config.caps &= ~DSCAPS_DOUBLE;
 
                ret = dfb_surface_reconfig( surface,
                                            CSP_SYSTEMONLY, CSP_SYSTEMONLY );
@@ -376,7 +381,7 @@ primaryReallocateSurface( CoreLayer             *layer,
      if (ret)
           return ret;
 
-
+*/
      if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
           DFBResult    ret;
           CorePalette *palette;
@@ -422,38 +427,44 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
 
 
 
-//     printf("UpdateScreen (%d, %d)\n", surface->width, surface->height);
+//     printf("UpdateScreen (%d, %d)\n", surface->config.size.w, surface->config.size.h);
 //	 printf("x, y, w, h; %d, %d, %d, %d \n", x , y, w, h);
-//	 printf("DFB_BYTES_PER_LINE: %d\n", DFB_BYTES_PER_LINE( surface->format, w ));
+//	 printf("DFB_BYTES_PER_LINE: %d\n", DFB_BYTES_PER_LINE( surface->config.format, w ));
 
-    int          i;
-    void        *dst;
-	void        *src;
-	int          pitch;
-	DFBResult    ret;
+    int                    i;
+    void                  *dst;
+	void                  *src;
+	DFBResult              ret;
+    CoreSurfaceBuffer     *buffer;
+    CoreSurfaceBufferLock  lock;
 
-	D_ASSERT( surface != NULL );
-	ret = dfb_surface_soft_lock( dfb_x11_core, surface, DSLF_READ, &src, &pitch, true );
+	D_MAGIC_ASSERT( surface, CoreSurface );
+
+    buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+
+    D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+	ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_READ, &lock );
 	if (ret) {
 		D_ERROR( "DirectFB/X11: Couldn't lock layer surface: %s\n",
 				  DirectFBErrorString( ret ) );
 		return ret;
 	}
 
-		
+    src = lock.addr;
 	dst = xw->virtualscreen;
 
-	src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
-	dst += DFB_BYTES_PER_LINE( surface->format, x ) + y * xw->ximage->bytes_per_line;
+	src += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * lock.pitch;
+	dst += DFB_BYTES_PER_LINE( surface->config.format, x ) + y * xw->ximage->bytes_per_line;
 
 	for (i=0; i<h; ++i) {
-		direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
+		direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->config.format, w ) );
 
-		src += pitch;
+		src += lock.pitch;
 		dst += xw->ximage->bytes_per_line;
 	}
 	
-	dfb_surface_unlock( surface, true );
+	dfb_surface_buffer_unlock( &lock );
 
 	XShmPutImage(xw->display, xw->window, xw->gc, xw->ximage,
 				 0, 0, 0, 0, xw->width, xw->height, False);
@@ -543,7 +554,7 @@ dfb_x11_update_screen_handler( const DFBRegion *region )
      fusion_skirmish_prevail( &dfb_x11->lock );
  
      if (!region)
-          ret = update_screen( surface, 0, 0, surface->width, surface->height );
+          ret = update_screen( surface, 0, 0, surface->config.size.w, surface->config.size.h );
      else
           ret = update_screen( surface,
                                region->x1,  region->y1,

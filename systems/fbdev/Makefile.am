@@ -32,7 +32,8 @@ libdirectfb_fbdev_la_LDFLAGS = \
 	$(SYSFS_LIBS)
 
 libdirectfb_fbdev_la_SOURCES = \
-	fbdev.c		\
+	fbdev.c			\
+	fbdev_surface_pool.c	\
 	vt.c			\
 	agp.c
 

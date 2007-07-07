@@ -44,7 +44,6 @@
 
 #include <core/gfxcard.h>
 #include <core/state.h>
-#include <core/surfacemanager.h>
 #include <core/palette.h>
 
 #include <misc/gfx_util.h>
@@ -6470,17 +6469,20 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      bool         src_ycbcr   = false;
      bool         dst_ycbcr   = false;
 
-     DFBSurfaceLockFlags lock_flags;
+     CoreSurfaceBuffer *dst_buffer = NULL;
+     CoreSurfaceBuffer *src_buffer = NULL;
+
+     CoreSurfaceAccessFlags access = CSAF_CPU_WRITE;
 
      if (dfb_config->hardware_only) {
          if (DFB_BLITTING_FUNCTION( accel ))
              D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x", accel,
-                     source ? dfb_pixelformat_name(source->format) : "NULL SOURCE",
-                     destination ? dfb_pixelformat_name(destination->format) : "NULL DESTINATION",
+                     source ? dfb_pixelformat_name(source->config.format) : "NULL SOURCE",
+                     destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
                      state->blittingflags );
          else
              D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
-                     destination ? dfb_pixelformat_name(destination->format) : "NULL DESTINATION",
+                     destination ? dfb_pixelformat_name(destination->config.format) : "NULL DESTINATION",
                      state->drawingflags );
          return false;
      }
@@ -6507,28 +6509,34 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           return false;
 
 
-     gfxs->dst_caps   = destination->caps;
-     gfxs->dst_height = destination->height;
-     gfxs->dst_format = destination->back_buffer->format;
+     dst_buffer = dfb_surface_get_buffer( destination, state->to );
+
+     D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
+
+     gfxs->dst_caps   = destination->config.caps;
+     gfxs->dst_height = destination->config.size.h;
+     gfxs->dst_format = dst_buffer->format;
      gfxs->dst_bpp    = DFB_BYTES_PER_PIXEL( gfxs->dst_format );
      dst_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->dst_format );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          gfxs->src_caps   = source->caps;
-          gfxs->src_height = source->height;
-          gfxs->src_format = source->front_buffer->format;
+          src_buffer = dfb_surface_get_buffer( source, state->from );
+
+          D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
+
+          gfxs->src_caps   = source->config.caps;
+          gfxs->src_height = source->config.size.h;
+          gfxs->src_format = src_buffer->format;
           gfxs->src_bpp    = DFB_BYTES_PER_PIXEL( gfxs->src_format );
           src_pfi          = DFB_PIXELFORMAT_INDEX( gfxs->src_format );
 
-          lock_flags = state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
-                                                DSBLIT_BLEND_COLORALPHA   |
-                                                DSBLIT_DST_COLORKEY ) ?
-                       DSLF_READ | DSLF_WRITE : DSLF_WRITE;
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                      DSBLIT_BLEND_COLORALPHA   |
+                                      DSBLIT_DST_COLORKEY))
+               access |= CSAF_CPU_READ;
      }
-     else
-          lock_flags = state->drawingflags & ( DSDRAW_BLEND |
-                                               DSDRAW_DST_COLORKEY ) ?
-                       DSLF_READ | DSLF_WRITE : DSLF_WRITE;
+     else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
+          access |= CSAF_CPU_READ;
 
 
 
@@ -6703,19 +6711,24 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      }
 
 
-     dfb_surfacemanager_lock( destination->manager );
+//FIXME_SMANLOCK     dfb_surfacemanager_lock( destination->manager );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           DFBSurfaceLockFlags flags = DSLF_READ;
 
+#if FIXME_SC_3
           if (accel == DFXL_STRETCHBLIT)
                flags |= CSLF_FORCE;
+#endif
 
-          if (dfb_surface_software_lock( state->core, source, flags, &gfxs->src_org[0],
-                                         &gfxs->src_pitch, true )) {
-               dfb_surfacemanager_unlock( destination->manager );
+          if (dfb_surface_buffer_lock( src_buffer, CSAF_CPU_READ, &state->src )) {
+//FIXME_SMANLOCK               dfb_surfacemanager_unlock( destination->manager );
                return false;
           }
+
+          gfxs->src_org[0] = state->src.addr;
+          gfxs->src_pitch  = state->src.pitch;
+
           switch (gfxs->src_format) {
                case DSPF_I420:
                     gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
@@ -6739,17 +6752,19 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           state->flags |= CSF_SOURCE_LOCKED;
      }
 
-     if (dfb_surface_software_lock( state->core, state->destination, lock_flags,
-                                    &gfxs->dst_org[0], &gfxs->dst_pitch, false ))
-     {
+     if (dfb_surface_buffer_lock( dst_buffer, access, &state->dst )) {
           if (state->flags & CSF_SOURCE_LOCKED) {
-               dfb_surface_unlock( source, true );
+               dfb_surface_buffer_unlock( &state->src );
                state->flags &= ~CSF_SOURCE_LOCKED;
           }
 
-          dfb_surfacemanager_unlock( destination->manager );
+//FIXME_SMANLOCK          dfb_surfacemanager_unlock( destination->manager );
           return false;
      }
+
+     gfxs->dst_org[0] = state->dst.addr;
+     gfxs->dst_pitch  = state->dst.pitch;
+
      switch (gfxs->dst_format) {
           case DSPF_I420:
                gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
@@ -6770,7 +6785,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      gfxs->dst_field_offset = gfxs->dst_height/2 * gfxs->dst_pitch;
 
-     dfb_surfacemanager_unlock( destination->manager );
+//FIXME_SMANLOCK     dfb_surfacemanager_unlock( destination->manager );
 
      gfxs->need_accumulator = true;
 
@@ -6988,9 +7003,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     }
                }
 #ifndef WORDS_BIGENDIAN
-               if (state->blittingflags == DSBLIT_NOFX &&
-                   source->format      == DSPF_RGB24 &&
-                   destination->format == DSPF_RGB16)
+               if (state->blittingflags       == DSBLIT_NOFX &&
+                   source->config.format      == DSPF_RGB24 &&
+                   destination->config.format == DSPF_RGB16)
                {
                     *funcs++ = Bop_rgb24_to_Aop_rgb16_LE;
                     break;
@@ -7310,10 +7325,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
 void gRelease( CardState *state )
 {
-     dfb_surface_unlock( state->destination, 0 );
+     dfb_surface_buffer_unlock( &state->dst );
 
      if (state->flags & CSF_SOURCE_LOCKED) {
-          dfb_surface_unlock( state->source, true );
+          dfb_surface_buffer_unlock( &state->src );
           state->flags &= ~CSF_SOURCE_LOCKED;
      }
 }
@@ -8324,8 +8339,8 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      srect->w = ((drect->w * fx + ix) + 0xFFFF) >> 16;
      srect->h = ((drect->h * fy + iy) + 0xFFFF) >> 16;
 
-     D_ASSERT( srect->x + srect->w <= state->source->width );
-     D_ASSERT( srect->y + srect->h <= state->source->height );
+     D_ASSERT( srect->x + srect->w <= state->source->config.size.w );
+     D_ASSERT( srect->y + srect->h <= state->source->config.size.h );
      D_ASSERT( drect->x + drect->w <= state->clip.x2 + 1 );
      D_ASSERT( drect->y + drect->h <= state->clip.y2 + 1 );
 

@@ -23,7 +23,7 @@
 #ifndef __RADEON_STATE_H__
 #define __RADEON_STATE_H__
 
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 /* R100 state funcs */
 void r100_restore           ( RadeonDriverData *rdrv,

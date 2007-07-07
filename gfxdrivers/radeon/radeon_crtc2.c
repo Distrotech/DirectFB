@@ -39,7 +39,7 @@
 #include <core/layer_control.h>
 #include <core/layers_internal.h>
 #include <core/palette.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <misc/conf.h>
@@ -753,7 +753,7 @@ crtc2_calc_regs( RadeonDriverData      *rdrv,
      rcrtc2->regs.rCRTC2_OFFSET_CNTL |= CRTC_HSYNC_EN;
      
      rcrtc2->regs.rCRTC2_PITCH  = (buffer->video.pitch / 
-                                   DFB_BYTES_PER_PIXEL(surface->format)) >> 3;
+                                   DFB_BYTES_PER_PIXEL(surface->config.format)) >> 3;
      rcrtc2->regs.rCRTC2_PITCH |= rcrtc2->regs.rCRTC2_PITCH << 16;
 
      if (rdev->monitor2 == MT_DFP) {

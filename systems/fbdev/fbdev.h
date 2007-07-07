@@ -75,6 +75,8 @@ typedef struct {
      FusionCall               fbdev_ioctl;   /* ioctl rpc */
 
      unsigned long            page_mask;     /* PAGE_SIZE - 1 */
+
+     CoreSurfacePool          *pool;
      
      struct {
           int                 bus;
@@ -122,5 +124,16 @@ DFBResult dfb_fbdev_join();
  */
 DFBResult dfb_fbdev_shutdown( bool emergency );
 DFBResult dfb_fbdev_leave( bool emergency );
+
+
+typedef struct {
+     int   magic;
+
+     void *addr;
+     int   base;
+     int   pitch;
+     int   size;
+} FBDevAllocationData;
+
 
 #endif

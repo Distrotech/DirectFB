@@ -31,7 +31,7 @@
 
 #include <fusion/call.h>
 #include <fusion/lock.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include "xwindow.h"
 
 typedef struct {

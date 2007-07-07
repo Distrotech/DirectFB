@@ -45,7 +45,7 @@
 #include <core/layer_control.h>
 #include <core/layer_region.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 
 #include <gfx/util.h>
 
@@ -443,7 +443,9 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      context = region->context;
      surface = region->surface;
+#if FIXME_SC_3
      buffer  = surface->back_buffer;
+#endif
      layer   = dfb_layer_at( context->layer_id );
 
      D_ASSERT( layer->funcs != NULL );
@@ -458,8 +460,8 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                if (!(flags & DSFLIP_BLIT) &&
                    (!update || (update->x1 == 0 &&
                                 update->y1 == 0 &&
-                                update->x2 == surface->width - 1 &&
-                                update->y2 == surface->height - 1)))
+                                update->x2 == surface->config.size.w - 1 &&
+                                update->y2 == surface->config.size.h - 1)))
                {
                     D_DEBUG_AT( Core_Layers, "  -> Going to swap buffers...\n" );
 
@@ -469,11 +471,11 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
                          D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
-                         if (buffer->video.access & VAF_HARDWARE_WRITE) {
+/* FIXME_SERIAL                        if (buffer->video.access & VAF_HARDWARE_WRITE) {
                               dfb_gfxcard_wait_serial( &buffer->video.serial );
 
                               buffer->video.access &= ~VAF_HARDWARE_WRITE;
-                         }
+                         }*/
 
                          D_DEBUG_AT( Core_Layers, "  -> Flipping region using driver...\n" );
 
@@ -488,7 +490,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                          D_DEBUG_AT( Core_Layers, "  -> Flipping region not using driver...\n" );
 
                          /* Just do the hardware independent work. */
-                         dfb_surface_flip_buffers( surface, false );
+                         dfb_surface_flip( surface, false );
                     }
 
                     break;
@@ -521,11 +523,11 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
           case DLBM_FRONTONLY:
                D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
-               if (buffer->video.access & VAF_HARDWARE_WRITE) {
+/* FIXME_SERIAL               if (buffer->video.access & VAF_HARDWARE_WRITE) {
                     dfb_gfxcard_wait_serial( &buffer->video.serial );
 
                     buffer->video.access &= ~VAF_HARDWARE_WRITE;
-               }
+               }*/
 
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {

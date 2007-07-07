@@ -40,6 +40,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
+#include <core/surface_buffer.h>
 
 #include <gfx/generic/generic.h>
 
@@ -127,6 +128,16 @@ struct _CardState {
      DFBAccelerationMask      disabled;      /* commands which are disabled temporarily */
 
      CoreGraphicsSerial       serial;        /* hardware serial of the last operation */
+
+     /* from/to buffers */
+
+     CoreSurfaceBufferRole    from;          /* usually CSBR_FRONT */
+     CoreSurfaceBufferRole    to;            /* usually CSBR_BACK */
+
+     /* read/write locks during operation */
+     
+     CoreSurfaceBufferLock    dst;
+     CoreSurfaceBufferLock    src;
 
      /* software driver */
 

@@ -36,12 +36,12 @@ if FREETYPE_PROVIDER
 FREETYPE_PROGS = mkdgiff
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbsummon dfbpenmount $(PNG_PROGS) $(FREETYPE_PROGS) $(VOODOO_PROGS)
+bin_PROGRAMS = $(DFB_CSOURCE) dfbg dfbinfo dfbinput dfblayer dfbscreen dfbpenmount $(PNG_PROGS) $(FREETYPE_PROGS) $(VOODOO_PROGS)
 
 noinst_PROGRAMS = $(LINUXONLY_TOOLS) fx
 
-dfbdump_SOURCES = dfbdump.c
-dfbdump_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
+#dfbdump_SOURCES = dfbdump.c
+#dfbdump_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 dfbg_SOURCES = dfbg.c
 dfbg_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)
@@ -61,8 +61,8 @@ dfbproxy_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direc
 dfbscreen_SOURCES = dfbscreen.c
 dfbscreen_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)
 
-dfbsummon_SOURCES = dfbsummon.c
-dfbsummon_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
+#dfbsummon_SOURCES = dfbsummon.c
+#dfbsummon_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 dfbpenmount_SOURCES = dfbpenmount.c
 dfbpenmount_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la

@@ -37,7 +37,7 @@
 #include <core/layer_region.h>
 #include <core/layer_control.h>
 #include <core/layers_internal.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/system.h>
 
 #include <gfx/convert.h>
@@ -548,7 +548,7 @@ ovl_calc_coordinates( RadeonDriverData       *rdrv,
           h_inc >>= 1;
      }
 
-     switch (surface->format) {
+     switch (surface->config.format) {
           case DSPF_RGB555:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -598,7 +598,7 @@ ovl_calc_coordinates( RadeonDriverData       *rdrv,
                                          ((source.h - 1) << 16);
      rovl->regs.P1_X_START_END = (source.w - 1) & 0xffff;
      
-     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {
           rovl->regs.P23_BLANK_LINES_AT_TOP = P23_BLNK_LN_AT_TOP_M1_MASK |
                                               ((source.h/2 - 1) << 16);
           rovl->regs.P2_X_START_END = (source.w/2 - 1) & 0xffff;
@@ -643,13 +643,13 @@ ovl_calc_buffers( RadeonDriverData       *rdrv,
      if (config->dest.y < 0)
           croptop  += -config->dest.y * source.h / config->dest.h;
 
-     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+     if (DFB_PLANAR_PIXELFORMAT( surface->config.format )) {
           cropleft &= ~31;
           croptop  &= ~1;
      
           offsets[0]  = buffer->video.offset;
-          offsets[1]  = offsets[0] + surface->height   * buffer->video.pitch; 
-          offsets[2]  = offsets[1] + surface->height/2 * buffer->video.pitch/2;
+          offsets[1]  = offsets[0] + surface->config.size.h   * buffer->video.pitch; 
+          offsets[2]  = offsets[1] + surface->config.size.h/2 * buffer->video.pitch/2;
           offsets[0] += croptop   * pitch   + cropleft;
           offsets[1] += croptop/2 * pitch/2 + cropleft/2;
           offsets[2] += croptop/2 * pitch/2 + cropleft/2;
@@ -660,7 +660,7 @@ ovl_calc_buffers( RadeonDriverData       *rdrv,
                offsets[2] += buffer->video.pitch/2;
           }
 
-          if (surface->format == DSPF_YV12) {
+          if (surface->config.format == DSPF_YV12) {
                u32 tmp    = offsets[1];
                offsets[1] = offsets[2];
                offsets[2] = tmp;
@@ -668,7 +668,7 @@ ovl_calc_buffers( RadeonDriverData       *rdrv,
      } 
      else {
           offsets[0] = buffer->video.offset + croptop * pitch +
-                       cropleft * DFB_BYTES_PER_PIXEL( surface->format );
+                       cropleft * DFB_BYTES_PER_PIXEL( surface->config.format );
           if (even) 
                offsets[0] += buffer->video.pitch;
           
@@ -761,7 +761,7 @@ ovl_calc_regs( RadeonDriverData       *rdrv,
           if (config->source.h == config->dest.h)
                rovl->regs.SCALE_CNTL |= SCALER_VERT_PICK_NEAREST;
  
-          switch (surface->format) {
+          switch (surface->config.format) {
                case DSPF_RGB555:
                case DSPF_ARGB1555:
                     rovl->regs.SCALE_CNTL |= SCALER_SOURCE_15BPP |

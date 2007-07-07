@@ -67,7 +67,7 @@
 #include <core/palette.h>
 #include <core/screen.h>
 #include <core/screens.h>
-#include <core/surfaces.h>
+#include <core/surface.h>
 #include <core/surfacemanager.h>
 #include <core/state.h>
 #include <core/windows.h>
@@ -93,6 +93,7 @@
 
 DFB_CORE_SYSTEM( fbdev )
 
+extern const SurfacePoolFuncs fbdevSurfacePoolFuncs;
 
 static FusionCallHandlerResult
 fbdev_ioctl_call_handler( int           caller,
@@ -195,7 +196,7 @@ static DisplayLayerFuncs primaryLayerFuncs = {
 /******************************************************************************/
 
 static DFBResult primaryInitScreen  ( CoreScreen           *screen,
-                                      GraphicsDevice       *device,
+                                      CoreGraphicsDevice   *device,
                                       void                 *driver_data,
                                       void                 *screen_data,
                                       DFBScreenDescription *description );
@@ -571,6 +572,8 @@ system_initialize( CoreDFB *core, void **data )
      fusion_call_init( &shared->fbdev_ioctl,
                        fbdev_ioctl_call_handler, NULL, dfb_core_world(core) );
 
+     dfb_surface_pool_initialize( core, &fbdevSurfacePoolFuncs, &dfb_fbdev->shared->pool );
+
      /* Register primary screen functions */
      screen = dfb_screens_register( NULL, NULL, &primaryScreenFuncs );
 
@@ -666,6 +669,8 @@ system_join( CoreDFB *core, void **data )
           return ret;
      }
 
+     dfb_surface_pool_join( core, dfb_fbdev->shared->pool, &fbdevSurfacePoolFuncs );
+
      /* Register primary screen functions */
      screen = dfb_screens_register( NULL, NULL, &primaryScreenFuncs );
 
@@ -727,6 +732,8 @@ system_shutdown( bool emergency )
      dfb_agp_shutdown();
 
      munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
+
+     dfb_surface_pool_destroy( dfb_fbdev->shared->pool );
 
      if (dfb_config->vt) {
           ret = dfb_vt_shutdown( emergency );
@@ -978,7 +985,7 @@ init_modes()
 
 static DFBResult
 primaryInitScreen( CoreScreen           *screen,
-                   GraphicsDevice       *device,
+                   CoreGraphicsDevice   *device,
                    void                 *driver_data,
                    void                 *screen_data,
                    DFBScreenDescription *description )
@@ -1362,6 +1369,34 @@ primaryRemoveRegion( CoreLayer             *layer,
      return DFB_OK;
 }
 
+static inline FBDevAllocationData *
+get_fbdev_allocation_data( CoreSurface           *surface,
+                           CoreSurfaceBufferRole  role )
+{
+     CoreSurfaceBuffer     *buffer;
+     CoreSurfaceAllocation *alloc;
+     FBDevAllocationData   *data;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     buffer = dfb_surface_get_buffer( surface, role );
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     D_ASSERT( buffer->allocs != NULL );
+
+     alloc = (CoreSurfaceAllocation*) buffer->allocs;
+
+     D_ASSERT( alloc->pool == dfb_fbdev->shared->pool );
+
+     data = alloc->data;
+
+     D_MAGIC_ASSERT( data, FBDevAllocationData );
+
+     return data;
+}
+
+
 static DFBResult
 primaryFlipRegion( CoreLayer           *layer,
                    void                *driver_data,
@@ -1388,7 +1423,7 @@ primaryFlipRegion( CoreLayer           *layer,
          (dfb_config->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
           dfb_screen_wait_vsync( dfb_screens_at(DSCID_PRIMARY) );
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
 
      return DFB_OK;
 }
@@ -1401,44 +1436,28 @@ primaryAllocateSurface( CoreLayer              *layer,
                         CoreLayerRegionConfig  *config,
                         CoreSurface           **ret_surface )
 {
-     DFBResult               ret;
-     CoreSurface            *surface;
-     DFBSurfaceCapabilities  caps = DSCAPS_VIDEOONLY;
+     DFBResult          ret;
+     CoreSurface       *surface;
+     CoreSurfaceConfig  sconf;
+
+     sconf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+     sconf.size.w = config->width;
+     sconf.size.h = config->height;
+     sconf.format = config->format;
+     sconf.caps   = DSCAPS_VIDEOONLY;
 
      /* determine further capabilities */
      if (config->buffermode == DLBM_TRIPLE)
-          caps |= DSCAPS_TRIPLE;
+          sconf.caps |= DSCAPS_TRIPLE;
      else if (config->buffermode != DLBM_FRONTONLY)
-          caps |= DSCAPS_DOUBLE;
+          sconf.caps |= DSCAPS_DOUBLE;
 
-     caps |= config->surface_caps & DSCAPS_PREMULTIPLIED;
+     sconf.caps |= config->surface_caps & DSCAPS_PREMULTIPLIED;
 
      /* allocate surface object */
-     surface = dfb_core_create_surface( dfb_fbdev->core );
-     if (!surface)
-          return DFB_FAILURE;
-
-     /* initialize surface structure */
-     ret = dfb_surface_init( dfb_fbdev->core, surface,
-                             config->width, config->height,
-                             config->format, caps, NULL );
-     if (ret) {
-          fusion_object_destroy( &surface->object );
+     ret = dfb_surface_create( dfb_fbdev->core, &sconf, NULL, &surface );
+     if (ret)
           return ret;
-     }
-
-     /* reallocation just needs an allocated buffer structure */
-     surface->idle_buffer  =
-     surface->back_buffer  =
-     surface->front_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
-
-     if (!surface->front_buffer) {
-          fusion_object_destroy( &surface->object );
-          return D_OOSHM();
-     }
-
-     /* activate object */
-     fusion_object_activate( &surface->object );
 
      /* return surface */
      *ret_surface = surface;
@@ -1475,9 +1494,9 @@ primaryReallocateSurface( CoreLayer             *layer,
      }
 
      if (config->surface_caps & DSCAPS_PREMULTIPLIED)
-          surface->caps |= DSCAPS_PREMULTIPLIED;
+          surface->config.caps |= DSCAPS_PREMULTIPLIED;
      else
-          surface->caps &= ~DSCAPS_PREMULTIPLIED;
+          surface->config.caps &= ~DSCAPS_PREMULTIPLIED;
 
      return DFB_OK;
 }
@@ -2002,9 +2021,9 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           shared->orig_var.xoffset = 0;
           shared->orig_var.yoffset = 0;
 
-          surface->width  = vxres;
-          surface->height = vyres;
-          surface->format = format;
+          surface->config.size.w  = vxres;
+          surface->config.size.h = vyres;
+          surface->config.format = format;
 
           /* To get the new pitch */
           FBDEV_IOCTL( FBIOGET_FSCREENINFO, &fix );
