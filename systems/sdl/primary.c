@@ -321,91 +321,6 @@ primaryUpdateRegion( CoreLayer           *layer,
      return dfb_sdl_update_screen( dfb_sdl_core, NULL );
 }
 
-static DFBResult
-primaryAllocateSurface( CoreLayer              *layer,
-                        void                   *driver_data,
-                        void                   *layer_data,
-                        void                   *region_data,
-                        CoreLayerRegionConfig  *config,
-                        CoreSurface           **ret_surface )
-{
-     CoreSurfaceConfig conf;
-
-     conf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     conf.size.w = config->width;
-     conf.size.h = config->height;
-     conf.format = config->format;
-     conf.caps   = DSCAPS_VIDEOONLY;
-
-     if (config->buffermode != DLBM_FRONTONLY)
-          conf.caps |= DSCAPS_DOUBLE;
-
-     return dfb_surface_create( dfb_sdl_core, &conf, NULL, ret_surface );
-}
-
-static DFBResult
-primaryReallocateSurface( CoreLayer             *layer,
-                          void                  *driver_data,
-                          void                  *layer_data,
-                          void                  *region_data,
-                          CoreLayerRegionConfig *config,
-                          CoreSurface           *surface )
-{
-//     DFBResult ret;
-
-     /* FIXME: write surface management functions
-               for easier configuration changes */
-
-/*     switch (config->buffermode) {
-          case DLBM_BACKVIDEO:
-          case DLBM_BACKSYSTEM:
-               surface->caps |= DSCAPS_DOUBLE;
-
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          case DLBM_FRONTONLY:
-               surface->caps &= ~DSCAPS_DOUBLE;
-
-               ret = dfb_surface_reconfig( surface,
-                                           CSP_SYSTEMONLY, CSP_SYSTEMONLY );
-               break;
-
-          default:
-               D_BUG("unknown buffermode");
-               return DFB_BUG;
-     }
-     if (ret)
-          return ret;
-
-     ret = dfb_surface_reformat( dfb_sdl_core, surface, config->width,
-                                 config->height, config->format );
-     if (ret)
-          return ret;
-
-*/
-     if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
-          DFBResult    ret;
-          CorePalette *palette;
-
-          ret = dfb_palette_create( dfb_sdl_core,
-                                    1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
-                                    &palette );
-          if (ret)
-               return ret;
-
-          if (config->format == DSPF_LUT8)
-               dfb_palette_generate_rgb332_map( palette );
-
-          dfb_surface_set_palette( surface, palette );
-
-          dfb_palette_unref( palette );
-     }
-
-     return DFB_OK;
-}
-
 DisplayLayerFuncs sdlPrimaryLayerFuncs = {
      .LayerDataSize     = primaryLayerDataSize,
      .RegionDataSize    = primaryRegionDataSize,
@@ -417,9 +332,6 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
      .RemoveRegion      = primaryRemoveRegion,
      .FlipRegion        = primaryFlipRegion,
      .UpdateRegion      = primaryUpdateRegion,
-
-     .AllocateSurface   = primaryAllocateSurface,
-     .ReallocateSurface = primaryReallocateSurface
 };
 
 /******************************************************************************/
