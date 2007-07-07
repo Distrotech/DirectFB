@@ -93,6 +93,25 @@ sdlDestroyPool( CoreSurfacePool *pool,
 }
 
 static DFBResult
+sdlTestConfig( CoreSurfacePool         *pool,
+               void                    *pool_data,
+               const CoreSurfaceConfig *config )
+{
+     switch (config->format) {
+          case DSPF_A8:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
 sdlAllocateBuffer( CoreSurfacePool   *pool,
                    void              *pool_data,
                    CoreSurfaceBuffer *buffer,
@@ -134,6 +153,13 @@ sdlAllocateBuffer( CoreSurfacePool   *pool,
                gmask = 0x0000ff00;
                bmask = 0x000000ff;
                amask = 0x00000000;
+               break;
+
+          case DSPF_ARGB:
+               rmask = 0x00ff0000;
+               gmask = 0x0000ff00;
+               bmask = 0x000000ff;
+               amask = 0xff000000;
                break;
 
           default:
@@ -240,6 +266,8 @@ const SurfacePoolFuncs sdlSurfacePoolFuncs = {
      AllocationDataSize: sdlAllocationDataSize,
      InitPool:           sdlInitPool,
      DestroyPool:        sdlDestroyPool,
+
+     TestConfig:         sdlTestConfig,
 
      AllocateBuffer:     sdlAllocateBuffer,
      DeallocateBuffer:   sdlDeallocateBuffer,
