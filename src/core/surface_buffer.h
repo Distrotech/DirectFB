@@ -31,6 +31,8 @@
 
 #include <direct/list.h>
 
+#include <fusion/vector.h>
+
 #include <core/surface.h>
 
 #include <directfb.h>
@@ -47,17 +49,28 @@ typedef enum {
 } CoreSurfaceBufferFlags;
 
 /*
+ * Configuration and State flags of a Surface Buffer Allocation
+ */
+typedef enum {
+     CSALF_NONE      = 0x00000000,  /* None of these. */
+
+     CSALF_ONEFORALL = 0x00000001,  /* Only one allocation in pool for all buffers. */
+
+     CSALF_ALL       = 0x00000001   /* All of these. */
+} CoreSurfaceAllocationFlags;
+
+/*
  * An Allocation of a Surface Buffer
  */
 typedef struct {
-     DirectLink               link;          /* Linked in CoreSurfaceBuffer's "allocs". */
-     int                      magic;
+     int                            magic;
 
-     CoreSurfaceBuffer       *buffer;        /* Surface Buffer owning this Allocation. */
-     CoreSurfacePool         *pool;          /* Surface Pool providing the Allocation. */
-     void                    *data;          /* Pool's private data for this Allocation. */
+     CoreSurfaceBuffer             *buffer;       /* Surface Buffer owning this Allocation. */
+     CoreSurfacePool               *pool;         /* Surface Pool providing the Allocation. */
+     void                          *data;         /* Pool's private data for this Allocation. */
 
-     CoreSurfaceAccessFlags   access;
+     CoreSurfaceAccessFlags         access;       
+     CoreSurfaceAllocationFlags     flags;        /* Pool can return CSALF_ONEFORALL upon allocation of first buffer. */
 } CoreSurfaceAllocation;
 
 /*
@@ -81,9 +94,7 @@ typedef struct {
 /*
  * A Surface Buffer of a Surface
  */
-struct __DFB_CoreSurfaceBuffer
-{
-     DirectLink               link;          /* Linked in CoreSurface' "buffers" */
+struct __DFB_CoreSurfaceBuffer {
      int                      magic;
 
      CoreSurface             *surface;       /* Surface owning this Surface Buffer. */
@@ -92,7 +103,7 @@ struct __DFB_CoreSurfaceBuffer
      CoreSurfaceBufferFlags   flags;         /* Configuration and State flags. */
      DFBSurfacePixelFormat    format;        /* Pixel format of buffer data. */
 
-     DirectLink              *allocs;        /* Allocations within Surface Pools. */
+     FusionVector             allocs;        /* Allocations within Surface Pools. */
 };
 
 

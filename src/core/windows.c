@@ -211,7 +211,7 @@ create_region( CoreDFB                 *core,
      scon.format = format;
      scon.caps   = surface_caps | DSCAPS_VIDEOONLY;
 
-     ret = dfb_surface_create( core, &scon, NULL, &surface );
+     ret = dfb_surface_create( core, &scon, CSTF_LAYER, NULL, &surface );
      if (ret) {
           dfb_layer_region_unref( region );
           return ret;
@@ -425,7 +425,7 @@ dfb_window_create( CoreWindowStack             *stack,
                     /* Create the surface for the window. */
                     ret = dfb_surface_create_simple( layer->core,
                                                      config.bounds.w, config.bounds.h, pixelformat,
-                                                     surface_caps,
+                                                     surface_caps, CSTF_WINDOW,
                                                      region->surface ?
                                                      region->surface->palette : NULL, &surface );
                     if (ret) {

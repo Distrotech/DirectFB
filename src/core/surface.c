@@ -101,6 +101,7 @@ dfb_surface_pool_create( const FusionWorld *world )
 DFBResult
 dfb_surface_create( CoreDFB                  *core,
                     const CoreSurfaceConfig  *config,
+                    CoreSurfaceTypeFlags      type,
                     CorePalette              *palette,
                     CoreSurface             **ret_surface )
 {
@@ -110,6 +111,7 @@ dfb_surface_create( CoreDFB                  *core,
      CoreSurface *surface;
 
      D_ASSERT( core != NULL );
+     D_FLAGS_ASSERT( type, CSTF_ALL );
      D_MAGIC_ASSERT_IF( palette, CorePalette );
      D_ASSERT( ret_surface != NULL );
 
@@ -142,6 +144,8 @@ dfb_surface_create( CoreDFB                  *core,
                surface->config.caps = config->caps;
           }
      }
+
+     surface->type = type;
 
      if (surface->config.caps & DSCAPS_TRIPLE)
           buffers = 3;
@@ -215,7 +219,6 @@ dfb_surface_create( CoreDFB                  *core,
           surface->buffers[surface->num_buffers++] = buffer;
      }
 
-
      fusion_object_activate( &surface->object );
 
      *ret_surface = surface;
@@ -243,6 +246,7 @@ dfb_surface_create_simple ( CoreDFB                 *core,
                             int                      height,
                             DFBSurfacePixelFormat    format,
                             DFBSurfaceCapabilities   caps,
+                            CoreSurfaceTypeFlags     type,
                             CorePalette             *palette,
                             CoreSurface            **ret_surface )
 {
@@ -259,7 +263,7 @@ dfb_surface_create_simple ( CoreDFB                 *core,
      config.format = format;
      config.caps   = caps;
 
-     return dfb_surface_create( core, &config, palette, ret_surface );
+     return dfb_surface_create( core, &config, type, palette, ret_surface );
 }
 
 DFBResult
@@ -296,6 +300,62 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
      dfb_surface_notify( surface, CSNF_FLIP );
 
      return DFB_OK;
+}
+
+DFBResult
+dfb_surface_reconfig( CoreSurface             *surface,
+                      const CoreSurfaceConfig *config )
+{
+     int i, buffers;
+     DFBResult ret;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     /* Destroy the Surface Buffers. */
+     for (i=0; i<surface->num_buffers; i++) {
+          dfb_surface_buffer_destroy( surface->buffers[i] );
+          surface->buffers[i] = NULL;
+     }
+
+     surface->num_buffers = 0;
+
+     if (config->flags & CSCONF_SIZE)
+          surface->config.size = config->size;
+
+     if (config->flags & CSCONF_FORMAT)
+          surface->config.format = config->format;
+
+     if (config->flags & CSCONF_CAPS)
+          surface->config.caps = config->caps;
+
+     if (surface->config.caps & DSCAPS_TRIPLE)
+          buffers = 3;
+     else if (surface->config.caps & DSCAPS_DOUBLE)
+          buffers = 2;
+     else
+          buffers = 1;
+
+     /* Recreate the Surface Buffers. */
+     for (i=0; i<buffers; i++) {
+          CoreSurfaceBuffer *buffer;
+
+          ret = dfb_surface_buffer_new( surface, CSBF_NONE, &buffer );
+          if (ret) {
+               D_DERROR( ret, "Core/Surface: Error creating surface buffer!\n" );
+               goto error;
+          }
+
+          surface->buffers[surface->num_buffers++] = buffer;
+     }
+
+     dfb_surface_notify( surface, CSNF_SIZEFORMAT );
+
+     return DFB_OK;
+
+error:
+     D_ERROR("FIXME!");
+
+     return ret;
 }
 
 DFBResult

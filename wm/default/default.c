@@ -1724,11 +1724,15 @@ resize_window( CoreWindow *window,
           return DFB_LIMITEXCEEDED;
 
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
-          return DFB_UNIMPLEMENTED;
-/*FIXME_SC_2          ret = dfb_surface_reformat( wm_data->core, window->surface,
-                                      width, height, window->surface->format );
+          CoreSurfaceConfig config;
+
+          config.flags  = CSCONF_SIZE;
+          config.size.w = width;
+          config.size.h = height;
+
+          ret = dfb_surface_reconfig( window->surface, &config );
           if (ret)
-               return ret;*/
+               return ret;
      }
 
      bounds->w = width;
@@ -3628,7 +3632,7 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                           context->config.pixelformat, caps, NULL, &cursor_bs );
+                                           context->config.pixelformat, caps, CSTF_CURSOR, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                return ret;

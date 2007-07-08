@@ -337,7 +337,7 @@ primaryAllocateSurface( CoreLayer              *layer,
      if (config->buffermode != DLBM_FRONTONLY)
           conf.caps |= DSCAPS_DOUBLE;
 
-     return dfb_surface_create( dfb_x11_core, &conf, NULL, ret_surface );
+     return dfb_surface_create( dfb_x11_core, &conf, CSTF_LAYER, NULL, ret_surface );
 }
 
 static DFBResult

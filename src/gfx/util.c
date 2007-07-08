@@ -176,7 +176,7 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 void
 dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
 {
-#if FIXME_SC_1
+#if FIXME_SC_3
      SurfaceBuffer *tmp;
      DFBRectangle   rect = { 0, 0, surface->config.size.w - 1, surface->config.size.h - 1 };
 

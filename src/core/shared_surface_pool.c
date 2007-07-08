@@ -82,6 +82,7 @@ sharedInitPool( CoreDFB                    *core,
 
      ret_desc->caps   = CSPCAPS_NONE;
      ret_desc->access = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_SHARED;
+     ret_desc->types  = CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Memory" );
 
@@ -100,10 +101,11 @@ sharedDestroyPool( CoreSurfacePool *pool,
 }
 
 static DFBResult
-sharedAllocateBuffer( CoreSurfacePool   *pool,
-                      void              *pool_data,
-                      CoreSurfaceBuffer *buffer,
-                      void              *alloc_data )
+sharedAllocateBuffer( CoreSurfacePool       *pool,
+                      void                  *pool_data,
+                      CoreSurfaceBuffer     *buffer,
+                      CoreSurfaceAllocation *allocation,
+                      void                  *alloc_data )
 {
      CoreSurface          *surface;
      SharedPoolData       *data  = pool_data;
@@ -126,10 +128,11 @@ sharedAllocateBuffer( CoreSurfacePool   *pool,
 }
 
 static DFBResult
-sharedDeallocateBuffer( CoreSurfacePool   *pool,
-                        void              *pool_data,
-                        CoreSurfaceBuffer *buffer,
-                        void              *alloc_data )
+sharedDeallocateBuffer( CoreSurfacePool       *pool,
+                        void                  *pool_data,
+                        CoreSurfaceBuffer     *buffer,
+                        CoreSurfaceAllocation *allocation,
+                        void                  *alloc_data )
 {
      SharedPoolData       *data  = pool_data;
      SharedAllocationData *alloc = alloc_data;

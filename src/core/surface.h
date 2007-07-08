@@ -74,6 +74,19 @@ typedef enum {
      CSCONF_ALL          = 0x00000007
 } CoreSurfaceConfigFlags;
 
+typedef enum {
+     CSTF_NONE           = 0x00000000,
+
+     CSTF_LAYER          = 0x00000001,
+     CSTF_WINDOW         = 0x00000002,
+     CSTF_CURSOR         = 0x00000004,
+     CSTF_FONT           = 0x00000008,
+
+     CSTF_SHARED         = 0x00000010,
+
+     CSTF_ALL            = 0x0000001F
+} CoreSurfaceTypeFlags;
+
 typedef struct {
      CoreSurfaceConfigFlags   flags;
 
@@ -96,12 +109,12 @@ typedef enum {
 typedef enum {
      CSAF_NONE           = 0x00000000,
 
-     CSAF_GPU_READ       = 0x00000001,
-     CSAF_GPU_WRITE      = 0x00000002,
-     CSAF_CPU_READ       = 0x00000004,
-     CSAF_CPU_WRITE      = 0x00000008,
+     CSAF_GPU_READ       = 0x00000001,  /* accelerator can read */
+     CSAF_GPU_WRITE      = 0x00000002,  /* accelerator can write */
+     CSAF_CPU_READ       = 0x00000004,  /* software can read */
+     CSAF_CPU_WRITE      = 0x00000008,  /* software can write */
 
-     CSAF_SHARED         = 0x00000010,
+     CSAF_SHARED         = 0x00000010,  /* other processes can read/write as well */
 
      CSAF_ALL            = 0x0000001F
 } CoreSurfaceAccessFlags;
@@ -120,6 +133,8 @@ struct __DFB_CoreSurface
      FusionSkirmish           lock;
 
      CoreSurfaceConfig        config;
+     CoreSurfaceTypeFlags     type;
+
      DirectSerial             serial;
 
      int                      field;
@@ -152,6 +167,7 @@ FUSION_OBJECT_METHODS( CoreSurface, dfb_surface )
 
 DFBResult dfb_surface_create        ( CoreDFB                      *core,
                                       const CoreSurfaceConfig      *config,
+                                      CoreSurfaceTypeFlags          type,
                                       CorePalette                  *palette,
                                       CoreSurface                 **ret_surface );
 
@@ -160,6 +176,7 @@ DFBResult dfb_surface_create_simple ( CoreDFB                      *core,
                                       int                           height,
                                       DFBSurfacePixelFormat         format,
                                       DFBSurfaceCapabilities        caps,
+                                      CoreSurfaceTypeFlags          type,
                                       CorePalette                  *palette,
                                       CoreSurface                 **ret_surface );
 
@@ -168,6 +185,9 @@ DFBResult dfb_surface_notify        ( CoreSurface                  *surface,
 
 DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
                                       bool                          swap );
+
+DFBResult dfb_surface_reconfig      ( CoreSurface                  *surface,
+                                      const CoreSurfaceConfig      *config );
 
 DFBResult dfb_surface_set_palette   ( CoreSurface                  *surface,
                                       CorePalette                  *palette );

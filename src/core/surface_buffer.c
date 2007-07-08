@@ -48,6 +48,12 @@ D_DEBUG_DOMAIN( Core_SurfBuffer, "Core/SurfBuffer", "DirectFB Core Surface Buffe
 
 /**********************************************************************************************************************/
 
+static DFBResult allocate_buffer( CoreSurfaceBuffer       *buffer,
+                                  CoreSurfaceAccessFlags   access,
+                                  CoreSurfaceAllocation  **ret_allocation );
+
+/**********************************************************************************************************************/
+
 DFBResult
 dfb_surface_buffer_new( CoreSurface             *surface,
                         CoreSurfaceBufferFlags   flags,
@@ -81,6 +87,8 @@ dfb_surface_buffer_new( CoreSurface             *surface,
      else
           buffer->policy = CSP_VIDEOLOW;
 
+     fusion_vector_init( &buffer->allocs, 2, surface->shmpool );
+
      D_MAGIC_SET( buffer, CoreSurfaceBuffer );
 
      *ret_buffer = buffer;
@@ -92,7 +100,8 @@ DFBResult
 dfb_surface_buffer_destroy( CoreSurfaceBuffer *buffer )
 {
      CoreSurface           *surface;
-     CoreSurfaceAllocation *allocation, *next;
+     CoreSurfaceAllocation *allocation;
+     int                    i;
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
@@ -103,8 +112,10 @@ dfb_surface_buffer_destroy( CoreSurfaceBuffer *buffer )
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_destroy( %p [%dx%d] )\n",
                  buffer, surface->config.size.h, surface->config.size.h );
 
-     direct_list_foreach_safe (allocation, next, buffer->allocs)
+     fusion_vector_foreach (allocation, i, buffer->allocs)
           dfb_surface_pool_deallocate( allocation->pool, allocation );
+
+     fusion_vector_destroy( &buffer->allocs );
 
      D_MAGIC_CLEAR( buffer );
 
@@ -119,6 +130,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
                          CoreSurfaceBufferLock  *lock )
 {
      DFBResult              ret;
+     int                    i;
+     CoreSurface           *surface;
      CoreSurfaceAllocation *alloc;
      CoreSurfaceAllocation *allocation = NULL;
 
@@ -133,13 +146,20 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
           D_DEBUG_AT( Core_SurfBuffer, "  -> CPU READ\n" );
      if (access & CSAF_CPU_WRITE)
           D_DEBUG_AT( Core_SurfBuffer, "  -> CPU WRITE\n" );
+     if (access & CSAF_SHARED)
+          D_DEBUG_AT( Core_SurfBuffer, "  -> PROCESS SHARED\n" );
 #endif
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_FLAGS_ASSERT( access, CSAF_ALL );
      D_ASSERT( lock != NULL );
 
-     direct_list_foreach (alloc, buffer->allocs) {
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     fusion_vector_foreach (alloc, i, buffer->allocs) {
+          D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
+
           if (D_FLAGS_ARE_SET( alloc->access, access )) {
                allocation = alloc;
                break;
@@ -147,21 +167,13 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
      }
 
      if (!allocation) {
-          CoreSurfacePool *pool;
-
-          ret = dfb_surface_pool_negotiate( buffer, access, &pool );
+          ret = allocate_buffer( buffer, access, &allocation );
           if (ret) {
-               D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed!\n" );
+               D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
                return ret;
           }
 
-          ret = dfb_surface_pool_allocate( pool, buffer, &allocation );
-          if (ret) {
-               D_DERROR( ret, "Core/SurfBuffer: Allocation in '%s' failed!\n", pool->desc.name );
-               return ret;
-          }
-
-          direct_list_append( &buffer->allocs, &allocation->link );
+          D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      }
 
      lock->buffer     = buffer;
@@ -226,7 +238,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
 {
      DFBResult              ret;
      DFBRectangle           rect;
-     int                    y;
+     int                    i, y;
      int                    bytes;
      CoreSurface           *surface;
      CoreSurfaceBufferLock  lock;
@@ -261,7 +273,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
                  dfb_pixelformat_name( format ) );
 
      /* If no allocations exists, simply clear the destination. */
-     if (!buffer->allocs) {
+     if (!buffer->allocs.elements) {
           for (y=0; y<rect.h; y++) {
                memset( destination, 0, bytes );
 
@@ -272,7 +284,7 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
      }
 
      /* Look for allocation with CPU access. */
-     direct_list_foreach (alloc, buffer->allocs) {
+     fusion_vector_foreach (alloc, i, buffer->allocs) {
           if (D_FLAGS_ARE_SET( alloc->access, CSAF_CPU_READ )) {
                allocation = alloc;
                break;
@@ -326,7 +338,7 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
 {
      DFBResult              ret;
      DFBRectangle           rect;
-     int                    y;
+     int                    i, y;
      int                    bytes;
      CoreSurface           *surface;
      CoreSurfaceBufferLock  lock;
@@ -360,29 +372,20 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
                  dfb_pixelformat_name( format ) );
 
      /* If no allocations exists, create one. */
-     if (!buffer->allocs) {
-          CoreSurfacePool *pool;
-
-          ret = dfb_surface_pool_negotiate( buffer, CSAF_CPU_WRITE, &pool );
+     if (!buffer->allocs.elements) {
+          ret = allocate_buffer( buffer, CSAF_CPU_WRITE, &allocation );
           if (ret) {
-               D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed!\n" );
+               D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
                return ret;
           }
-
-          ret = dfb_surface_pool_allocate( pool, buffer, &allocation );
-          if (ret) {
-               D_DERROR( ret, "Core/SurfBuffer: Allocation in '%s' failed!\n", pool->desc.name );
-               return ret;
-          }
-
-          direct_list_append( &buffer->allocs, &allocation->link );
      }
-
-     /* Look for allocation with CPU access. */
-     direct_list_foreach (alloc, buffer->allocs) {
-          if (D_FLAGS_ARE_SET( alloc->access, CSAF_CPU_WRITE )) {
-               allocation = alloc;
-               break;
+     else {
+          /* Look for allocation with CPU access. */
+          fusion_vector_foreach (alloc, i, buffer->allocs) {
+               if (D_FLAGS_ARE_SET( alloc->access, CSAF_CPU_WRITE )) {
+                    allocation = alloc;
+                    break;
+               }
           }
      }
 
@@ -436,6 +439,43 @@ dfb_surface_buffer_dump( CoreSurfaceBuffer *buffer,
                          const char        *prefix )
 {
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_dump( %p, %p, %p )\n", buffer, directory, prefix );
+
+     return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
+static DFBResult
+allocate_buffer( CoreSurfaceBuffer       *buffer,
+                 CoreSurfaceAccessFlags   access,
+                 CoreSurfaceAllocation  **ret_allocation )
+{
+     DFBResult              ret;
+     int                    i;
+     CoreSurfacePool       *pool;
+     CoreSurfaceAllocation *allocation;
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+     D_FLAGS_ASSERT( access, CSAF_ALL );
+     D_ASSERT( ret_allocation != NULL );
+
+     D_DEBUG_AT( Core_SurfBuffer, "%s( %p, 0x%x )\n", __FUNCTION__, buffer, access );
+
+     ret = dfb_surface_pool_negotiate( buffer, access, &pool );
+     if (ret) {
+          D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed!\n" );
+          return ret;
+     }
+
+     ret = dfb_surface_pool_allocate( pool, buffer, &allocation );
+     if (ret) {
+          D_DERROR( ret, "Core/SurfBuffer: Allocation in '%s' failed!\n", pool->desc.name );
+          return ret;
+     }
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     *ret_allocation = allocation;
 
      return DFB_OK;
 }

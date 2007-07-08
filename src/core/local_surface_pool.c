@@ -71,6 +71,7 @@ localInitPool( CoreDFB                    *core,
 
      ret_desc->caps     = CSPCAPS_NONE;
      ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE;
+     ret_desc->types    = CSTF_FONT;
      ret_desc->priority = CSPP_PREFERED;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "System Memory" );
@@ -88,10 +89,11 @@ localDestroyPool( CoreSurfacePool *pool,
 }
 
 static DFBResult
-localAllocateBuffer( CoreSurfacePool   *pool,
-                     void              *pool_data,
-                     CoreSurfaceBuffer *buffer,
-                     void              *alloc_data )
+localAllocateBuffer( CoreSurfacePool       *pool,
+                     void                  *pool_data,
+                     CoreSurfaceBuffer     *buffer,
+                     CoreSurfaceAllocation *allocation,
+                     void                  *alloc_data )
 {
      CoreSurface         *surface;
      LocalAllocationData *alloc = alloc_data;
@@ -113,10 +115,11 @@ localAllocateBuffer( CoreSurfacePool   *pool,
 }
 
 static DFBResult
-localDeallocateBuffer( CoreSurfacePool   *pool,
-                       void              *pool_data,
-                       CoreSurfaceBuffer *buffer,
-                       void              *alloc_data )
+localDeallocateBuffer( CoreSurfacePool       *pool,
+                       void                  *pool_data,
+                       CoreSurfaceBuffer     *buffer,
+                       CoreSurfaceAllocation *allocation,
+                       void                  *alloc_data )
 {
      LocalAllocationData *alloc = alloc_data;
 

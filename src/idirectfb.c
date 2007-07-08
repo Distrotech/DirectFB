@@ -546,7 +546,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          ret = dfb_surface_create_simple( data->core,
                                                           width, height,
-                                                          format, caps, NULL,
+                                                          format, caps, CSTF_NONE, NULL,
                                                           &surface );
                          if (ret)
                               return ret;
@@ -700,7 +700,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          return ret;
                     }
 
-/* FIXME DEPTH                    if ((caps & DSCAPS_DEPTH) && !(surface->config.caps & DSCAPS_DEPTH)) {
+/* FIXME_SC_3                    if ((caps & DSCAPS_DEPTH) && !(surface->config.caps & DSCAPS_DEPTH)) {
                          ret = dfb_surface_allocate_depth( surface );
                          if (ret) {
                               dfb_surface_unref( surface );
@@ -766,11 +766,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.format = format;
           config.caps   = caps;
 
-          ret = dfb_surface_create( data->core, &config, NULL, &surface );
+          ret = dfb_surface_create( data->core, &config, CSTF_NONE, NULL, &surface );
           if (ret)
                return ret;
 
-#if FIXME_SC_1
+#if FIXME_SC_2
 /* FIXME PRE          ret = dfb_surface_create_preallocated( data->core,
                                                  width, height,
                                                  format, policy, caps, NULL,
@@ -792,7 +792,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           config.format = format;
           config.caps   = caps;
 
-          ret = dfb_surface_create( data->core, &config, NULL, &surface );
+          ret = dfb_surface_create( data->core, &config, CSTF_NONE, NULL, &surface );
           if (ret)
                return ret;
      }

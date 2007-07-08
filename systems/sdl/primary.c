@@ -354,7 +354,7 @@ update_screen( int x, int y, int w, int h )
      D_DEBUG_AT( SDL_Updates, "  -> locking sdl lock...\n" );
 
      fusion_skirmish_prevail( &dfb_sdl->lock );
-
+#if 0
      surface = dfb_sdl->primary;
      D_MAGIC_ASSERT_IF( surface, CoreSurface );
 
@@ -449,7 +449,7 @@ update_screen( int x, int y, int w, int h )
      D_DEBUG_AT( SDL_Updates, "  -> unlocking sdl surface...\n" );
 
      SDL_UnlockSurface( screen );
-
+#endif
      D_DEBUG_AT( SDL_Updates, "  -> calling SDL_UpdateRect()...\n" );
 
      SDL_UpdateRect( screen, x, y, w, h );
@@ -561,7 +561,7 @@ dfb_sdl_update_screen_handler( const DFBRegion *region )
           update.y2 = surface->config.size.h - 1;
      }
 
-
+#if 0
      pthread_mutex_lock( &dfb_sdl->update.lock );
 
      if (dfb_sdl->update.pending)
@@ -574,6 +574,12 @@ dfb_sdl_update_screen_handler( const DFBRegion *region )
      pthread_cond_signal( &dfb_sdl->update.cond );
 
      pthread_mutex_unlock( &dfb_sdl->update.lock );
+#else
+     if (surface->config.caps & DSCAPS_FLIPPING)
+          SDL_Flip( screen );
+     else
+          SDL_UpdateRect( screen, DFB_RECTANGLE_VALS_FROM_REGION(&update) );
+#endif
 
      return DFB_OK;
 }

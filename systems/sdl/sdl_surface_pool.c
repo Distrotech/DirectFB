@@ -39,6 +39,8 @@
 
 #include "sdl.h"
 
+D_DEBUG_DOMAIN( SDL_Pool, "SDL/Pool", "SDL Surface Pool" );
+
 /**********************************************************************************************************************/
 
 typedef struct {
@@ -71,11 +73,14 @@ sdlInitPool( CoreDFB                    *core,
              void                       *system_data,
              CoreSurfacePoolDescription *ret_desc )
 {
+     D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
      ret_desc->caps     = CSPCAPS_NONE;
      ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE;
+     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT;
      ret_desc->priority = CSPP_ULTIMATE;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "SDL" );
@@ -87,6 +92,8 @@ static DFBResult
 sdlDestroyPool( CoreSurfacePool *pool,
                 void            *pool_data )
 {
+     D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
      return DFB_OK;
@@ -97,6 +104,8 @@ sdlTestConfig( CoreSurfacePool         *pool,
                void                    *pool_data,
                const CoreSurfaceConfig *config )
 {
+     D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
+
      switch (config->format) {
           case DSPF_A8:
           case DSPF_RGB16:
@@ -112,10 +121,11 @@ sdlTestConfig( CoreSurfacePool         *pool,
 }
 
 static DFBResult
-sdlAllocateBuffer( CoreSurfacePool   *pool,
-                   void              *pool_data,
-                   CoreSurfaceBuffer *buffer,
-                   void              *alloc_data )
+sdlAllocateBuffer( CoreSurfacePool       *pool,
+                   void                  *pool_data,
+                   CoreSurfaceBuffer     *buffer,
+                   CoreSurfaceAllocation *allocation,
+                   void                  *alloc_data )
 {
      CoreSurface           *surface;
      DFBSurfacePixelFormat  format;
@@ -123,7 +133,10 @@ sdlAllocateBuffer( CoreSurfacePool   *pool,
      Uint32                 gmask;
      Uint32                 bmask;
      Uint32                 amask;
+     Uint32                 flags = SDL_HWSURFACE | SDL_ASYNCBLIT;
      SDLAllocationData     *alloc = alloc_data;
+
+     D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -168,18 +181,45 @@ sdlAllocateBuffer( CoreSurfacePool   *pool,
                return DFB_UNSUPPORTED;
      }
 
-     alloc->sdl_surf = SDL_CreateRGBSurface( SDL_HWSURFACE | SDL_ASYNCBLIT,
-                                             surface->config.size.w,
-                                             surface->config.size.h,
-                                             DFB_BITS_PER_PIXEL(format),
-                                             rmask, gmask, bmask, amask );
-     if (!alloc->sdl_surf) {
-          D_ERROR( "SDL/Surface: SDL_CreateRGBSurface( SDL_HWSURFACE | SDL_ASYNCBLIT, "
-                   "%dx%d, %d, 0x%08x, 0x%08x, 0x%08x, 0x%08x ) failed!\n",
-                   surface->config.size.w, surface->config.size.h,
-                   DFB_BITS_PER_PIXEL(format), rmask, gmask, bmask, amask );
+     if (surface->type & CSTF_LAYER) {
+          if (surface->config.caps & DSCAPS_FLIPPING)
+               flags |= SDL_DOUBLEBUF;
 
-          return DFB_FAILURE;
+          D_DEBUG_AT( SDL_Pool, "  -> SDL_SetVideoMode( %dx%d, %d, 0x%08x )\n",
+                      surface->config.size.w, surface->config.size.h, DFB_BITS_PER_PIXEL(format), flags );
+
+          alloc->sdl_surf = SDL_SetVideoMode( surface->config.size.w,
+                                              surface->config.size.h,
+                                              DFB_BITS_PER_PIXEL(format),
+                                              flags );
+          if (!alloc->sdl_surf) {
+               D_ERROR( "SDL/Surface: SDL_SetVideoMode( %dx%d, %d, 0x%08x ) failed!\n",
+                        surface->config.size.w, surface->config.size.h, DFB_BITS_PER_PIXEL(format), flags );
+
+               return DFB_FAILURE;
+          }
+
+          allocation->flags |= CSALF_ONEFORALL;
+     }
+     else {
+          D_DEBUG_AT( SDL_Pool, "  -> SDL_CreateRGBSurface( 0x%08x, "
+                      "%dx%d, %d, 0x%08x, 0x%08x, 0x%08x, 0x%08x )\n",
+                      flags, surface->config.size.w, surface->config.size.h,
+                      DFB_BITS_PER_PIXEL(format), rmask, gmask, bmask, amask );
+
+          alloc->sdl_surf = SDL_CreateRGBSurface( flags,
+                                                  surface->config.size.w,
+                                                  surface->config.size.h,
+                                                  DFB_BITS_PER_PIXEL(format),
+                                                  rmask, gmask, bmask, amask );
+          if (!alloc->sdl_surf) {
+               D_ERROR( "SDL/Surface: SDL_CreateRGBSurface( 0x%08x, "
+                        "%dx%d, %d, 0x%08x, 0x%08x, 0x%08x, 0x%08x ) failed!\n",
+                        flags, surface->config.size.w, surface->config.size.h,
+                        DFB_BITS_PER_PIXEL(format), rmask, gmask, bmask, amask );
+
+               return DFB_FAILURE;
+          }
      }
 
      D_MAGIC_SET( alloc, SDLAllocationData );
@@ -188,12 +228,15 @@ sdlAllocateBuffer( CoreSurfacePool   *pool,
 }
 
 static DFBResult
-sdlDeallocateBuffer( CoreSurfacePool   *pool,
-                     void              *pool_data,
-                     CoreSurfaceBuffer *buffer,
-                     void              *alloc_data )
+sdlDeallocateBuffer( CoreSurfacePool       *pool,
+                     void                  *pool_data,
+                     CoreSurfaceBuffer     *buffer,
+                     CoreSurfaceAllocation *allocation,
+                     void                  *alloc_data )
 {
      SDLAllocationData *alloc = alloc_data;
+
+     D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
@@ -215,6 +258,8 @@ sdlLock( CoreSurfacePool       *pool,
 {
      SDLAllocationData *alloc = alloc_data;
      SDL_Surface       *sdl_surf;
+
+//     D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
@@ -246,6 +291,8 @@ sdlUnlock( CoreSurfacePool       *pool,
 {
      SDLAllocationData *alloc = alloc_data;
      SDL_Surface       *sdl_surf;
+
+//     D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );

@@ -166,7 +166,7 @@ dfb_surface_pool_destroy( CoreSurfacePool *pool )
 
      pool_id = pool->pool_id;
 
-     D_DEBUG_AT( Core_SurfacePool, "dfb_surface_pool_destroy( %p, '%s' [%d] )\n", pool, pool->desc.name, pool_id );
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p, '%s' [%d] )\n", __FUNCTION__, pool, pool->desc.name, pool_id );
 
      D_ASSERT( pool_id < MAX_SURFACE_POOLS );
      D_ASSERT( pools[pool_id] == pool );
@@ -199,7 +199,7 @@ dfb_surface_pool_negotiate( CoreSurfaceBuffer       *buffer,
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( ret_pool != NULL );
 
-     D_DEBUG_AT( Core_SurfacePool, "dfb_surface_pool_negotiate( %p [%s], 0x%02x )\n",
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p [%s], 0x%02x )\n", __FUNCTION__,
                  buffer, dfb_pixelformat_name( buffer->format ), access );
 
      surface = buffer->surface;
@@ -210,7 +210,7 @@ dfb_surface_pool_negotiate( CoreSurfaceBuffer       *buffer,
 
           D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x [%s]\n", pool->desc.access, pool->desc.name );
 
-          if (D_FLAGS_ARE_SET( pool->desc.access, access )) {
+          if (D_FLAGS_ARE_SET( pool->desc.access, access ) && D_FLAGS_ARE_SET( pool->desc.types, surface->type )) {
                const SurfacePoolFuncs *funcs;
 
                D_DEBUG_AT( Core_SurfacePool, "     %d / %d\n", pool->desc.priority, best );
@@ -246,6 +246,7 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
                            CoreSurfaceAllocation **ret_allocation )
 {
      DFBResult               ret;
+     int                     i;
      CoreSurfaceAllocation  *allocation = NULL;
      const SurfacePoolFuncs *funcs;
 
@@ -278,11 +279,30 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
 
      D_MAGIC_SET( allocation, CoreSurfaceAllocation );
 
-     ret = funcs->AllocateBuffer( pool, pool->data, buffer, allocation->data );
+     ret = funcs->AllocateBuffer( pool, pool->data, buffer, allocation, allocation->data );
      if (ret) {
           D_DEBUG_AT( Core_SurfacePool, "  -> %s\n", DirectFBErrorString( ret ) );
           D_MAGIC_CLEAR( allocation );
           goto error;
+     }
+
+     D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+     if (allocation->flags & CSALF_ONEFORALL) {
+          CoreSurface *surface = buffer->surface;
+
+          for (i=0; i<surface->num_buffers; i++) {
+               buffer = surface->buffers[i];
+
+               D_ASSUME( buffer->allocs.elements == 0 );
+
+               D_DEBUG_AT( Core_SurfacePool, "  -> %p (%d)\n", allocation, i );
+               fusion_vector_add( &buffer->allocs, allocation );
+          }
+     }
+     else {
+          D_DEBUG_AT( Core_SurfacePool, "  -> %p\n", allocation );
+          fusion_vector_add( &buffer->allocs, allocation );
      }
 
      D_DEBUG_AT( Core_SurfacePool, "  -> %p\n", allocation );
@@ -305,24 +325,41 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
                              CoreSurfaceAllocation *allocation )
 {
      DFBResult               ret;
+     int                     i;
      const SurfacePoolFuncs *funcs;
+     CoreSurfaceBuffer      *buffer;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
 
-     D_DEBUG_AT( Core_SurfacePool, "dfb_surface_pool_deallocate( %p [%d], %p )\n", pool, pool->pool_id, allocation );
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p [%d], %p )\n", __FUNCTION__, pool, pool->pool_id, allocation );
 
      D_ASSERT( pool == allocation->pool );
+
+     buffer = allocation->buffer;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      funcs = get_funcs( pool );
 
      D_ASSERT( funcs->DeallocateBuffer != NULL );
 
-     ret = funcs->DeallocateBuffer( pool, pool->data, allocation->buffer, allocation->data );
+     ret = funcs->DeallocateBuffer( pool, pool->data, allocation->buffer, allocation, allocation->data );
      if (ret) {
           D_DERROR( ret, "Core/SurfacePool: Could not deallocate buffer!\n" );
           return ret;
      }
+
+     if (allocation->flags & CSALF_ONEFORALL) {
+          CoreSurface *surface = buffer->surface;
+
+          for (i=0; i<surface->num_buffers; i++) {
+               buffer = surface->buffers[i];
+
+               fusion_vector_remove( &buffer->allocs, fusion_vector_index_of( &buffer->allocs, allocation ) );
+          }
+     }
+     else
+          fusion_vector_remove( &buffer->allocs, fusion_vector_index_of( &buffer->allocs, allocation ) );
 
      if (allocation->data)
           SHFREE( pool->shmpool, allocation->data );

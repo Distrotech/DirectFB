@@ -60,6 +60,7 @@ typedef enum {
 typedef struct {
      CoreSurfacePoolCapabilities   caps;
      CoreSurfaceAccessFlags        access;
+     CoreSurfaceTypeFlags          types;
      CoreSurfacePoolPriority       priority;
      char                          name[DFB_SURFACE_POOL_DESC_NAME_LENGTH];
 } CoreSurfacePoolDescription;
@@ -89,15 +90,17 @@ typedef struct {
      /*
       * Buffer management
       */
-     DFBResult (*AllocateBuffer)  ( CoreSurfacePool   *pool,
-                                    void              *pool_data,
-                                    CoreSurfaceBuffer *buffer,
-                                    void              *alloc_data );
+     DFBResult (*AllocateBuffer)  ( CoreSurfacePool       *pool,
+                                    void                  *pool_data,
+                                    CoreSurfaceBuffer     *buffer,
+                                    CoreSurfaceAllocation *allocation,
+                                    void                  *alloc_data );
 
-     DFBResult (*DeallocateBuffer)( CoreSurfacePool   *pool,
-                                    void              *pool_data,
-                                    CoreSurfaceBuffer *buffer,
-                                    void              *alloc_data );
+     DFBResult (*DeallocateBuffer)( CoreSurfacePool       *pool,
+                                    void                  *pool_data,
+                                    CoreSurfaceBuffer     *buffer,
+                                    CoreSurfaceAllocation *allocation,
+                                    void                  *alloc_data );
 
      /*
       * Locking

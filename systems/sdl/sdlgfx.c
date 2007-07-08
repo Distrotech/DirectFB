@@ -196,16 +196,6 @@ static bool sdlFillRectangle( void *drv, void *dev, DFBRectangle *rect )
      return SDL_FillRect( sdev->dest, &dr, sdev->color ) == 0;
 }
 
-static bool sdlDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
-{
-     return false;
-}
-
-static bool sdlDrawLine( void *drv, void *dev, DFBRegion *line )
-{
-     return false;
-}
-
 static bool sdlBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      SDLDeviceData *sdev = (SDLDeviceData*) dev;
@@ -268,8 +258,6 @@ driver_init_driver( CoreGraphicsDevice  *device,
      funcs->SetState      = sdlSetState;
 
      funcs->FillRectangle = sdlFillRectangle;
-     funcs->DrawRectangle = sdlDrawRectangle;
-     funcs->DrawLine      = sdlDrawLine;
      funcs->Blit          = sdlBlit;
 
      return DFB_OK;
