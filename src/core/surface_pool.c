@@ -467,4 +467,3 @@ init_pool( CoreDFB                *core,
 
      return DFB_OK;
 }
-
