@@ -43,6 +43,10 @@
 
 #include <misc/util.h>
 
+D_DEBUG_DOMAIN( Core_Palette, "Core/Palette", "DirectFB Palette Core" );
+
+/**********************************************************************************************************************/
+
 static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
@@ -51,13 +55,15 @@ static const ReactionFunc dfb_palette_globals[] = {
           NULL
 };
 
+/**********************************************************************************************************************/
+
 static void palette_destructor( FusionObject *object, bool zombie )
 {
      CorePaletteNotification  notification;
      CorePalette             *palette = (CorePalette*) object;
 
-     D_DEBUG("DirectFB/core/palette: destroying %p (%d)%s\n", palette,
-              palette->num_entries, zombie ? " (ZOMBIE)" : "");
+     D_DEBUG_AT( Core_Palette, "destroying %p (%d)%s\n", palette,
+                 palette->num_entries, zombie ? " (ZOMBIE)" : "");
 
      notification.flags   = CPNF_DESTROY;
      notification.palette = palette;
@@ -74,8 +80,6 @@ static void palette_destructor( FusionObject *object, bool zombie )
      fusion_object_destroy( object );
 }
 
-/** public **/
-
 FusionObjectPool *
 dfb_palette_pool_create( const FusionWorld *world )
 {
@@ -89,12 +93,16 @@ dfb_palette_pool_create( const FusionWorld *world )
      return pool;
 }
 
+/**********************************************************************************************************************/
+
 DFBResult
 dfb_palette_create( CoreDFB       *core,
                     unsigned int   size,
                     CorePalette  **ret_palette )
 {
      CorePalette *palette;
+
+     D_DEBUG_AT( Core_Palette, "%s( %d )\n", __FUNCTION__, size );
 
      D_ASSERT( ret_palette );
 
@@ -123,6 +131,8 @@ dfb_palette_create( CoreDFB       *core,
      /* return the new palette */
      *ret_palette = palette;
 
+     D_DEBUG_AT( Core_Palette, "  -> %p\n", palette );
+
      return DFB_OK;
 }
 
@@ -130,6 +140,8 @@ void
 dfb_palette_generate_rgb332_map( CorePalette *palette )
 {
      unsigned int i;
+
+     D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 
      D_ASSERT( palette != NULL );
 
@@ -150,6 +162,8 @@ void
 dfb_palette_generate_rgb121_map( CorePalette *palette )
 {
      unsigned int i;
+
+     D_DEBUG_AT( Core_Palette, "%s( %p )\n", __FUNCTION__, palette );
 
      D_ASSERT( palette != NULL );
 
@@ -208,6 +222,8 @@ dfb_palette_update( CorePalette *palette, int first, int last )
 {
      CorePaletteNotification notification;
 
+     D_DEBUG_AT( Core_Palette, "%s( %p, %d, %d )\n", __FUNCTION__, palette, first, last );
+
      D_ASSERT( palette != NULL );
      D_ASSERT( first >= 0 );
      D_ASSERT( first < palette->num_entries );
@@ -240,22 +256,32 @@ dfb_palette_equal( CorePalette *palette1, CorePalette *palette2 )
      u32 *entries2;
      int    i;
      
+     D_DEBUG_AT( Core_Palette, "%s( %p, %p )\n", __FUNCTION__, palette1, palette2 );
+
      D_ASSERT( palette1 != NULL );
      D_ASSERT( palette2 != NULL );
 
-     if (palette1 == palette2)
+     if (palette1 == palette2) {
+          D_DEBUG_AT( Core_Palette, "  -> SAME\n" );
           return true;
+     }
 
-     if (palette1->num_entries != palette2->num_entries)
+     if (palette1->num_entries != palette2->num_entries) {
+          D_DEBUG_AT( Core_Palette, "  -> NOT EQUAL (%d/%d)\n", palette1->num_entries, palette2->num_entries );
           return false;
+     }
 
      entries1 = (u32*)palette1->entries;
      entries2 = (u32*)palette2->entries;
 
      for (i = 0; i < palette1->num_entries; i++) {
-          if (entries1[i] != entries2[i])
+          if (entries1[i] != entries2[i]) {
+               D_DEBUG_AT( Core_Palette, "  -> NOT EQUAL (%d)\n", i );
                return false;
+          }
      }
+
+     D_DEBUG_AT( Core_Palette, "  -> EQUAL\n" );
 
      return true;
 }
