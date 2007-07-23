@@ -21,6 +21,9 @@
 #define X_07E0F81F  ((X_07E0<<16) | X_F81F)
 #define X_F81F07E0  ((X_F81F<<16) | X_07E0)
 
+#define X_F81FF81F  ((X_F81F<<16) | X_F81F)
+#define X_07E007E0  ((X_07E0<<16) | X_07E0)
+
 #define X_07C0F83F  (X_F81F07E0>>SHIFT_R5)
 
 
