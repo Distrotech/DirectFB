@@ -162,6 +162,12 @@ typedef struct
      bool       primary_only;                     /* tell application only about primary layer */
 
      bool       thrifty_surface_buffers;          /* don't keep system instance while video instance is alive */
+
+     unsigned long video_phys;                    /* Physical base address of video memory */
+     unsigned int  video_length;                  /* Size of video memory */
+     unsigned long mmio_phys;                     /* Physical base address of MMIO area */
+     unsigned int  mmio_length;                   /* Size of MMIO area */
+     int           accelerator;                   /* Accelerator ID */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
