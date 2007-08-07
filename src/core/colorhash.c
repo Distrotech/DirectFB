@@ -265,7 +265,7 @@ dfb_colorhash_lookup( DFBColorHashCore *core,
                       __u8              a )
 {
      unsigned int            pixel = PIXEL_ARGB(a, r, g, b);
-     unsigned int            index = (pixel ^ (unsigned int) palette) % HASH_SIZE;
+     unsigned int            index = (pixel ^ (unsigned long) palette) % HASH_SIZE;
      DFBColorHashCoreShared *shared;
 
      D_ASSUME( core != NULL );
