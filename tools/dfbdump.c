@@ -557,7 +557,7 @@ dump_shmpool( FusionSHMPoolShared *pool )
 
      if (pool->allocs) {
           direct_list_foreach (desc, pool->allocs) {
-               printf( " %9lu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+               printf( " %9zu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
                        desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                        desc->func, desc->fid, desc->file, desc->line );
 
