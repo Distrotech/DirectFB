@@ -405,8 +405,7 @@ dfb_window_create( CoreWindowStack             *stack,
                dfb_surface_unref( surface );
           }
           else {
-               CoreLayerRegion   *region;
-               CoreSurfaceConfig  scon;
+               CoreLayerRegion *region;
 
                /* Get the primary region of the layer context. */
                ret = dfb_layer_context_get_primary_region( context, true, &region );

@@ -245,7 +245,8 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfig      *config,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
-                  CorePalette                *palette )
+                  CorePalette                *palette,
+                  CoreSurfaceBufferLock      *lock )
 {
      DFBResult ret;
 
@@ -292,12 +293,13 @@ primaryRemoveRegion( CoreLayer             *layer,
 }
 
 static DFBResult
-primaryFlipRegion( CoreLayer           *layer,
-                   void                *driver_data,
-                   void                *layer_data,
-                   void                *region_data,
-                   CoreSurface         *surface,
-                   DFBSurfaceFlipFlags  flags )
+primaryFlipRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   DFBSurfaceFlipFlags    flags,
+                   CoreSurfaceBufferLock *lock )
 {
      dfb_surface_flip( surface, false );
 
@@ -305,12 +307,13 @@ primaryFlipRegion( CoreLayer           *layer,
 }
 
 static DFBResult
-primaryUpdateRegion( CoreLayer           *layer,
-                     void                *driver_data,
-                     void                *layer_data,
-                     void                *region_data,
-                     CoreSurface         *surface,
-                     const DFBRegion     *update )
+primaryUpdateRegion( CoreLayer             *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     void                  *region_data,
+                     CoreSurface           *surface,
+                     const DFBRegion       *update,
+                     CoreSurfaceBufferLock *lock )
 {
      if (update) {
           DFBRegion region = *update;
@@ -339,6 +342,7 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
 static DFBResult
 update_screen( int x, int y, int w, int h )
 {
+#if 0
      int                    i, n;
      void                  *dst;
      void                  *src;
@@ -348,6 +352,7 @@ update_screen( int x, int y, int w, int h )
      CoreSurfaceBufferLock  lock;
      u16                   *src16, *dst16;
      u8                    *src8;
+#endif
 
      D_DEBUG_AT( SDL_Updates, "%s( %d, %d, %d, %d )\n", __FUNCTION__, x, y, w, h );
 

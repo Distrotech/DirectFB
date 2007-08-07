@@ -67,6 +67,7 @@ static DFBResult
 sharedInitPool( CoreDFB                    *core,
                 CoreSurfacePool            *pool,
                 void                       *pool_data,
+                void                       *pool_local,
                 void                       *system_data,
                 CoreSurfacePoolDescription *ret_desc )
 {
@@ -91,7 +92,8 @@ sharedInitPool( CoreDFB                    *core,
 
 static DFBResult
 sharedDestroyPool( CoreSurfacePool *pool,
-                   void            *pool_data )
+                   void            *pool_data,
+                   void            *pool_local )
 {
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -103,6 +105,7 @@ sharedDestroyPool( CoreSurfacePool *pool,
 static DFBResult
 sharedAllocateBuffer( CoreSurfacePool       *pool,
                       void                  *pool_data,
+                      void                  *pool_local,
                       CoreSurfaceBuffer     *buffer,
                       CoreSurfaceAllocation *allocation,
                       void                  *alloc_data )
@@ -124,12 +127,15 @@ sharedAllocateBuffer( CoreSurfacePool       *pool,
      if (!alloc->addr)
           return D_OOSHM();
 
+     allocation->size = alloc->size;
+
      return DFB_OK;
 }
 
 static DFBResult
 sharedDeallocateBuffer( CoreSurfacePool       *pool,
                         void                  *pool_data,
+                        void                  *pool_local,
                         CoreSurfaceBuffer     *buffer,
                         CoreSurfaceAllocation *allocation,
                         void                  *alloc_data )
@@ -148,6 +154,7 @@ sharedDeallocateBuffer( CoreSurfacePool       *pool,
 static DFBResult
 sharedLock( CoreSurfacePool       *pool,
             void                  *pool_data,
+            void                  *pool_local,
             CoreSurfaceAllocation *allocation,
             void                  *alloc_data,
             CoreSurfaceBufferLock *lock )
@@ -167,6 +174,7 @@ sharedLock( CoreSurfacePool       *pool,
 static DFBResult
 sharedUnlock( CoreSurfacePool       *pool,
               void                  *pool_data,
+              void                  *pool_local,
               CoreSurfaceAllocation *allocation,
               void                  *alloc_data,
               CoreSurfaceBufferLock *lock )

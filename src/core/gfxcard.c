@@ -274,6 +274,8 @@ dfb_graphics_core_join( CoreDFB               *core,
      D_ASSERT( data != NULL );
      D_MAGIC_ASSERT( shared, DFBGraphicsCoreShared );
 
+     card = data;   /* FIXME */
+
      data->core   = core;
      data->shared = shared;
 

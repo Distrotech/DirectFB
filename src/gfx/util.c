@@ -47,15 +47,23 @@
 static bool      copy_state_inited;
 static CardState copy_state;
 
+#if FIXME_SC_2
 static bool      btf_state_inited;
 static CardState btf_state;
+#endif
 
+#if FIXME_SC_3
 static bool      cd_state_inited;
 static CardState cd_state;
+#endif
 
 static pthread_mutex_t copy_lock = PTHREAD_MUTEX_INITIALIZER;
+#if FIXME_SC_2
 static pthread_mutex_t btf_lock  = PTHREAD_MUTEX_INITIALIZER;
+#endif
+#if FIXME_SC_3
 static pthread_mutex_t cd_lock   = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 
 void
@@ -69,6 +77,7 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
 {
 #if FIXME_SC_2
      SurfaceBuffer *tmp;
+#endif
 
      pthread_mutex_lock( &copy_lock );
 
@@ -84,6 +93,7 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
      copy_state.source      = source;
      copy_state.destination = destination;
 
+#if FIXME_SC_2
      if (from_back) {
           dfb_surfacemanager_lock( source->manager );
 
@@ -91,18 +101,20 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
           source->front_buffer = source->back_buffer;
           source->back_buffer = tmp;
      }
+#endif
 
      if (rect) {
           /* Wrokaround for window managers passing negative rectangles */
-          DFBRectangle sourcerect = { 0, 0, source->width, source->height };
+          DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
           if (dfb_rectangle_intersect( rect, &sourcerect ))
                dfb_gfxcard_blit( rect, x, y, &copy_state );
      }
      else {
-          DFBRectangle sourcerect = { 0, 0, source->width, source->height };
+          DFBRectangle sourcerect = { 0, 0, source->config.size.w, source->config.size.h };
           dfb_gfxcard_blit( &sourcerect, x, y, &copy_state );
      }
 
+#if FIXME_SC_2
      if (from_back) {
           tmp = source->front_buffer;
           source->front_buffer = source->back_buffer;
@@ -110,12 +122,12 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
 
           dfb_surfacemanager_unlock( source->manager );
      }
+#endif
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &copy_state );
 
      pthread_mutex_unlock( &copy_lock );
-#endif
 }
 
 void

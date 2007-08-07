@@ -63,6 +63,7 @@ static DFBResult
 localInitPool( CoreDFB                    *core,
                CoreSurfacePool            *pool,
                void                       *pool_data,
+               void                       *pool_local,
                void                       *system_data,
                CoreSurfacePoolDescription *ret_desc )
 {
@@ -81,7 +82,8 @@ localInitPool( CoreDFB                    *core,
 
 static DFBResult
 localDestroyPool( CoreSurfacePool *pool,
-                  void            *pool_data )
+                  void            *pool_data,
+                  void            *pool_local )
 {
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -91,6 +93,7 @@ localDestroyPool( CoreSurfacePool *pool,
 static DFBResult
 localAllocateBuffer( CoreSurfacePool       *pool,
                      void                  *pool_data,
+                     void                  *pool_local,
                      CoreSurfaceBuffer     *buffer,
                      CoreSurfaceAllocation *allocation,
                      void                  *alloc_data )
@@ -111,12 +114,15 @@ localAllocateBuffer( CoreSurfacePool       *pool,
      if (!alloc->addr)
           return D_OOM();
 
+     allocation->size = alloc->size;
+
      return DFB_OK;
 }
 
 static DFBResult
 localDeallocateBuffer( CoreSurfacePool       *pool,
                        void                  *pool_data,
+                       void                  *pool_local,
                        CoreSurfaceBuffer     *buffer,
                        CoreSurfaceAllocation *allocation,
                        void                  *alloc_data )
@@ -134,6 +140,7 @@ localDeallocateBuffer( CoreSurfacePool       *pool,
 static DFBResult
 localLock( CoreSurfacePool       *pool,
            void                  *pool_data,
+           void                  *pool_local,
            CoreSurfaceAllocation *allocation,
            void                  *alloc_data,
            CoreSurfaceBufferLock *lock )
@@ -153,6 +160,7 @@ localLock( CoreSurfacePool       *pool,
 static DFBResult
 localUnlock( CoreSurfacePool       *pool,
              void                  *pool_data,
+             void                  *pool_local,
              CoreSurfaceAllocation *allocation,
              void                  *alloc_data,
              CoreSurfaceBufferLock *lock )

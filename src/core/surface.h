@@ -284,6 +284,44 @@ dfb_surface_caps_apply_policy( CoreSurfacePolicy       policy,
      }
 }
 
+static inline DFBResult
+dfb_surface_resize( CoreSurface *surface,
+                    int          width,
+                    int          height )
+{
+     CoreSurfaceConfig config;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( width > 0 );
+     D_ASSERT( height > 0 );
+
+     config.flags  = CSCONF_SIZE;
+     config.size.w = width;
+     config.size.h = height;
+
+     return dfb_surface_reconfig( surface, &config );
+}
+
+static inline DFBResult
+dfb_surface_reformat( CoreSurface           *surface,
+                      int                    width,
+                      int                    height,
+                      DFBSurfacePixelFormat  format )
+{
+     CoreSurfaceConfig config;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+     D_ASSERT( width > 0 );
+     D_ASSERT( height > 0 );
+
+     config.flags  = CSCONF_SIZE | CSCONF_FORMAT;
+     config.size.w = width;
+     config.size.h = height;
+     config.format = format;
+
+     return dfb_surface_reconfig( surface, &config );
+}
+
 /* global reactions */
 ReactionResult _dfb_surface_palette_listener( const void *msg_data,
                                               void       *ctx );

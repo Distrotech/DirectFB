@@ -130,7 +130,6 @@ static void sdlCheckState( void *drv, void *dev,
 static void sdlSetState( void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                          CardState *state, DFBAccelerationMask accel )
 {
-     SDLDriverData *sdrv = (SDLDriverData*) drv;
      SDLDeviceData *sdev = (SDLDeviceData*) dev;
 
      sdev->dest   = state->dst.handle;

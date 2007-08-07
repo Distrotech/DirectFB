@@ -464,7 +464,7 @@ IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
           return DFB_UNSUPPORTED;
      }
 
-     *offset = data->lock.base;
+     *offset = data->lock.offset;
 
      return DFB_OK;
 }
@@ -2131,8 +2131,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
                        const char         *directory,
                        const char         *prefix )
 {
-     CoreSurface       *surface;
-     CoreSurfaceBuffer *buffer;
+     CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 

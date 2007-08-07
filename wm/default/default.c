@@ -1810,12 +1810,10 @@ set_window_bounds( CoreWindow *window,
           return DFB_LIMITEXCEEDED;
 
      if (window->surface && !(window->config.options & DWOP_SCALE)) {
-          return DFB_UNIMPLEMENTED;
-/*FIXME_SC_2          ret = dfb_surface_reformat( wm_data->core, window->surface,
+          ret = dfb_surface_reformat( window->surface,
                                       width, height, window->surface->config.format );
           if (ret)
                return ret;
-               */
      }
 
      old_region.x1 = window->config.bounds.x - x;
@@ -3275,7 +3273,6 @@ wm_set_window_config( CoreWindow             *window,
                       CoreWindowConfigFlags   flags )
 {
      DFBResult        ret;
-     WMData          *wmdata = wm_data;
      CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
@@ -3292,8 +3289,7 @@ wm_set_window_config( CoreWindow             *window,
                if (window->config.bounds.w != window->surface->config.size.w ||
                    window->config.bounds.h != window->surface->config.size.h)
                {
-                    return DFB_UNIMPLEMENTED;
-/*FIXME_SC_2                    ret = dfb_surface_reformat( wmdata->core, window->surface,
+                    ret = dfb_surface_reformat( window->surface,
                                                 window->config.bounds.w,
                                                 window->config.bounds.h,
                                                 window->surface->config.format );
@@ -3306,7 +3302,6 @@ wm_set_window_config( CoreWindow             *window,
                                    window->config.bounds.h );
                          return ret;
                     }
-*/
                }
           }
 
@@ -3686,13 +3681,13 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      if (flags & CCUF_SIZE) {
-/*FIXME_SC_2          ret = dfb_surface_reformat( wmdata->core, data->cursor_bs,
+          ret = dfb_surface_reformat( data->cursor_bs,
                                       stack->cursor.size.w, stack->cursor.size.h,
-                                      data->cursor_bs->format );
+                                      data->cursor_bs->config.format );
           if (ret)
                D_DERROR( ret, "WM/Default: Failed resizing backing store for cursor from %dx%d to %dx%d!\n",
-                         data->cursor_bs->width, data->cursor_bs->height, stack->cursor.size.w, stack->cursor.size.h );
-*/
+                         data->cursor_bs->config.size.w, data->cursor_bs->config.size.h,
+                         stack->cursor.size.w, stack->cursor.size.h );
      }
 
      if (flags & CCUF_DISABLE) {

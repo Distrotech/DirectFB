@@ -621,9 +621,15 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                if (surface) {
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
-                    if (region->surface)
-                         ret = reallocate_surface( layer, region, &region_config,
-                                                   &context->config );
+                    if (region->surface) {
+                         if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                              D_ASSERT( region->surface_lock.buffer != NULL );
+
+                              dfb_surface_buffer_unlock( &region->surface_lock );
+                         }
+
+                         ret = reallocate_surface( layer, region, &region_config, &context->config );
+                    }
                     else
                          ret = allocate_surface( layer, region, &region_config );
 
@@ -1506,13 +1512,10 @@ reallocate_surface( CoreLayer             *layer,
                     CoreLayerRegionConfig *config,
                     DFBDisplayLayerConfig *previous )
 {
-     int                     i;
-     int                     buffers;
      DFBResult               ret;
      DisplayLayerFuncs      *funcs;
      CoreSurface            *surface;
      CoreSurfaceConfig       sconfig;
-     DFBSurfaceCapabilities  caps;
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );

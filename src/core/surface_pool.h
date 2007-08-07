@@ -68,6 +68,7 @@ typedef struct {
 
 typedef struct {
      int       (*PoolDataSize)();
+     int       (*PoolLocalDataSize)();
      int       (*AllocationDataSize)();
 
      /*
@@ -76,28 +77,33 @@ typedef struct {
      DFBResult (*InitPool)   ( CoreDFB                    *core,
                                CoreSurfacePool            *pool,
                                void                       *pool_data,
+                               void                       *pool_local,
                                void                       *system_data,
                                CoreSurfacePoolDescription *ret_desc );
 
      DFBResult (*DestroyPool)( CoreSurfacePool            *pool,
-                               void                       *pool_data );
+                               void                       *pool_data,
+                               void                       *pool_local );
 
 
 
      DFBResult (*TestConfig) ( CoreSurfacePool            *pool,
                                void                       *pool_data,
+                               void                       *pool_local,
                                const CoreSurfaceConfig    *config );
      /*
       * Buffer management
       */
      DFBResult (*AllocateBuffer)  ( CoreSurfacePool       *pool,
                                     void                  *pool_data,
+                                    void                  *pool_local,
                                     CoreSurfaceBuffer     *buffer,
                                     CoreSurfaceAllocation *allocation,
                                     void                  *alloc_data );
 
      DFBResult (*DeallocateBuffer)( CoreSurfacePool       *pool,
                                     void                  *pool_data,
+                                    void                  *pool_local,
                                     CoreSurfaceBuffer     *buffer,
                                     CoreSurfaceAllocation *allocation,
                                     void                  *alloc_data );
@@ -107,12 +113,14 @@ typedef struct {
       */
      DFBResult (*Lock)  ( CoreSurfacePool       *pool,
                           void                  *pool_data,
+                          void                  *pool_local,
                           CoreSurfaceAllocation *allocation,
                           void                  *alloc_data,
                           CoreSurfaceBufferLock *lock );
 
      DFBResult (*Unlock)( CoreSurfacePool       *pool,
                           void                  *pool_data,
+                          void                  *pool_local,
                           CoreSurfaceAllocation *allocation,
                           void                  *alloc_data,
                           CoreSurfaceBufferLock *lock );
@@ -122,6 +130,7 @@ typedef struct {
       */
      DFBResult (*Read)  ( CoreSurfacePool       *pool,
                           void                  *pool_data,
+                          void                  *pool_local,
                           CoreSurfaceAllocation *allocation,
                           void                  *alloc_data,
                           void                  *destination,
@@ -130,6 +139,7 @@ typedef struct {
 
      DFBResult (*Write) ( CoreSurfacePool       *pool,
                           void                  *pool_data,
+                          void                  *pool_local,
                           CoreSurfaceAllocation *allocation,
                           void                  *alloc_data,
                           const void            *source,
@@ -146,12 +156,31 @@ struct __DFB_CoreSurfacePool {
      CoreSurfacePoolDescription  desc;
 
      int                         pool_data_size;
+     int                         pool_local_data_size;
      int                         alloc_data_size;
 
      void                       *data;
 
+     FusionVector                allocs;
+
      FusionSHMPoolShared        *shmpool;
 };
+
+
+typedef DFBEnumerationResult (*CoreSurfacePoolCallback)( CoreSurfacePool *pool,
+                                                         void            *ctx );
+
+typedef DFBEnumerationResult (*CoreSurfaceAllocCallback)( CoreSurfaceAllocation *allocation,
+                                                          void                  *ctx );
+
+
+
+DFBResult dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
+                                       CoreSurfaceAccessFlags   access,
+                                       CoreSurfacePool        **ret_pool );
+
+DFBResult dfb_surface_pools_enumerate( CoreSurfacePoolCallback  callback,
+                                       void                    *ctx );
 
 
 
@@ -165,11 +194,6 @@ DFBResult dfb_surface_pool_join      ( CoreDFB                 *core,
 
 DFBResult dfb_surface_pool_destroy   ( CoreSurfacePool         *pool );
 
-
-
-DFBResult dfb_surface_pool_negotiate ( CoreSurfaceBuffer       *buffer,
-                                       CoreSurfaceAccessFlags   access,
-                                       CoreSurfacePool        **ret_pool );
 
 
 DFBResult dfb_surface_pool_allocate  ( CoreSurfacePool         *pool,
@@ -186,6 +210,10 @@ DFBResult dfb_surface_pool_lock      ( CoreSurfacePool         *pool,
 DFBResult dfb_surface_pool_unlock    ( CoreSurfacePool         *pool,
                                        CoreSurfaceAllocation   *allocation,
                                        CoreSurfaceBufferLock   *lock );
+
+DFBResult dfb_surface_pool_enumerate ( CoreSurfacePool         *pool,
+                                       CoreSurfaceAllocCallback  callback,
+                                       void                    *ctx );
 
 
 #endif

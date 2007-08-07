@@ -65,12 +65,18 @@ typedef enum {
 typedef struct {
      int                            magic;
 
-     CoreSurfaceBuffer             *buffer;       /* Surface Buffer owning this Allocation. */
-     CoreSurfacePool               *pool;         /* Surface Pool providing the Allocation. */
-     void                          *data;         /* Pool's private data for this Allocation. */
+     DirectSerial                   serial;       /* Equals serial of buffer if content is up to date. */
 
-     CoreSurfaceAccessFlags         access;       
+     CoreSurfaceBuffer             *buffer;       /* Surface Buffer owning this allocation. */
+     CoreSurfacePool               *pool;         /* Surface Pool providing the allocation. */
+     void                          *data;         /* Pool's private data for this allocation. */
+     int                            size;         /* Amount of data used by this allocation. */
+     unsigned long                  offset;       /* Offset within address range of pool if contiguous. */
+
+     CoreSurfaceAccessFlags         access;       /* Possible access flags. */
      CoreSurfaceAllocationFlags     flags;        /* Pool can return CSALF_ONEFORALL upon allocation of first buffer. */
+
+     CoreSurfaceAccessFlags         accessed;     /* Access since last synchronization. */
 } CoreSurfaceAllocation;
 
 /*
@@ -85,7 +91,8 @@ typedef struct {
      CoreSurfaceAllocation   *allocation;
 
      void                    *addr;
-     unsigned long            base;
+     unsigned long            phys;
+     unsigned long            offset;
      unsigned int             pitch;
 
      void                    *handle;
@@ -96,6 +103,9 @@ typedef struct {
  */
 struct __DFB_CoreSurfaceBuffer {
      int                      magic;
+
+     DirectSerial             serial;        /* Increased when content is written. */
+     CoreSurfaceAllocation   *written;       /* Allocation with the last write access. */
 
      CoreSurface             *surface;       /* Surface owning this Surface Buffer. */
      CoreSurfacePolicy        policy;

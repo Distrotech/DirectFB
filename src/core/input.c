@@ -400,6 +400,9 @@ dfb_input_core_join( CoreDFB            *core,
      D_ASSERT( data != NULL );
      D_MAGIC_ASSERT( shared, DFBInputCoreShared );
 
+     core_local = data;   /* FIXME */
+     core_input = shared; /* FIXME */
+
      data->core   = core;
      data->shared = shared;
 

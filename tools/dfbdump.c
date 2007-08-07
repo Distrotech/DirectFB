@@ -59,6 +59,7 @@
 #include <core/layers_internal.h>
 #include <core/surface.h>
 #include <core/surface_buffer.h>
+#include <core/surface_pool.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h>
@@ -105,25 +106,31 @@ deinit_directfb()
 static inline int
 buffer_size( CoreSurface *surface, SurfaceBuffer *buffer, bool video )
 {
-     return video ?
-          (buffer->video.health == CSH_INVALID ?
-           0 : buffer->video.pitch * DFB_PLANE_MULTIPLY( surface->config.format,
-                                                         surface->config.size.h )) :
-          (buffer->system.health == CSH_INVALID ?
-           0 : buffer->system.pitch * DFB_PLANE_MULTIPLY( surface->config.format,
-                                                          surface->config.size.h ));
+     int                    i, mem = 0;
+     CoreSurfaceAllocation *allocation;
+
+     fusion_vector_foreach (allocation, i, buffer->allocs) {
+          if (video) {
+               if (allocation->access & (CSAF_GPU_READ | CSAF_GPU_WRITE))
+                    mem += allocation->size;
+          }
+          else if (!(allocation->access & (CSAF_GPU_READ | CSAF_GPU_WRITE)))
+               mem += allocation->size;
+     }
+
+     return mem;
 }
 
 static int
 buffer_sizes( CoreSurface *surface, bool video )
 {
-     int mem = buffer_size( surface, surface->front_buffer, video );
+     int i, mem = 0;
 
-     if (surface->config.caps & DSCAPS_FLIPPING)
-          mem += buffer_size( surface, surface->back_buffer, video );
+     for (i=0; i<surface->num_buffers; i++) {
+          CoreSurfaceBuffer *buffer = surface->buffers[i];
 
-     if (surface->config.caps & DSCAPS_TRIPLE)
-          mem += buffer_size( surface, surface->idle_buffer, video );
+          mem += buffer_size( surface, buffer, video );
+     }
 
      return mem;
 }
@@ -131,17 +138,13 @@ buffer_sizes( CoreSurface *surface, bool video )
 static int
 buffer_locks( CoreSurface *surface, bool video )
 {
-     SurfaceBuffer *front = surface->front_buffer;
-     SurfaceBuffer *back  = surface->back_buffer;
-     SurfaceBuffer *idle  = surface->idle_buffer;
+     int i, locks = 0;
 
-     int locks = video ? front->video.locked : front->system.locked;
+     for (i=0; i<surface->num_buffers; i++) {
+          //CoreSurfaceBuffer *buffer = surface->buffers[i];
 
-     if (surface->config.caps & DSCAPS_FLIPPING)
-          locks += video ? back->video.locked : back->system.locked;
-
-     if (surface->config.caps & DSCAPS_TRIPLE)
-          locks += video ? idle->video.locked : idle->system.locked;
+          locks += 0;    /* FIXME */
+     }
 
      return locks;
 }
@@ -189,9 +192,9 @@ surface_callback( FusionObjectPool *pool,
      mem->video += vmem;
 
      /* FIXME: assumes all buffers have this flag (or none) */
-     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
+     /*if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
           mem->presys += smem;
-     else
+     else*/
           mem->system += smem;
 
      if (vmem && vmem < 1024)
@@ -204,8 +207,8 @@ surface_callback( FusionObjectPool *pool,
      printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '°' : ' ' );
 
      /* FIXME: assumes all buffers have this flag (or none) */
-     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
-          printf( "preallocated " );
+//     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
+//          printf( "preallocated " );
 
      if (surface->config.caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
@@ -247,21 +250,17 @@ dump_surfaces()
 }
 
 static DFBEnumerationResult
-chunk_callback( SurfaceBuffer *buffer,
-                int            offset,
-                int            length,
-                int            tolerations,
-                void          *ctx )
+alloc_callback( CoreSurfaceAllocation *alloc,
+                void                  *ctx )
 {
-     int          i;
-     CoreSurface *surface;
+     int                i;
+     CoreSurface       *surface;
+     CoreSurfaceBuffer *buffer;
 
-     if (!buffer)
-          return DFENUM_OK;
-
+     buffer  = alloc->buffer;
      surface = buffer->surface;
 
-     printf( "%9d %8d  ", offset, length );
+     printf( "%9lu %8d  ", alloc->offset, alloc->size );
 
      printf( "%4d x %4d   ", surface->config.size.w, surface->config.size.h );
 
@@ -270,11 +269,13 @@ chunk_callback( SurfaceBuffer *buffer,
                printf( "%8s ", format_names[i].name );
      }
 
-     printf( "%3d   ", tolerations );
+     printf( direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   " );
+
+     printf( "%3d   ", 0/*tolerations FIXME*/ );
 
      /* FIXME: assumes all buffers have this flag (or none) */
-     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
-          printf( "preallocated " );
+//     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
+//          printf( "preallocated " );
 
      if (surface->config.caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
@@ -299,16 +300,24 @@ chunk_callback( SurfaceBuffer *buffer,
      return DFENUM_OK;
 }
 
-static void
-dump_video_memory_chunks()
+static DFBEnumerationResult
+surface_pool_callback( CoreSurfacePool *pool,
+                       void            *ctx )
 {
      printf( "\n"
-             "--------------------------[ Surface Buffers ]--------------------------\n" );
-     printf( "Offset    Length   Width Height     Format  Tolerations / Capabilities\n" );
+             "--------------------[ Buffers in '%s' ]-------------------\n", pool->desc.name );
+     printf( "Offset    Length   Width Height     Format UTD Tolerations / Capabilities\n" );
      printf( "-----------------------------------------------------------------------\n" );
 
-     dfb_surfacemanager_enumerate_chunks( dfb_gfxcard_surface_manager(),
-                                          chunk_callback, NULL );
+     dfb_surface_pool_enumerate( pool, alloc_callback, NULL );
+
+     return DFENUM_OK;
+}
+
+static void
+dump_surface_pools()
+{
+     dfb_surface_pools_enumerate( surface_pool_callback, NULL );
 }
 
 static bool
@@ -548,7 +557,7 @@ dump_shmpool( FusionSHMPoolShared *pool )
 
      if (pool->allocs) {
           direct_list_foreach (desc, pool->allocs) {
-               printf( " %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+               printf( " %9lu bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
                        desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
                        desc->func, desc->fid, desc->file, desc->line );
 
@@ -619,7 +628,7 @@ main( int argc, char *argv[] )
           printf( "\n" );
           dump_shmpool( dfb_core_shmpool(NULL) );
           dump_shmpool( dfb_core_shmpool_data(NULL) );
-          dump_video_memory_chunks();
+          dump_surface_pools();
      }
 #endif
 

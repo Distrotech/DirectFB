@@ -721,7 +721,7 @@ stack_attach_devices( CoreInputDevice *device,
 
      dev = SHCALLOC( stack->shmpool, 1, sizeof(StackDevice) );
      if (!dev) {
-          D_ERROR( "Core/WindowStack: Could not allocate %d bytes\n", sizeof(StackDevice) );
+          D_ERROR( "Core/WindowStack: Could not allocate %lu bytes\n", sizeof(StackDevice) );
           return DFENUM_CANCEL;
      }
 

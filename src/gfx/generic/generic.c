@@ -6714,9 +6714,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 //FIXME_SMANLOCK     dfb_surfacemanager_lock( destination->manager );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
+#if FIXME_SC_3
           DFBSurfaceLockFlags flags = DSLF_READ;
 
-#if FIXME_SC_3
           if (accel == DFXL_STRETCHBLIT)
                flags |= CSLF_FORCE;
 #endif
@@ -8197,9 +8197,8 @@ static StretchHVxIndexed stretch_hvx_up_indexed[DFB_NUM_PIXELFORMATS] = {
 
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
-     GenefxState  *gfxs   = state->gfxs;
-     DFBRectangle  orect  = *drect;
-     CoreSurface  *source = state->source;
+     GenefxState  *gfxs  = state->gfxs;
+     DFBRectangle  orect = *drect;
 
      int fx, fy;
      int ix, iy;

@@ -34,6 +34,7 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
+#include <core/surface_buffer.h>
 
 
 struct __DFB_CoreLayerRegionConfig {
@@ -198,7 +199,8 @@ typedef struct {
                                  CoreLayerRegionConfig      *config,
                                  CoreLayerRegionConfigFlags  updated,
                                  CoreSurface                *surface,
-                                 CorePalette                *palette );
+                                 CorePalette                *palette,
+                                 CoreSurfaceBufferLock      *lock );
 
      /*
       * Remove a region from the layer.
@@ -216,7 +218,8 @@ typedef struct {
                                  void                       *layer_data,
                                  void                       *region_data,
                                  CoreSurface                *surface,
-                                 DFBSurfaceFlipFlags         flags );
+                                 DFBSurfaceFlipFlags         flags,
+                                 CoreSurfaceBufferLock      *lock );
 
      /*
       * Indicate updates to the front buffer content.
@@ -226,7 +229,8 @@ typedef struct {
                                  void                       *layer_data,
                                  void                       *region_data,
                                  CoreSurface                *surface,
-                                 const DFBRegion            *update );
+                                 const DFBRegion            *update,
+                                 CoreSurfaceBufferLock      *lock );
 
      /*
       * Control hardware deinterlacing.

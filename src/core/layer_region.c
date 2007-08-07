@@ -413,7 +413,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      CoreLayer         *layer;
      CoreLayerContext  *context;
      CoreSurface       *surface;
-     SurfaceBuffer     *buffer;
+     CoreSurfaceBuffer *buffer;
      DisplayLayerFuncs *funcs;
 
      if (update)
@@ -443,9 +443,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      context = region->context;
      surface = region->surface;
-#if FIXME_SC_3
-     buffer  = surface->back_buffer;
-#endif
+     buffer  = dfb_surface_get_buffer( surface, CSBR_BACK );
      layer   = dfb_layer_at( context->layer_id );
 
      D_ASSERT( layer->funcs != NULL );
@@ -471,11 +469,11 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
                          D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
 
-/* FIXME_SERIAL                        if (buffer->video.access & VAF_HARDWARE_WRITE) {
-                              dfb_gfxcard_wait_serial( &buffer->video.serial );
+                         if (region->surface_lock.buffer)
+                              dfb_surface_buffer_unlock( &region->surface_lock );
 
-                              buffer->video.access &= ~VAF_HARDWARE_WRITE;
-                         }*/
+                         dfb_surface_buffer_lock( buffer, CSAF_CPU_READ | CSAF_GPU_READ,
+                                                  &region->surface_lock );
 
                          D_DEBUG_AT( Core_Layers, "  -> Flipping region using driver...\n" );
 
@@ -484,7 +482,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                                                        layer->driver_data,
                                                        layer->layer_data,
                                                        region->region_data,
-                                                       surface, flags );
+                                                       surface, flags, &region->surface_lock );
                     }
                     else {
                          D_DEBUG_AT( Core_Layers, "  -> Flipping region not using driver...\n" );
@@ -521,23 +519,32 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                /* fall through */
 
           case DLBM_FRONTONLY:
-               D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
-
-/* FIXME_SERIAL               if (buffer->video.access & VAF_HARDWARE_WRITE) {
-                    dfb_gfxcard_wait_serial( &buffer->video.serial );
-
-                    buffer->video.access &= ~VAF_HARDWARE_WRITE;
-               }*/
-
                /* Tell the driver about the update if the region is realized. */
                if (funcs->UpdateRegion && D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                    if (region->surface) {
+                         CoreSurfaceAllocation *allocation;
+
+                         allocation = region->surface_lock.allocation;
+                         D_ASSERT( allocation != NULL );
+
+                         /* If hardware has written or is writing... */
+                         if (allocation->accessed & CSAF_GPU_WRITE) {
+                              D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
+
+                              /* ...wait for the operation to finish. */
+                              dfb_gfxcard_sync(); /* TODO: wait for serial instead */
+
+                              allocation->accessed &= ~CSAF_GPU_WRITE;
+                         }
+                    }
+
                     D_DEBUG_AT( Core_Layers, "  -> Notifying driver about updated content...\n" );
 
                     ret = funcs->UpdateRegion( layer,
                                                layer->driver_data,
                                                layer->layer_data,
                                                region->region_data,
-                                               surface, update );
+                                               surface, update, &region->surface_lock );
                }
                break;
 
@@ -772,7 +779,8 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
                     funcs->SetRegion( layer,
                                       layer->driver_data, layer->layer_data,
                                       region->region_data, &region->config,
-                                      CLRCF_PALETTE, surface, surface->palette );
+                                      CLRCF_PALETTE, surface, surface->palette,
+                                      &region->surface_lock );
           }
 
           if ((flags & CSNF_FIELD) && funcs->SetInputField)
@@ -789,7 +797,8 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
                funcs->SetRegion( layer,
                                  layer->driver_data, layer->layer_data,
                                  region->region_data, &region->config,
-                                 CLRCF_ALPHA_RAMP, surface, surface->palette );
+                                 CLRCF_ALPHA_RAMP, surface, surface->palette,
+                                 &region->surface_lock );
           }
      }
 
@@ -824,10 +833,28 @@ set_region( CoreLayerRegion            *region,
 
      funcs = layer->funcs;
 
+     if (surface) {
+          if (flags & (CLRCF_SURFACE | CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT)) {
+               CoreSurfaceBuffer *buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+     
+               //if (buffer != region->surface_lock.buffer) {
+                    if (region->surface_lock.buffer)
+                         dfb_surface_buffer_unlock( &region->surface_lock );
+     
+                    dfb_surface_buffer_lock( buffer, CSAF_CPU_READ | CSAF_GPU_READ,
+                                             &region->surface_lock );
+               //}
+          }
+
+          D_ASSERT( region->surface_lock.buffer != NULL );
+     }
+     else if (region->surface_lock.buffer)
+          dfb_surface_buffer_unlock( &region->surface_lock );
+
      /* Setup hardware. */
      return funcs->SetRegion( layer, layer->driver_data, layer->layer_data,
                               region->region_data, config, flags,
-                              surface, surface ? surface->palette : NULL );
+                              surface, surface ? surface->palette : NULL, &region->surface_lock );
 }
 
 static DFBResult
@@ -951,6 +978,12 @@ unrealize_region( CoreLayerRegion *region )
 
      /* Update the region's state. */
      D_FLAGS_CLEAR( region->state, CLRSF_REALIZED );
+
+     if (region->surface) {
+          D_ASSERT( region->surface_lock.buffer != NULL );
+
+          dfb_surface_buffer_unlock( &region->surface_lock );
+     }
 
      return DFB_OK;
 }

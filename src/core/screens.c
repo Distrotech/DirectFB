@@ -97,7 +97,6 @@ dfb_screen_core_initialize( CoreDFB             *core,
      data->core   = core;
      data->shared = shared;
 
-
      core_screens = shared;   /* FIXME */
 
      pool = dfb_core_shmpool( core );
@@ -276,6 +275,7 @@ dfb_screen_core_join( CoreDFB             *core,
      data->core   = core;
      data->shared = shared;
 
+     core_screens = shared;   /* FIXME */
 
      if (num_screens != core_screens->num) {
           D_ERROR("DirectFB/core/screens: Number of screens does not match!\n");

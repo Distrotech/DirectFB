@@ -91,6 +91,8 @@ dfb_colorhash_core_initialize( CoreDFB                *core,
      D_ASSERT( data != NULL );
      D_ASSERT( shared != NULL );
 
+     core_colorhash = data; /* FIXME */
+
      data->core   = core;
      data->shared = shared;
 
@@ -113,6 +115,8 @@ dfb_colorhash_core_join( CoreDFB                *core,
 
      D_ASSERT( data != NULL );
      D_MAGIC_ASSERT( shared, DFBColorHashCoreShared );
+
+     core_colorhash = data; /* FIXME */
 
      data->core   = core;
      data->shared = shared;

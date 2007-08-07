@@ -70,6 +70,7 @@ static DFBResult
 sdlInitPool( CoreDFB                    *core,
              CoreSurfacePool            *pool,
              void                       *pool_data,
+             void                       *pool_local,
              void                       *system_data,
              CoreSurfacePoolDescription *ret_desc )
 {
@@ -80,7 +81,7 @@ sdlInitPool( CoreDFB                    *core,
 
      ret_desc->caps     = CSPCAPS_NONE;
      ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE;
-     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT;
+     ret_desc->types    = CSTF_LAYER | CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED; /* FIXME */
      ret_desc->priority = CSPP_ULTIMATE;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "SDL" );
@@ -90,7 +91,8 @@ sdlInitPool( CoreDFB                    *core,
 
 static DFBResult
 sdlDestroyPool( CoreSurfacePool *pool,
-                void            *pool_data )
+                void            *pool_data,
+                void            *pool_local )
 {
      D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
 
@@ -102,6 +104,7 @@ sdlDestroyPool( CoreSurfacePool *pool,
 static DFBResult
 sdlTestConfig( CoreSurfacePool         *pool,
                void                    *pool_data,
+               void                    *pool_local,
                const CoreSurfaceConfig *config )
 {
      D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );
@@ -123,6 +126,7 @@ sdlTestConfig( CoreSurfacePool         *pool,
 static DFBResult
 sdlAllocateBuffer( CoreSurfacePool       *pool,
                    void                  *pool_data,
+                   void                  *pool_local,
                    CoreSurfaceBuffer     *buffer,
                    CoreSurfaceAllocation *allocation,
                    void                  *alloc_data )
@@ -230,6 +234,7 @@ sdlAllocateBuffer( CoreSurfacePool       *pool,
 static DFBResult
 sdlDeallocateBuffer( CoreSurfacePool       *pool,
                      void                  *pool_data,
+                     void                  *pool_local,
                      CoreSurfaceBuffer     *buffer,
                      CoreSurfaceAllocation *allocation,
                      void                  *alloc_data )
@@ -252,6 +257,7 @@ sdlDeallocateBuffer( CoreSurfacePool       *pool,
 static DFBResult
 sdlLock( CoreSurfacePool       *pool,
          void                  *pool_data,
+         void                  *pool_local,
          CoreSurfaceAllocation *allocation,
          void                  *alloc_data,
          CoreSurfaceBufferLock *lock )
@@ -274,9 +280,15 @@ sdlLock( CoreSurfacePool       *pool,
           return DFB_FAILURE;
      }
 
+     D_ASSUME( sdl_surf->pixels != NULL );
+     if (!sdl_surf->pixels)
+          return DFB_UNSUPPORTED;
+
+     D_ASSERT( sdl_surf->pitch > 0 );
+
      lock->addr   = sdl_surf->pixels;
      lock->pitch  = sdl_surf->pitch;
-     lock->base   = sdl_surf->offset;
+     lock->offset = sdl_surf->offset;
      lock->handle = sdl_surf;
 
      return DFB_OK;
@@ -285,6 +297,7 @@ sdlLock( CoreSurfacePool       *pool,
 static DFBResult
 sdlUnlock( CoreSurfacePool       *pool,
            void                  *pool_data,
+           void                  *pool_local,
            CoreSurfaceAllocation *allocation,
            void                  *alloc_data,
            CoreSurfaceBufferLock *lock )

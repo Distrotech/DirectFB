@@ -252,7 +252,8 @@ dfb_surface_create_simple ( CoreDFB                 *core,
 {
      CoreSurfaceConfig config;
 
-     D_DEBUG_AT( Core_Surface, "%s( %p, %p, %p )\n", __FUNCTION__, core, config, ret_surface );
+     D_DEBUG_AT( Core_Surface, "%s( %p, %dx%d %s, %p )\n", __FUNCTION__, core, width, height,
+                 dfb_pixelformat_name( format ), ret_surface );
 
      D_ASSERT( core != NULL );
      D_ASSERT( ret_surface != NULL );
