@@ -27,6 +27,15 @@ endif
 inputdrivers_LTLIBRARIES = libdirectfb_sdlinput.la
 
 
+gfxdriversdir = $(MODULEDIR)/gfxdrivers
+
+if BUILD_STATIC
+gfxdrivers_DATA = libdirectfb_sdlgraphics.o
+endif
+
+gfxdrivers_LTLIBRARIES = libdirectfb_sdlgraphics.la
+
+
 libdirectfb_sdl_la_LDFLAGS = \
 	-avoid-version	\
 	-module
@@ -36,7 +45,6 @@ libdirectfb_sdl_la_SOURCES = \
 	primary.h		\
 	sdl.c			\
 	sdl.h			\
-	sdlgfx.c		\
 	sdl_surface_pool.c
 
 libdirectfb_sdl_la_LIBADD = \
@@ -44,6 +52,7 @@ libdirectfb_sdl_la_LIBADD = \
 	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la \
 	$(SDL_LIBS)
+
 
 libdirectfb_sdlinput_la_LDFLAGS = \
 	-avoid-version	\
@@ -53,6 +62,20 @@ libdirectfb_sdlinput_la_SOURCES = \
 	sdlinput.c
 
 libdirectfb_sdlinput_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la \
+	$(SDL_LIBS)
+
+
+libdirectfb_sdlgraphics_la_LDFLAGS = \
+	-avoid-version	\
+	-module
+
+libdirectfb_sdlgraphics_la_SOURCES = \
+	sdlgfx.c
+
+libdirectfb_sdlgraphics_la_LIBADD = \
 	$(top_builddir)/lib/direct/libdirect.la \
 	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la \
