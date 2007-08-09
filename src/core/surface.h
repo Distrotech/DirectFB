@@ -71,20 +71,27 @@ typedef enum {
      CSCONF_FORMAT       = 0x00000002,
      CSCONF_CAPS         = 0x00000004,
 
-     CSCONF_ALL          = 0x00000007
+     CSCONF_PREALLOCATED = 0x00000010,
+
+     CSCONF_ALL          = 0x00000017
 } CoreSurfaceConfigFlags;
 
 typedef enum {
      CSTF_NONE           = 0x00000000,
 
-     CSTF_LAYER          = 0x00000001,
-     CSTF_WINDOW         = 0x00000002,
-     CSTF_CURSOR         = 0x00000004,
-     CSTF_FONT           = 0x00000008,
+     CSTF_LAYER          = 0x00000001,  /* surface for layer */
+     CSTF_WINDOW         = 0x00000002,  /* surface for window */
+     CSTF_CURSOR         = 0x00000004,  /* surface for cursor */
+     CSTF_FONT           = 0x00000008,  /* surface for font */
 
-     CSTF_SHARED         = 0x00000010,
+     CSTF_SHARED         = 0x00000010,  /* accessable by other processes */
 
-     CSTF_ALL            = 0x0000001F
+     CSTF_INTERNAL       = 0x00000100,  /* system memory */
+     CSTF_EXTERNAL       = 0x00000200,  /* video memory */
+
+     CSTF_PREALLOCATED   = 0x00000400,  /* preallocated memory */
+
+     CSTF_ALL            = 0x0000071F
 } CoreSurfaceTypeFlags;
 
 typedef struct {
@@ -93,6 +100,11 @@ typedef struct {
      DFBDimension             size;
      DFBSurfacePixelFormat    format;
      DFBSurfaceCapabilities   caps;
+
+     struct {
+          void *addr;
+          int   pitch;
+     }                        preallocated[MAX_SURFACE_BUFFERS];
 } CoreSurfaceConfig;
 
 typedef enum {

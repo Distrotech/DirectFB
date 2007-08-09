@@ -30,8 +30,9 @@
 
 #include <direct/debug.h>
 
-#include <fusion/shm/pool.h>
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
+#include <fusion/shm/pool.h>
 
 #include <core/core.h>
 #include <core/surface_pool.h>
@@ -42,6 +43,11 @@
 typedef struct {
      FusionSHMPoolShared *shmpool;
 } SharedPoolData;
+
+typedef struct {
+     CoreDFB     *core;
+     FusionWorld *world;
+} SharedPoolLocalData;
 
 typedef struct {
      void *addr;
@@ -58,6 +64,12 @@ sharedPoolDataSize()
 }
 
 static int
+sharedPoolLocalDataSize()
+{
+     return sizeof(SharedPoolLocalData);
+}
+
+static int
 sharedAllocationDataSize()
 {
      return sizeof(SharedAllocationData);
@@ -71,19 +83,25 @@ sharedInitPool( CoreDFB                    *core,
                 void                       *system_data,
                 CoreSurfacePoolDescription *ret_desc )
 {
-     DFBResult       ret;
-     SharedPoolData *data = pool_data;
+     DFBResult            ret;
+     SharedPoolData      *data  = pool_data;
+     SharedPoolLocalData *local = pool_local;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( ret_desc != NULL );
 
-     ret = fusion_shm_pool_create( dfb_core_world(core), "Surface Memory Pool", 0x8000000, true, &data->shmpool );
+     local->core  = core;
+     local->world = dfb_core_world( core );
+
+     ret = fusion_shm_pool_create( local->world, "Surface Memory Pool", 0x6000000,
+                                   fusion_config->debugshm, &data->shmpool );
      if (ret)
           return ret;
 
-     ret_desc->caps   = CSPCAPS_NONE;
-     ret_desc->access = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_SHARED;
-     ret_desc->types  = CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT;
+     ret_desc->caps     = CSPCAPS_NONE;
+     ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_SHARED;
+     ret_desc->types    = CSTF_WINDOW | CSTF_CURSOR | CSTF_FONT | CSTF_SHARED | CSTF_INTERNAL;
+     ret_desc->priority = CSPP_DEFAULT;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Shared Memory" );
 
@@ -95,9 +113,12 @@ sharedDestroyPool( CoreSurfacePool *pool,
                    void            *pool_data,
                    void            *pool_local )
 {
+     SharedPoolData      *data  = pool_data;
+     SharedPoolLocalData *local = pool_local;
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
-     //fusion_shm_pool_destroy( 
+     fusion_shm_pool_destroy( local->world, data->shmpool );
 
      return DFB_OK;
 }
@@ -188,6 +209,7 @@ sharedUnlock( CoreSurfacePool       *pool,
 
 const SurfacePoolFuncs sharedSurfacePoolFuncs = {
      PoolDataSize:       sharedPoolDataSize,
+     PoolLocalDataSize:  sharedPoolLocalDataSize,
      AllocationDataSize: sharedAllocationDataSize,
      InitPool:           sharedInitPool,
      DestroyPool:        sharedDestroyPool,

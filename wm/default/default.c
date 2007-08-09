@@ -3627,7 +3627,8 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create_simple( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                           context->config.pixelformat, caps, CSTF_CURSOR, NULL, &cursor_bs );
+                                           context->config.pixelformat, caps, CSTF_SHARED | CSTF_CURSOR,
+                                           NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                return ret;

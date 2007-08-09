@@ -81,7 +81,17 @@ typedef struct {
                                void                       *system_data,
                                CoreSurfacePoolDescription *ret_desc );
 
+     DFBResult (*JoinPool)   ( CoreDFB                    *core,
+                               CoreSurfacePool            *pool,
+                               void                       *pool_data,
+                               void                       *pool_local,
+                               void                       *system_data );
+
      DFBResult (*DestroyPool)( CoreSurfacePool            *pool,
+                               void                       *pool_data,
+                               void                       *pool_local );
+
+     DFBResult (*LeavePool)  ( CoreSurfacePool            *pool,
                                void                       *pool_data,
                                void                       *pool_local );
 
@@ -193,6 +203,8 @@ DFBResult dfb_surface_pool_join      ( CoreDFB                 *core,
                                        const SurfacePoolFuncs  *funcs );
 
 DFBResult dfb_surface_pool_destroy   ( CoreSurfacePool         *pool );
+
+DFBResult dfb_surface_pool_leave     ( CoreSurfacePool         *pool );
 
 
 

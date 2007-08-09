@@ -546,7 +546,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          ret = dfb_surface_create_simple( data->core,
                                                           width, height,
-                                                          format, caps, CSTF_NONE, NULL,
+                                                          format, caps, CSTF_SHARED, NULL,
                                                           &surface );
                          if (ret)
                               return ret;
@@ -760,28 +760,21 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                return DFB_INVARG;
           }
 
-          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
+          config.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS | CSCONF_PREALLOCATED;
           config.size.w = width;
           config.size.h = height;
           config.format = format;
           config.caps   = caps;
 
-          ret = dfb_surface_create( data->core, &config, CSTF_NONE, NULL, &surface );
+          config.preallocated[0].addr  = desc->preallocated[0].data;
+          config.preallocated[0].pitch = desc->preallocated[0].pitch;
+
+          config.preallocated[1].addr  = desc->preallocated[1].data;
+          config.preallocated[1].pitch = desc->preallocated[1].pitch;
+
+          ret = dfb_surface_create( data->core, &config, CSTF_PREALLOCATED, NULL, &surface );
           if (ret)
                return ret;
-
-#if FIXME_SC_2
-/* FIXME PRE          ret = dfb_surface_create_preallocated( data->core,
-                                                 width, height,
-                                                 format, policy, caps, NULL,
-                                                 desc->preallocated[0].data,
-                                                 desc->preallocated[1].data,
-                                                 desc->preallocated[0].pitch,
-                                                 desc->preallocated[1].pitch,
-                                                 &surface );
-          if (ret)
-               return ret;*/
-#endif
      }
      else {
           CoreSurfaceConfig config;

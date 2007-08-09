@@ -47,10 +47,8 @@
 static bool      copy_state_inited;
 static CardState copy_state;
 
-#if FIXME_SC_2
 static bool      btf_state_inited;
 static CardState btf_state;
-#endif
 
 #if FIXME_SC_3
 static bool      cd_state_inited;
@@ -58,9 +56,7 @@ static CardState cd_state;
 #endif
 
 static pthread_mutex_t copy_lock = PTHREAD_MUTEX_INITIALIZER;
-#if FIXME_SC_2
 static pthread_mutex_t btf_lock  = PTHREAD_MUTEX_INITIALIZER;
-#endif
 #if FIXME_SC_3
 static pthread_mutex_t cd_lock   = PTHREAD_MUTEX_INITIALIZER;
 #endif
@@ -75,10 +71,6 @@ dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect 
 void
 dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect, int x, int y, bool from_back )
 {
-#if FIXME_SC_2
-     SurfaceBuffer *tmp;
-#endif
-
      pthread_mutex_lock( &copy_lock );
 
      if (!copy_state_inited) {
@@ -92,16 +84,7 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
      copy_state.clip.y2     = destination->config.size.h - 1;
      copy_state.source      = source;
      copy_state.destination = destination;
-
-#if FIXME_SC_2
-     if (from_back) {
-          dfb_surfacemanager_lock( source->manager );
-
-          tmp = source->front_buffer;
-          source->front_buffer = source->back_buffer;
-          source->back_buffer = tmp;
-     }
-#endif
+     copy_state.from        = from_back ? CSBR_BACK : CSBR_FRONT;
 
      if (rect) {
           /* Wrokaround for window managers passing negative rectangles */
@@ -114,16 +97,6 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
           dfb_gfxcard_blit( &sourcerect, x, y, &copy_state );
      }
 
-#if FIXME_SC_2
-     if (from_back) {
-          tmp = source->front_buffer;
-          source->front_buffer = source->back_buffer;
-          source->back_buffer = tmp;
-
-          dfb_surfacemanager_unlock( source->manager );
-     }
-#endif
-
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &copy_state );
 
@@ -133,9 +106,7 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
 void
 dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 {
-#if FIXME_SC_2
-     SurfaceBuffer *tmp;
-     DFBRectangle   rect;
+     DFBRectangle rect;
 
      if (region) {
           rect.x = region->x1;
@@ -154,6 +125,10 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 
      if (!btf_state_inited) {
           dfb_state_init( &btf_state, NULL );
+
+          btf_state.from = CSBR_BACK;
+          btf_state.to   = CSBR_FRONT;
+
           btf_state_inited = true;
      }
 
@@ -164,25 +139,12 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
      btf_state.source      = surface;
      btf_state.destination = surface;
 
-     dfb_surfacemanager_lock( surface->manager );
-
-     tmp = surface->front_buffer;
-     surface->front_buffer = surface->back_buffer;
-     surface->back_buffer = tmp;
-
      dfb_gfxcard_blit( &rect, rect.x, rect.y, &btf_state );
-
-     tmp = surface->front_buffer;
-     surface->front_buffer = surface->back_buffer;
-     surface->back_buffer = tmp;
-
-     dfb_surfacemanager_unlock( surface->manager );
 
      /* Signal end of sequence. */
      dfb_state_stop_drawing( &btf_state );
 
      pthread_mutex_unlock( &btf_lock );
-#endif
 }
 
 void

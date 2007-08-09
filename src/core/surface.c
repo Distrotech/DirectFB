@@ -143,9 +143,24 @@ dfb_surface_create( CoreDFB                  *core,
 
                surface->config.caps = config->caps;
           }
+
+          if (config->flags & CSCONF_PREALLOCATED) {
+               D_DEBUG_AT( Core_Surface, "  -> prealloc %p [%d]\n",
+                           config->preallocated[0].addr,
+                           config->preallocated[0].pitch );
+
+               direct_memcpy( surface->config.preallocated, config->preallocated, sizeof(config->preallocated) );
+
+               type |= CSTF_PREALLOCATED;
+          }
      }
 
-     surface->type = type;
+     if (surface->config.caps & DSCAPS_SYSTEMONLY)
+          surface->type = (type & ~CSTF_EXTERNAL) | CSTF_INTERNAL;
+     else if (surface->config.caps & DSCAPS_VIDEOONLY)
+          surface->type = (type & ~CSTF_INTERNAL) | CSTF_EXTERNAL;
+     else
+          surface->type = type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
 
      if (surface->config.caps & DSCAPS_TRIPLE)
           buffers = 3;
@@ -217,6 +232,15 @@ dfb_surface_create( CoreDFB                  *core,
           }
 
           surface->buffers[surface->num_buffers++] = buffer;
+
+          switch (i) {
+               case 0:
+                    surface->buffer_indices[CSBR_FRONT] = i;
+               case 1:
+                    surface->buffer_indices[CSBR_BACK] = i;
+               case 2:
+                    surface->buffer_indices[CSBR_IDLE] = i;
+          }
      }
 
      fusion_object_activate( &surface->object );
@@ -312,6 +336,12 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     if (surface->type & CSTF_PREALLOCATED)
+          return DFB_UNSUPPORTED;
+
+     if (config->flags & CSCONF_PREALLOCATED)
+          return DFB_UNSUPPORTED;
+
      /* Destroy the Surface Buffers. */
      for (i=0; i<surface->num_buffers; i++) {
           dfb_surface_buffer_destroy( surface->buffers[i] );
@@ -328,6 +358,13 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
      if (config->flags & CSCONF_CAPS)
           surface->config.caps = config->caps;
+
+     if (surface->config.caps & DSCAPS_SYSTEMONLY)
+          surface->type = (surface->type & ~CSTF_EXTERNAL) | CSTF_INTERNAL;
+     else if (surface->config.caps & DSCAPS_VIDEOONLY)
+          surface->type = (surface->type & ~CSTF_INTERNAL) | CSTF_EXTERNAL;
+     else
+          surface->type = surface->type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
 
      if (surface->config.caps & DSCAPS_TRIPLE)
           buffers = 3;
@@ -347,6 +384,15 @@ dfb_surface_reconfig( CoreSurface             *surface,
           }
 
           surface->buffers[surface->num_buffers++] = buffer;
+
+          switch (i) {
+               case 0:
+                    surface->buffer_indices[CSBR_FRONT] = i;
+               case 1:
+                    surface->buffer_indices[CSBR_BACK] = i;
+               case 2:
+                    surface->buffer_indices[CSBR_IDLE] = i;
+          }
      }
 
      dfb_surface_notify( surface, CSNF_SIZEFORMAT );

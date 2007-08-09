@@ -153,6 +153,8 @@ dfb_surface_pool_join( CoreDFB                *core,
                        CoreSurfacePool        *pool,
                        const SurfacePoolFuncs *funcs )
 {
+     DFBResult ret;
+
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
      D_DEBUG_AT( Core_SurfacePool, "dfb_surface_pool_join( %p [%d], %p )\n", pool, pool->pool_id, funcs );
@@ -179,13 +181,32 @@ dfb_surface_pool_join( CoreDFB                *core,
      if (pool_count < pool->pool_id + 1)
           pool_count = pool->pool_id + 1;
 
+     funcs = get_funcs( pool );
+
+     if (funcs->JoinPool) {
+          ret = funcs->JoinPool( core, pool, pool->data, get_local(pool), dfb_system_data() );
+          if (ret) {
+               D_DERROR( ret, "Core/SurfacePool: Joining '%s' failed!\n", pool->desc.name );
+
+               if (pool_locals[pool->pool_id]) {
+                    D_FREE( pool_locals[pool->pool_id] );
+                    pool_locals[pool->pool_id] = NULL;
+               }
+
+               pool_count--;
+
+               return ret;
+          }
+     }
+
      return DFB_OK;
 }
 
 DFBResult
 dfb_surface_pool_destroy( CoreSurfacePool *pool )
 {
-     CoreSurfacePoolID pool_id;
+     CoreSurfacePoolID       pool_id;
+     const SurfacePoolFuncs *funcs;
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
@@ -197,11 +218,20 @@ dfb_surface_pool_destroy( CoreSurfacePool *pool )
      D_ASSERT( pool_id < MAX_SURFACE_POOLS );
      D_ASSERT( pools[pool_id] == pool );
 
-     /* Free local pool data.  FIXME: What about other Fusionees? */
+     funcs = get_funcs( pool );
+
+     if (funcs->DestroyPool)
+          funcs->DestroyPool( pool, pool->data, get_local(pool) );
+
+     /* Free local pool data. */
      if (pool_locals[pool_id]) {
           D_FREE( pool_locals[pool_id] );
           pool_locals[pool_id] = NULL;
      }
+
+     /* Free shared pool data. */
+     if (pool->data)
+          SHFREE( pool->shmpool, pool->data );
 
      /* Erase entries of the pool. */
      pools[pool_id]      = NULL;
@@ -215,6 +245,43 @@ dfb_surface_pool_destroy( CoreSurfacePool *pool )
      D_MAGIC_CLEAR( pool );
 
      SHFREE( pool->shmpool, pool );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_surface_pool_leave( CoreSurfacePool *pool )
+{
+     CoreSurfacePoolID       pool_id;
+     const SurfacePoolFuncs *funcs;
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     pool_id = pool->pool_id;
+
+     D_DEBUG_AT( Core_SurfacePool, "%s( %p, '%s' [%d] )\n", __FUNCTION__, pool, pool->desc.name, pool_id );
+
+     D_ASSERT( pool->pool_id >= 0 );
+     D_ASSERT( pool_id < MAX_SURFACE_POOLS );
+     D_ASSERT( pools[pool_id] == pool );
+
+     funcs = get_funcs( pool );
+
+     if (funcs->LeavePool)
+          funcs->LeavePool( pool, pool->data, get_local(pool) );
+
+     /* Free local pool data. */
+     if (pool_locals[pool_id]) {
+          D_FREE( pool_locals[pool_id] );
+          pool_locals[pool_id] = NULL;
+     }
+
+     /* Erase entries of the pool. */
+     pools[pool_id]      = NULL;
+     pool_funcs[pool_id] = NULL;
+
+     while (pool_count > 0 && !pools[pool_count-1])
+          pool_count--;
 
      return DFB_OK;
 }
@@ -252,7 +319,6 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                D_DEBUG_AT( Core_SurfacePool, "     %d / %d\n", pool->desc.priority, best );
 
                funcs = get_funcs( pool );
-               D_ASSERT( funcs != NULL );
 
                if (funcs->TestConfig &&
                    funcs->TestConfig( pool, pool->data, get_local(pool), &surface->config ))
@@ -557,7 +623,12 @@ init_pool( CoreDFB                *core,
 
      ret = funcs->InitPool( core, pool, pool->data, get_local(pool), dfb_system_data(), &pool->desc );
      if (ret) {
-          D_DERROR( ret, "Core/SurfacePool: Initialization failed!\n" );
+          D_DERROR( ret, "Core/SurfacePool: Initializing '%s' failed!\n", pool->desc.name );
+
+          if (pool_locals[pool->pool_id]) {
+               D_FREE( pool_locals[pool->pool_id] );
+               pool_locals[pool->pool_id] = NULL;
+          }
           if (pool->data) {
                SHFREE( pool->shmpool, pool->data );
                pool->data = NULL;
@@ -567,3 +638,4 @@ init_pool( CoreDFB                *core,
 
      return DFB_OK;
 }
+

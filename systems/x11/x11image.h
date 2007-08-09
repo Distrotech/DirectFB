@@ -26,8 +26,8 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __SYSTEMS_XWINDOW_H__
-#define __SYSTEMS_XWINDOW_H__
+#ifndef __X11SYSTEM__X11IMAGE_H__
+#define __X11SYSTEM__X11IMAGE_H__
 
 #include <X11/Xlib.h>    /* fundamentals X datas structures */
 #include <X11/Xutil.h>   /* datas definitions for various functions */
@@ -39,36 +39,30 @@
  
 
 
-typedef struct 
-{
-	Window 				window;
-	Visual*				visual;
-	GC 					gc;
-	XImage*				ximage;
-    int                 ximage_offset;
-	Colormap 			colormap;
+typedef struct {
+     int                   magic;
 
-	XShmSegmentInfo*	shmseginfo;
-	unsigned char*		videomemory;
+     int                   width;
+     int                   height;
+     DFBSurfacePixelFormat format;
 
-	unsigned char*		virtualscreen;
-	int 				videoaccesstype;
+     int                   depth;
+     Visual*               visual;
 
-	int 				width;
-	int 				height;
-	int 				depth;
-    int 				bpp;
-
-    /* (Null) cursor stuff*/
-	Pixmap  			pixmp1;
-	Pixmap  			pixmp2;
-	Cursor 				NullCursor;
-} XWindow;
-
-Bool dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight);
-void dfb_x11_close_window(XWindow* pXW);
+     XImage*               ximage;
+     XShmSegmentInfo       seginfo;
+} x11Image;
 
 
+DFBResult x11ImageInit   ( x11Image              *image,
+                           int                    width,
+                           int                    height,
+                           DFBSurfacePixelFormat  format );
 
-#endif /* __SYSTEMS_XWINDOW_H__ */
+DFBResult x11ImageDestroy( x11Image              *image );
+
+DFBResult x11ImageAttach ( x11Image              *image,
+                           void                 **ret_addr );
+
+#endif /* __X11SYSTEM__X11IMAGE_H__ */
 

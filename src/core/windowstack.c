@@ -867,7 +867,7 @@ create_cursor_surface( CoreWindowStack *stack,
 
      /* Create the cursor surface. */
      ret = dfb_surface_create_simple( layer->core, width, height, DSPF_ARGB,
-                                      surface_caps, CSTF_CURSOR, NULL, &surface );
+                                      surface_caps, CSTF_SHARED | CSTF_CURSOR, NULL, &surface );
      if (ret) {
           D_ERROR( "Core/WindowStack: Failed creating a surface for software cursor!\n" );
           return ret;

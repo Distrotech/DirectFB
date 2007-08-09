@@ -26,61 +26,18 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __X11SYSTEM__X11_H__
-#define __X11SYSTEM__X11_H__
+#ifndef __X11SYSTEM__X11_SURFACE_POOL_H__
+#define __X11SYSTEM__X11_SURFACE_POOL_H__
 
-#include <fusion/call.h>
-#include <fusion/lock.h>
-#include <core/surface.h>
-#include <core/surface_buffer.h>
 #include <core/surface_pool.h>
 
 #include "x11image.h"
-#include "xwindow.h"
+
+extern const SurfacePoolFuncs x11SurfacePoolFuncs;
 
 typedef struct {
-    FusionSkirmish   lock;
-    FusionCall       call;
+     x11Image image;
+} x11AllocationData;
 
-    CoreSurfacePool *surface_pool;
-
-    CoreSurface     *primary;
-    XWindow         *xw;
-    Display         *display;
-    Screen*          screenptr;
-    int              screennum;
-
-    Visual          *visuals[DFB_NUM_PIXELFORMATS];
-} DFBX11;
-
-typedef enum {
-     X11_SET_VIDEO_MODE,
-     X11_UPDATE_SCREEN,
-     X11_SET_PALETTE,
-     X11_IMAGE_INIT,
-     X11_IMAGE_DESTROY
-} DFBX11Call;
-
-
-
-typedef struct {
-     DFBRegion              region;
-
-     CoreSurfaceBufferLock *lock;
-} UpdateScreenData;
-
-
-DFBResult dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config );
-DFBResult dfb_x11_update_screen_handler ( UpdateScreenData *data );
-DFBResult dfb_x11_set_palette_handler   ( CorePalette *palette );
-
-DFBResult dfb_x11_image_init_handler    ( x11Image *image );
-DFBResult dfb_x11_image_destroy_handler ( x11Image *image );
-
-
-extern DFBX11  *dfb_x11;
-extern CoreDFB *dfb_x11_core;
-
-
-#endif //__X11SYSTEM__X11_H__
+#endif
 

@@ -894,6 +894,7 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
 
      /* Destroy remaining core parts. */
      dfb_core_part_shutdown( core, &dfb_graphics_core, emergency );
+     dfb_core_part_shutdown( core, &dfb_surface_core, emergency );
      dfb_core_part_shutdown( core, &dfb_input_core, emergency );
      dfb_core_part_shutdown( core, &dfb_system_core, emergency );
      dfb_core_part_shutdown( core, &dfb_colorhash_core, emergency );
@@ -918,7 +919,7 @@ dfb_core_initialize( CoreDFB *core )
 
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
-     ret = fusion_shm_pool_create( core->world, "DirectFB Surface Pool", 0x8000000,
+     ret = fusion_shm_pool_create( core->world, "DirectFB Data Pool", 0x1000000,
                                    fusion_config->debugshm, &shared->shmpool_data );
      if (ret)
           return ret;

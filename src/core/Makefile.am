@@ -67,6 +67,7 @@ libdirectfb_core_la_SOURCES = \
 	layers.c		\
 	local_surface_pool.c	\
 	palette.c		\
+	prealloc_surface_pool.c	\
 	screen.c		\
 	screens.c		\
 	shared_surface_pool.c	\
