@@ -10,6 +10,8 @@ New Surface Core
 - Get other system modules working again.
 - Get graphics drivers working again.
 - Probably more modules and tools need updates...
+- Make use of Read/Write if locks for CPU are not possible and
+  implement an OpenGL based system module with OpenGL acceleration.
 
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one.
