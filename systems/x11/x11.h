@@ -31,6 +31,7 @@
 
 #include <fusion/call.h>
 #include <fusion/lock.h>
+#include <core/layers.h>
 #include <core/surface.h>
 #include <core/surface_buffer.h>
 #include <core/surface_pool.h>
@@ -39,6 +40,20 @@
 #include "xwindow.h"
 
 typedef struct {
+     CoreLayerRegionConfig  config;
+} SetModeData;
+
+typedef struct {
+     DFBRegion              region;
+
+     CoreSurfaceBufferLock *lock;
+} UpdateScreenData;
+
+
+typedef struct {
+    UpdateScreenData update;
+    SetModeData      setmode;
+
     FusionSkirmish   lock;
     FusionCall       call;
 
@@ -61,13 +76,6 @@ typedef enum {
      X11_IMAGE_DESTROY
 } DFBX11Call;
 
-
-
-typedef struct {
-     DFBRegion              region;
-
-     CoreSurfaceBufferLock *lock;
-} UpdateScreenData;
 
 
 DFBResult dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config );
