@@ -1,6 +1,16 @@
 Incomplete (roughly sorted by priority)
 ---------------------------------------
 
+New Surface Core
+- Revive DSCAPS_STATIC_ALLOC.
+- Revive depth buffers.
+- Revive CSLF_FORCE for locking buffers in INTERNAL memory.
+- Add locks per surface/pool(?).
+- Implement FBDev surface pool using the old surface manager code.
+- Get other system modules working again.
+- Get graphics drivers working again.
+- Probably more modules and tools need updates...
+
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one.
  - Defragment free space.
