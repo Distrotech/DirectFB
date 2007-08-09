@@ -454,6 +454,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      XShmPutImage(xw->display, xw->window, xw->gc, xw->ximage,
                   x, xw->ximage_offset + y, x, y, w, h, False);
 
+     XFlush( xw->display );
+
      return DFB_OK;
 }
 
