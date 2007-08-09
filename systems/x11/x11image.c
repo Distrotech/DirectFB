@@ -42,7 +42,7 @@ DFBResult x11ImageInit( x11Image              *image,
                         int                    height,
                         DFBSurfacePixelFormat  format )
 {
-     int     i, n, ret;
+     int     ret;
      Visual *visual;
 
      /* Lookup visual. */
@@ -52,7 +52,7 @@ DFBResult x11ImageInit( x11Image              *image,
 
      /* For probing. */
      if (!image)
-          return;
+          return DFB_OK;
 
      image->width  = width;
      image->height = height;

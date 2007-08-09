@@ -150,7 +150,7 @@ system_initialize( CoreDFB *core, void **data )
           for (n=0; n<depth->nvisuals; n++) {
                Visual *visual = &depth->visuals[n];
 
-               D_INFO( "X11/Display:     Visual (%02u) 0x%08x, 0x%08x, 0x%08x, %d bits, %d entries\n", visual->visualid,
+               D_INFO( "X11/Display:     Visual (%02lu) 0x%08lx, 0x%08lx, 0x%08lx, %d bits, %d entries\n", visual->visualid,
                        visual->red_mask, visual->green_mask, visual->blue_mask, visual->bits_per_rgb, visual->map_entries );
 
                switch (depth->depth) {

@@ -439,6 +439,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h, CoreSurfaceBuff
 
      XShmPutImage( dfb_x11->display, xw->window, xw->gc, ximage,
                    x, y, x, y, w, h, False );
+
+     XFlush( dfb_x11->display );
 #endif
      return DFB_OK;
 }

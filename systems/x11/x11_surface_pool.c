@@ -26,7 +26,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define DIRECT_ENABLE_DEBUG
+//#define DIRECT_ENABLE_DEBUG
 
 #include <config.h>
 
@@ -104,6 +104,15 @@ x11DestroyPool( CoreSurfacePool *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
 
      return DFB_OK;
+}
+
+static DFBResult
+x11TestConfig( CoreSurfacePool         *pool,
+               void                    *pool_data,
+               void                    *pool_local,
+               const CoreSurfaceConfig *config )
+{
+     return x11ImageInit( NULL, config->size.w, config->size.h, config->format );
 }
 
 static DFBResult
@@ -231,6 +240,8 @@ const SurfacePoolFuncs x11SurfacePoolFuncs = {
      AllocationDataSize: x11AllocationDataSize,
      InitPool:           x11InitPool,
      DestroyPool:        x11DestroyPool,
+
+     TestConfig:         x11TestConfig,
 
      AllocateBuffer:     x11AllocateBuffer,
      DeallocateBuffer:   x11DeallocateBuffer,
