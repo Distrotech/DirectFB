@@ -1994,9 +1994,9 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
      if (ret)
           return ret;
 
-     if (card->funcs.WaitSerial)
+/* FIXME_SC_2     if (card->funcs.WaitSerial)
           ret = card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
-     else if (card->funcs.EngineSync)
+     else*/ if (card->funcs.EngineSync)
           ret = card->funcs.EngineSync( card->driver_data, card->device_data );
 
      if (ret) {
