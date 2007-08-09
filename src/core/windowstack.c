@@ -523,9 +523,7 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
           cursor = stack->cursor.surface;
      }
      else if (stack->cursor.size.w != shape->config.size.w || stack->cursor.size.h != shape->config.size.h) {
-#if FIXME_SC_1
-          dfb_surface_reformat( NULL, cursor, shape->config.size.w, shape->config.size.h, DSPF_ARGB );
-#endif
+          dfb_surface_reformat( cursor, shape->config.size.w, shape->config.size.h, DSPF_ARGB );
 
           stack->cursor.size.w = shape->config.size.w;
           stack->cursor.size.h = shape->config.size.h;
