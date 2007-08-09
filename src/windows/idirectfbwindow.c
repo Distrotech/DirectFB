@@ -894,11 +894,7 @@ IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
-#if FIXME_SC_2
-     return dfb_surface_reformat( data->core, data->window->surface,
-                                  width, height, data->window->surface->config.format );
-#endif
+     return dfb_surface_reformat( data->window->surface, width, height, data->window->surface->config.format );
 }
 
 static DFBResult
