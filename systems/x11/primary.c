@@ -70,8 +70,8 @@ extern CoreDFB *dfb_x11_core;
 
 /******************************************************************************/
 
-static DFBResult dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config );
-static DFBResult dfb_x11_update_screen( CoreDFB *core, DFBRegion *region );
+static DFBResult dfb_x11_set_video_mode( CoreDFB *core, const CoreLayerRegionConfig *config );
+static DFBResult dfb_x11_update_screen( CoreDFB *core, const DFBRegion *region );
 static DFBResult dfb_x11_set_palette( CorePalette *palette );
 
 static DFBResult update_screen( CoreSurface *surface,
@@ -298,13 +298,9 @@ primaryUpdateRegion( CoreLayer           *layer,
                      CoreSurface         *surface,
                      const DFBRegion     *update )
 {
-     if (update) {
-          DFBRegion region = *update;
+     DFBRegion region = { 0, 0, surface->width - 1, surface->height - 1 };
 
-          return dfb_x11_update_screen( dfb_x11_core, &region );
-     }
-
-     return dfb_x11_update_screen( dfb_x11_core, NULL );
+     return dfb_x11_update_screen( dfb_x11_core, update ? : &region );
 }
 
 static DFBResult
@@ -546,60 +542,33 @@ dfb_x11_call_handler( int   caller,
 }
 
 static DFBResult
-dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
+dfb_x11_set_video_mode( CoreDFB *core, const CoreLayerRegionConfig *config )
 {
-     int                    ret;
-     CoreLayerRegionConfig *tmp = NULL;
-
+     int ret;
 
      D_ASSERT( config != NULL );
 
-     if (dfb_core_is_master( core ))
-          return dfb_x11_set_video_mode_handler( config );
+     dfb_x11->setmode.config = *config;
 
-     if (!fusion_is_shared( dfb_core_world(core), config )) {
-          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreLayerRegionConfig) );
-          if (!tmp)
-               return D_OOSHM();
-
-          direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
-     }
-
-     fusion_call_execute( &dfb_x11->call, FCEF_NODIRECT, X11_SET_VIDEO_MODE,
-                          tmp ? tmp : config, &ret );
-
-     if (tmp)
-          SHFREE( dfb_core_shmpool(core), tmp );
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_VIDEO_MODE, &dfb_x11->setmode, &ret ))
+          return DFB_FUSION;
 
      return ret;
 }
 
 static DFBResult
-dfb_x11_update_screen( CoreDFB *core, DFBRegion *region )
+dfb_x11_update_screen( CoreDFB *core, const DFBRegion *region )
 {
-     int        ret;
-     DFBRegion *tmp = NULL;
+     int ret;
 
-     if (dfb_core_is_master( core ))
-          return dfb_x11_update_screen_handler( region );
+     DFB_REGION_ASSERT( region );
 
-     if (region) {
-          if (!fusion_is_shared( dfb_core_world(core), region )) {
-               tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
-               if (!tmp)
-                    return D_OOSHM();
+     dfb_x11->update.region = *region;
 
-               direct_memcpy( tmp, region, sizeof(DFBRegion) );
-          }
-     }
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_UPDATE_SCREEN, &dfb_x11->update, &ret ))
+          return DFB_FUSION;
 
-     fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_UPDATE_SCREEN,
-                          tmp ? tmp : region, &ret );
-
-     if (tmp)
-          SHFREE( dfb_core_shmpool(core), tmp );
-
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -607,8 +576,8 @@ dfb_x11_set_palette( CorePalette *palette )
 {
      int ret;
 
-     fusion_call_execute( &dfb_x11->call, FCEF_NODIRECT, X11_SET_PALETTE,
-                          palette, &ret );
+     if (fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_PALETTE, palette, &ret ))
+          return DFB_FUSION;
 
      return ret;
 }

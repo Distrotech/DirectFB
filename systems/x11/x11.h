@@ -31,16 +31,28 @@
 
 #include <fusion/call.h>
 #include <fusion/lock.h>
+#include <core/layers.h>
 #include <core/surfaces.h>
 #include "xwindow.h"
 
 typedef struct {
-    FusionSkirmish  lock;
-    FusionCall      call;
+     CoreLayerRegionConfig config;
+} SetModeData;
 
-    CoreSurface    *primary;
-    XWindow        *xw;
-    Display        *display;
+typedef struct {
+     DFBRegion             region;
+} UpdateScreenData;
+
+typedef struct {
+     UpdateScreenData update;
+     SetModeData      setmode;
+
+     FusionSkirmish   lock;
+     FusionCall       call;
+
+     CoreSurface     *primary;
+     XWindow         *xw;
+     Display         *display;
 } DFBX11;
 
 
