@@ -413,7 +413,6 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
      CoreLayer         *layer;
      CoreLayerContext  *context;
      CoreSurface       *surface;
-     CoreSurfaceBuffer *buffer;
      DisplayLayerFuncs *funcs;
 
      if (update)
@@ -443,7 +442,6 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
      context = region->context;
      surface = region->surface;
-     buffer  = dfb_surface_get_buffer( surface, CSBR_BACK );
      layer   = dfb_layer_at( context->layer_id );
 
      D_ASSERT( layer->funcs != NULL );
@@ -465,15 +463,28 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
 
                     /* Use the driver's routine if the region is realized. */
                     if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
+                         CoreSurfaceBuffer *buffer;
+
                          D_ASSUME( funcs->FlipRegion != NULL );
 
                          D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
+
+
+                         ret = dfb_surface_lock( surface );
+                         if (ret)
+                              break;
+
+                         buffer = dfb_surface_get_buffer( surface, CSBR_BACK );
+                         D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
                          if (region->surface_lock.buffer)
                               dfb_surface_buffer_unlock( &region->surface_lock );
 
                          dfb_surface_buffer_lock( buffer, CSAF_CPU_READ | CSAF_GPU_READ,
                                                   &region->surface_lock );
+
+                         dfb_surface_unlock( surface );
+
 
                          D_DEBUG_AT( Core_Layers, "  -> Flipping region using driver...\n" );
 
@@ -835,15 +846,21 @@ set_region( CoreLayerRegion            *region,
 
      if (surface) {
           if (flags & (CLRCF_SURFACE | CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT)) {
-               CoreSurfaceBuffer *buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+               CoreSurfaceBuffer *buffer;
+
+               if (dfb_surface_lock( surface ))
+                    return DFB_FUSION;
+
+               buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+               D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      
-               //if (buffer != region->surface_lock.buffer) {
-                    if (region->surface_lock.buffer)
-                         dfb_surface_buffer_unlock( &region->surface_lock );
-     
-                    dfb_surface_buffer_lock( buffer, CSAF_CPU_READ | CSAF_GPU_READ,
-                                             &region->surface_lock );
-               //}
+               if (region->surface_lock.buffer)
+                    dfb_surface_buffer_unlock( &region->surface_lock );
+
+               dfb_surface_buffer_lock( buffer, CSAF_CPU_READ | CSAF_GPU_READ,
+                                        &region->surface_lock );
+
+               dfb_surface_unlock( surface );
           }
 
           D_ASSERT( region->surface_lock.buffer != NULL );

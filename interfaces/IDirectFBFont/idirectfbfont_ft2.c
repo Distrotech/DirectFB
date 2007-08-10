@@ -251,7 +251,6 @@ render_glyph( CoreFont      *thiz,
      int          y;
      FT2ImplData *data    = thiz->impl_data;
      CoreSurface *surface = info->surface;
-     CoreSurfaceBuffer     *buffer;
      CoreSurfaceBufferLock  lock;
 
      pthread_mutex_lock ( &library_mutex );
@@ -270,11 +269,7 @@ render_glyph( CoreFont      *thiz,
 
      pthread_mutex_unlock ( &library_mutex );
 
-     buffer = dfb_surface_get_buffer( surface, CSBR_BACK );
-
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     err = dfb_surface_buffer_lock( buffer, CSAF_CPU_WRITE, &lock );
+     err = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (err) {
           D_ERROR( "DirectB/FontFT2: Unable to lock surface!\n" );
           return err;
@@ -432,7 +427,7 @@ render_glyph( CoreFont      *thiz,
           lock.addr += lock.pitch;
      }
 
-     dfb_surface_buffer_unlock( &lock );
+     dfb_surface_unlock_buffer( surface, &lock );
 
      return DFB_OK;
 }
