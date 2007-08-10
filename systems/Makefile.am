@@ -19,7 +19,7 @@ X11_DIR =
 endif
 
 if FBDEV_CORE
-#FBDEV_DIR = fbdev
+FBDEV_DIR = fbdev
 else
 FBDEV_DIR =
 endif

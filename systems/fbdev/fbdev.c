@@ -68,7 +68,8 @@
 #include <core/screen.h>
 #include <core/screens.h>
 #include <core/surface.h>
-#include <core/surfacemanager.h>
+#include <core/surface_buffer.h>
+#include <core/surface_pool.h>
 #include <core/state.h>
 #include <core/windows.h>
 
@@ -146,7 +147,8 @@ static DFBResult primarySetRegion     ( CoreLayer                  *layer,
                                         CoreLayerRegionConfig      *config,
                                         CoreLayerRegionConfigFlags  updated,
                                         CoreSurface                *surface,
-                                        CorePalette                *palette );
+                                        CorePalette                *palette,
+                                        CoreSurfaceBufferLock      *lock );
 
 static DFBResult primaryRemoveRegion  ( CoreLayer                  *layer,
                                         void                       *driver_data,
@@ -158,22 +160,9 @@ static DFBResult primaryFlipRegion    ( CoreLayer                  *layer,
                                         void                       *layer_data,
                                         void                       *region_data,
                                         CoreSurface                *surface,
-                                        DFBSurfaceFlipFlags         flags );
+                                        DFBSurfaceFlipFlags         flags,
+                                        CoreSurfaceBufferLock      *lock );
 
-
-static DFBResult primaryAllocateSurface  ( CoreLayer                  *layer,
-                                           void                       *driver_data,
-                                           void                       *layer_data,
-                                           void                       *region_data,
-                                           CoreLayerRegionConfig      *config,
-                                           CoreSurface               **ret_surface );
-
-static DFBResult primaryReallocateSurface( CoreLayer                  *layer,
-                                           void                       *driver_data,
-                                           void                       *layer_data,
-                                           void                       *region_data,
-                                           CoreLayerRegionConfig      *config,
-                                           CoreSurface                *surface );
 
 static DisplayLayerFuncs primaryLayerFuncs = {
      LayerDataSize:      primaryLayerDataSize,
@@ -187,10 +176,6 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      SetRegion:          primarySetRegion,
      RemoveRegion:       primaryRemoveRegion,
      FlipRegion:         primaryFlipRegion,
-
-     AllocateSurface:    primaryAllocateSurface,
-     ReallocateSurface:  primaryReallocateSurface,
-     /* default DeallocateSurface copes with our chunkless video buffers */
 };
 
 /******************************************************************************/
@@ -731,9 +716,9 @@ system_shutdown( bool emergency )
 
      dfb_agp_shutdown();
 
-     munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
-
      dfb_surface_pool_destroy( dfb_fbdev->shared->pool );
+
+     munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
 
      if (dfb_config->vt) {
           ret = dfb_vt_shutdown( emergency );
@@ -758,6 +743,8 @@ system_leave( bool emergency )
      D_ASSERT( dfb_fbdev != NULL );
 
      dfb_agp_leave();
+
+     dfb_surface_pool_leave( dfb_fbdev->shared->pool );
 
      munmap( dfb_fbdev->framebuffer_base,
              dfb_fbdev->shared->fix.smem_len );
@@ -1309,7 +1296,8 @@ primarySetRegion( CoreLayer                  *layer,
                   CoreLayerRegionConfig      *config,
                   CoreLayerRegionConfigFlags  updated,
                   CoreSurface                *surface,
-                  CorePalette                *palette )
+                  CorePalette                *palette,
+                  CoreSurfaceBufferLock      *lock )
 {
      DFBResult  ret;
      VideoMode *videomode;
@@ -1336,12 +1324,12 @@ primarySetRegion( CoreLayer                  *layer,
      case CLRCF_SOURCE:
           if (config->source.w == shared->current_mode.xres &&
               config->source.h == shared->current_mode.yres) {
-               ret = dfb_fbdev_pan( config->source.x,
+/*FIXME_SC_3               ret = dfb_fbdev_pan( config->source.x,
                                     surface->front_buffer->video.offset /
                                     surface->front_buffer->video.pitch + config->source.y,
                                     true );
                if (ret)
-                    return ret;
+                    return ret;*/
                break;
           }
           /* fall through */
@@ -1369,41 +1357,14 @@ primaryRemoveRegion( CoreLayer             *layer,
      return DFB_OK;
 }
 
-static inline FBDevAllocationData *
-get_fbdev_allocation_data( CoreSurface           *surface,
-                           CoreSurfaceBufferRole  role )
-{
-     CoreSurfaceBuffer     *buffer;
-     CoreSurfaceAllocation *alloc;
-     FBDevAllocationData   *data;
-
-     D_MAGIC_ASSERT( surface, CoreSurface );
-
-     buffer = dfb_surface_get_buffer( surface, role );
-
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     D_ASSERT( buffer->allocs != NULL );
-
-     alloc = (CoreSurfaceAllocation*) buffer->allocs;
-
-     D_ASSERT( alloc->pool == dfb_fbdev->shared->pool );
-
-     data = alloc->data;
-
-     D_MAGIC_ASSERT( data, FBDevAllocationData );
-
-     return data;
-}
-
-
 static DFBResult
-primaryFlipRegion( CoreLayer           *layer,
-                   void                *driver_data,
-                   void                *layer_data,
-                   void                *region_data,
-                   CoreSurface         *surface,
-                   DFBSurfaceFlipFlags  flags )
+primaryFlipRegion( CoreLayer             *layer,
+                   void                  *driver_data,
+                   void                  *layer_data,
+                   void                  *region_data,
+                   CoreSurface           *surface,
+                   DFBSurfaceFlipFlags    flags,
+                   CoreSurfaceBufferLock *lock )
 {
      DFBResult ret;
      CoreLayerRegionConfig *config = &dfb_fbdev->shared->config;
@@ -1413,8 +1374,7 @@ primaryFlipRegion( CoreLayer           *layer,
           dfb_screen_wait_vsync( dfb_screens_at(DSCID_PRIMARY) );
 
      ret = dfb_fbdev_pan( config->source.x,
-                          surface->back_buffer->video.offset /
-                          surface->back_buffer->video.pitch + config->source.y,
+                          lock->offset / lock->pitch + config->source.y,
                           (flags & DSFLIP_WAITFORSYNC) == DSFLIP_ONSYNC );
      if (ret)
           return ret;
@@ -1427,80 +1387,6 @@ primaryFlipRegion( CoreLayer           *layer,
 
      return DFB_OK;
 }
-
-static DFBResult
-primaryAllocateSurface( CoreLayer              *layer,
-                        void                   *driver_data,
-                        void                   *layer_data,
-                        void                   *region_data,
-                        CoreLayerRegionConfig  *config,
-                        CoreSurface           **ret_surface )
-{
-     DFBResult          ret;
-     CoreSurface       *surface;
-     CoreSurfaceConfig  sconf;
-
-     sconf.flags  = CSCONF_SIZE | CSCONF_FORMAT | CSCONF_CAPS;
-     sconf.size.w = config->width;
-     sconf.size.h = config->height;
-     sconf.format = config->format;
-     sconf.caps   = DSCAPS_VIDEOONLY;
-
-     /* determine further capabilities */
-     if (config->buffermode == DLBM_TRIPLE)
-          sconf.caps |= DSCAPS_TRIPLE;
-     else if (config->buffermode != DLBM_FRONTONLY)
-          sconf.caps |= DSCAPS_DOUBLE;
-
-     sconf.caps |= config->surface_caps & DSCAPS_PREMULTIPLIED;
-
-     /* allocate surface object */
-     ret = dfb_surface_create( dfb_fbdev->core, &sconf, NULL, &surface );
-     if (ret)
-          return ret;
-
-     /* return surface */
-     *ret_surface = surface;
-
-     return DFB_OK;
-}
-
-static DFBResult
-primaryReallocateSurface( CoreLayer             *layer,
-                          void                  *driver_data,
-                          void                  *layer_data,
-                          void                  *region_data,
-                          CoreLayerRegionConfig *config,
-                          CoreSurface           *surface )
-{
-     /* reallocation is done during SetConfiguration,
-        because the pitch can only be determined AFTER setting the mode */
-     if (DFB_PIXELFORMAT_IS_INDEXED(config->format) && !surface->palette) {
-          DFBResult    ret;
-          CorePalette *palette;
-
-          ret = dfb_palette_create( dfb_fbdev->core,
-                                    1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
-                                    &palette );
-          if (ret)
-               return ret;
-
-          if (config->format == DSPF_LUT8)
-               dfb_palette_generate_rgb332_map( palette );
-
-          dfb_surface_set_palette( surface, palette );
-
-          dfb_palette_unref( palette );
-     }
-
-     if (config->surface_caps & DSCAPS_PREMULTIPLIED)
-          surface->config.caps |= DSCAPS_PREMULTIPLIED;
-     else
-          surface->config.caps &= ~DSCAPS_PREMULTIPLIED;
-
-     return DFB_OK;
-}
-
 
 /** fbdev internal **/
 
@@ -1716,14 +1602,6 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      D_DEBUG("DirectFB/FBDev: dfb_fbdev_set_mode (surface: %p, "
               "mode: %p, buffermode: %d)\n", surface, mode,
               config ? config->buffermode : DLBM_FRONTONLY);
-
-     if (surface) {
-          /* This should never happen */
-          if (surface->front_buffer->storage == CSS_AUXILIARY ||
-              surface->back_buffer->storage  == CSS_AUXILIARY ||
-              surface->idle_buffer->storage  == CSS_AUXILIARY)
-               return DFB_UNSUPPORTED;
-     }
 
      if (!mode)
           mode = &shared->current_mode;
@@ -2031,153 +1909,13 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           /* ++Tony: Other information (such as visual formats) will also change */
           shared->fix = fix;
 
-          dfb_gfxcard_adjust_heap_offset( var.yres_virtual * fix.line_length );
-
-          surface->front_buffer->surface = surface;
-          surface->front_buffer->policy = CSP_VIDEOONLY;
-          surface->front_buffer->format = format;
-          surface->front_buffer->video.health = CSH_STORED;
-          surface->front_buffer->video.pitch = fix.line_length;
-          surface->front_buffer->video.offset = 0;
-
-          switch (config->buffermode) {
-               case DLBM_FRONTONLY:
-                    surface->caps &= ~DSCAPS_FLIPPING;
-
-                    if (surface->back_buffer != surface->front_buffer) {
-                         if (surface->back_buffer->system.addr)
-                              SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
-
-                         SHFREE( surface->shmpool, surface->back_buffer );
-
-                         surface->back_buffer = surface->front_buffer;
-                    }
-
-                    if (surface->idle_buffer != surface->front_buffer) {
-                         if (surface->idle_buffer->system.addr)
-                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
-
-                         SHFREE( surface->shmpool, surface->idle_buffer );
-
-                         surface->idle_buffer = surface->front_buffer;
-                    }
-                    break;
-               case DLBM_BACKVIDEO:
-                    surface->caps |= DSCAPS_DOUBLE;
-                    surface->caps &= ~DSCAPS_TRIPLE;
-
-                    if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
-                    }
-                    else {
-                         if (surface->back_buffer->system.addr) {
-                              SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
-                              surface->back_buffer->system.addr = NULL;
-                         }
-
-                         surface->back_buffer->system.health = CSH_INVALID;
-                    }
-                    surface->back_buffer->surface = surface;
-                    surface->back_buffer->policy = CSP_VIDEOONLY;
-                    surface->back_buffer->format = format;
-                    surface->back_buffer->video.health = CSH_STORED;
-                    surface->back_buffer->video.pitch = fix.line_length;
-                    surface->back_buffer->video.offset =
-                         surface->back_buffer->video.pitch * vyres;
-
-                    if (surface->idle_buffer != surface->front_buffer) {
-                         if (surface->idle_buffer->system.addr)
-                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
-
-                         SHFREE( surface->shmpool, surface->idle_buffer );
-
-                         surface->idle_buffer = surface->front_buffer;
-                    }
-                    break;
-               case DLBM_TRIPLE:
-                    surface->caps |= DSCAPS_TRIPLE;
-                    surface->caps &= ~DSCAPS_DOUBLE;
-
-                    if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
-                    }
-                    else {
-                         if (surface->back_buffer->system.addr) {
-                              SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
-                              surface->back_buffer->system.addr = NULL;
-                         }
-
-                         surface->back_buffer->system.health = CSH_INVALID;
-                    }
-                    surface->back_buffer->surface = surface;
-                    surface->back_buffer->policy = CSP_VIDEOONLY;
-                    surface->back_buffer->format = format;
-                    surface->back_buffer->video.health = CSH_STORED;
-                    surface->back_buffer->video.pitch = fix.line_length;
-                    surface->back_buffer->video.offset =
-                         surface->back_buffer->video.pitch * vyres;
-
-                    if (surface->idle_buffer == surface->front_buffer) {
-                         surface->idle_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
-                    }
-                    else {
-                         if (surface->idle_buffer->system.addr) {
-                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
-                              surface->idle_buffer->system.addr = NULL;
-                         }
-
-                         surface->idle_buffer->system.health = CSH_INVALID;
-                    }
-                    surface->idle_buffer->surface = surface;
-                    surface->idle_buffer->policy = CSP_VIDEOONLY;
-                    surface->idle_buffer->format = format;
-                    surface->idle_buffer->video.health = CSH_STORED;
-                    surface->idle_buffer->video.pitch = fix.line_length;
-                    surface->idle_buffer->video.offset =
-                         surface->idle_buffer->video.pitch * vyres * 2;
-                    break;
-               case DLBM_BACKSYSTEM:
-                    surface->caps |= DSCAPS_DOUBLE;
-                    surface->caps &= ~DSCAPS_TRIPLE;
-
-                    if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
-                    }
-                    surface->back_buffer->surface = surface;
-                    surface->back_buffer->policy = CSP_SYSTEMONLY;
-                    surface->back_buffer->format = format;
-                    surface->back_buffer->video.health = CSH_INVALID;
-                    surface->back_buffer->system.health = CSH_STORED;
-                    surface->back_buffer->system.pitch =
-                         (DFB_BYTES_PER_LINE(format, var.xres) + 3) & ~3;
-
-                    if (surface->back_buffer->system.addr)
-                         SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
-
-                    surface->back_buffer->system.addr =
-                         SHMALLOC( surface->shmpool_data, surface->back_buffer->system.pitch * var.yres );
-
-                    if (surface->idle_buffer != surface->front_buffer) {
-                         if (surface->idle_buffer->system.addr)
-                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
-
-                         SHFREE( surface->shmpool, surface->idle_buffer );
-
-                         surface->idle_buffer = surface->front_buffer;
-                    }
-                    break;
-               default:
-                    D_BUG( "unexpected buffer mode" );
-                    break;
-          }
-
           dfb_fbdev_pan( var.xoffset, var.yoffset, false );
 
           dfb_gfxcard_after_set_var();
 
-          dfb_surface_notify_listeners( surface,
-                                        CSNF_SIZEFORMAT | CSNF_FLIP |
-                                        CSNF_VIDEO      | CSNF_SYSTEM );
+/*          dfb_surface_notify( surface,
+                              CSNF_SIZEFORMAT | CSNF_FLIP |
+                              CSNF_VIDEO      | CSNF_SYSTEM );*/
      }
 
      dfb_gfxcard_unlock();
