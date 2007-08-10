@@ -418,11 +418,10 @@ window_at_pointer( CoreWindowStack *stack,
                }
                else {
                     CoreSurface           *surface = window->surface;
-                    CoreSurfaceBuffer     *buffer  = dfb_surface_get_buffer( surface, CSBR_FRONT );
                     DFBSurfacePixelFormat  format  = surface->config.format;
                     CoreSurfaceBufferLock  lock;
 
-                    if (dfb_surface_buffer_lock( buffer, CSAF_CPU_READ, &lock ) == DFB_OK) {
+                    if (dfb_surface_lock_buffer( surface, CSBR_FRONT, CSAF_CPU_READ, &lock ) == DFB_OK) {
                          void *data  = lock.addr;
                          int   pitch = lock.pitch;
 
@@ -469,7 +468,7 @@ window_at_pointer( CoreWindowStack *stack,
                               }
 
                               if (alpha) { /* alpha == -1 on error */
-                                   dfb_surface_buffer_unlock( &lock );
+                                   dfb_surface_unlock_buffer( surface, &lock );
                                    return window;
                               }
 
@@ -532,13 +531,13 @@ window_at_pointer( CoreWindowStack *stack,
                               }
 
                               if ( pixel != config->color_key ) {
-                                   dfb_surface_buffer_unlock( &lock );
+                                   dfb_surface_unlock_buffer( surface, &lock );
                                    return window;
                               }
 
                          }
 
-                         dfb_surface_buffer_unlock( &lock );
+                         dfb_surface_unlock_buffer( surface, &lock );
                     }
                }
           }
@@ -2354,9 +2353,17 @@ handle_wm_key( CoreWindowStack     *stack,
 
           case DIKS_PRINT:
                if (dfb_config->screenshot_dir && focused && focused->surface) {
-                    CoreSurfaceBuffer *buffer = dfb_surface_get_buffer( focused->surface, CSBR_FRONT );
+                    CoreSurfaceBuffer *buffer;
+
+                    if (dfb_surface_lock( focused->surface ))
+                         break;
+
+                    buffer = dfb_surface_get_buffer( focused->surface, CSBR_FRONT );
+                    D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
                     dfb_surface_buffer_dump( buffer, dfb_config->screenshot_dir, "dfb_window" );
+
+                    dfb_surface_unlock( focused->surface );
                }
                break;
 

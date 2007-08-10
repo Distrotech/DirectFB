@@ -349,13 +349,9 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
 
      /* actual rendering */
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
-          CoreSurfaceBuffer     *buffer;
-          CoreSurfaceBufferLock  lock;
+          CoreSurfaceBufferLock lock;
 
-          buffer = dfb_surface_get_buffer( dst_surface, CSBR_BACK );
-          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-          ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_WRITE, &lock );
+          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
           if (ret)
                return ret;
 
@@ -487,7 +483,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                     break;
           }
 
-          dfb_surface_buffer_unlock( &lock );
+          dfb_surface_unlock_buffer( dst_surface, &lock );
      }
 
      if (data->stage != STAGE_END)

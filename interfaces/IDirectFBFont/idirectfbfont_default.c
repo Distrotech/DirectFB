@@ -222,14 +222,9 @@ Construct( IDirectFBFont      *thiz,
      }
 
      {
-          CoreSurfaceBuffer     *buffer;
-          CoreSurfaceBufferLock  lock;
+          CoreSurfaceBufferLock lock;
 
-          buffer = dfb_surface_get_buffer( surface, CSBR_BACK );
-
-          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-          ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_WRITE, &lock );
+          ret = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
           if (ret) {
                D_DERROR( ret, "IDirectFBFont_Default: Could not lock surface buffer!\n" );
           }
@@ -286,7 +281,7 @@ Construct( IDirectFBFont      *thiz,
                     lock.addr += lock.pitch;
                }
 
-               dfb_surface_buffer_unlock( &lock );
+               dfb_surface_unlock_buffer( surface, &lock );
           }
      }
 

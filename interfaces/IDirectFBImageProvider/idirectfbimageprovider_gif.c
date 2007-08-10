@@ -303,20 +303,16 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
 
      /* actual loading and rendering */
      if (dfb_rectangle_region_intersects( &rect, &clip )) {
-          CoreSurfaceBuffer     *buffer;
-          CoreSurfaceBufferLock  lock;
+          CoreSurfaceBufferLock lock;
 
-          buffer = dfb_surface_get_buffer( dst_surface, CSBR_BACK );
-          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-          ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_WRITE, &lock );
+          ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
           if (ret)
                return ret;
 
           dfb_scale_linear_32( data->image, data->image_width, data->image_height,
                                lock.addr, lock.pitch, &rect, dst_surface, &clip );
 
-          dfb_surface_buffer_unlock( &lock );
+          dfb_surface_unlock_buffer( dst_surface, &lock );
 
           if (data->render_callback) {
                DIRenderCallbackResult r;

@@ -398,10 +398,9 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
                        DFBSurfaceLockFlags flags,
                        void **ret_ptr, int *ret_pitch )
 {
-     DFBResult               ret;
-     CoreSurfaceBuffer      *buffer;
-     CoreSurfaceBufferRole   role   = CSBR_FRONT;
-     CoreSurfaceAccessFlags  access = CSAF_NONE;
+     DFBResult              ret;
+     CoreSurfaceBufferRole  role   = CSBR_FRONT;
+     CoreSurfaceAccessFlags access = CSAF_NONE;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -427,11 +426,7 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
           role = CSBR_BACK;
      }
 
-     buffer = dfb_surface_get_buffer( data->surface, role );
-
-     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
-
-     ret = dfb_surface_buffer_lock( buffer, access, &data->lock );
+     ret = dfb_surface_lock_buffer( data->surface, role, access, &data->lock );
      if (ret)
           return ret;
 
@@ -476,8 +471,11 @@ IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
      if (data->locked) {
-          dfb_surface_buffer_unlock( &data->lock );
+          dfb_surface_unlock_buffer( data->surface, &data->lock );
 
           data->locked = false;
      }
@@ -2131,7 +2129,9 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
                        const char         *directory,
                        const char         *prefix )
 {
-     CoreSurface *surface;
+     DFBResult          ret;
+     CoreSurface       *surface;
+     CoreSurfaceBuffer *buffer;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -2152,7 +2152,17 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     return dfb_surface_buffer_dump( dfb_surface_get_buffer( surface, CSBR_FRONT ), directory, prefix );
+     if (dfb_surface_lock( surface ))
+          return DFB_FUSION;
+
+     buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     ret = dfb_surface_buffer_dump( buffer, directory, prefix );
+
+     dfb_surface_unlock( surface );
+
+     return ret;
 }
 
 static DFBResult

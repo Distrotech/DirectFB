@@ -78,6 +78,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
 
      direct_serial_deinit( &surface->serial );
 
+     fusion_skirmish_destroy( &surface->lock );
+
      D_MAGIC_CLEAR( surface );
 
      fusion_object_destroy( object );
@@ -105,10 +107,11 @@ dfb_surface_create( CoreDFB                  *core,
                     CorePalette              *palette,
                     CoreSurface             **ret_surface )
 {
-     DFBResult    ret;
+     DFBResult    ret = DFB_BUG;
      int          i;
      int          buffers;
      CoreSurface *surface;
+     char         buf[64];
 
      D_ASSERT( core != NULL );
      D_FLAGS_ASSERT( type, CSTF_ALL );
@@ -169,6 +172,8 @@ dfb_surface_create( CoreDFB                  *core,
      else
           buffers = 1;
 
+     surface->notifications = CSNF_ALL & ~CSNF_FLIP;
+
      surface->alpha_ramp[0] = 0x00;
      surface->alpha_ramp[1] = 0x55;
      surface->alpha_ramp[2] = 0xaa;
@@ -184,6 +189,12 @@ dfb_surface_create( CoreDFB                  *core,
 
      direct_serial_init( &surface->serial );
 
+     snprintf( buf, sizeof(buf), "Surface %dx%d %s", surface->config.size.w,
+               surface->config.size.h, dfb_pixelformat_name(surface->config.format) );
+     fusion_skirmish_init( &surface->lock, buf, dfb_core_world(core) );
+
+     fusion_object_set_lock( &surface->object, &surface->lock );
+
      D_MAGIC_SET( surface, CoreSurface );
 
 
@@ -198,9 +209,8 @@ dfb_surface_create( CoreDFB                  *core,
                                     1 << DFB_COLOR_BITS_PER_PIXEL( surface->config.format ),
                                     &palette );
           if (ret) {
-               D_MAGIC_CLEAR( surface );
-               fusion_object_destroy( &surface->object );
-               return ret;
+               D_DERROR( ret, "Core/Surface: Error creating palette!\n" );
+               goto error;
           }
 
           switch (surface->config.format) {
@@ -257,6 +267,8 @@ error:
                dfb_surface_buffer_destroy( surface->buffers[i] );
      }
 
+     fusion_skirmish_destroy( &surface->lock );
+
      direct_serial_deinit( &surface->serial );
 
      fusion_object_destroy( &surface->object );
@@ -300,6 +312,9 @@ dfb_surface_notify( CoreSurface                  *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_FLAGS_ASSERT( flags, CSNF_ALL );
 
+     if (!(surface->notifications & flags))
+          return DFB_OK;
+
      notification.flags   = flags;
      notification.surface = surface;
 
@@ -313,6 +328,9 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
      if (swap) {
           int tmp = surface->buffer_indices[CSBR_BACK];
 
@@ -323,6 +341,8 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
           surface->flips++;
 
      dfb_surface_notify( surface, CSNF_FLIP );
+
+     fusion_skirmish_dismiss( &surface->lock );
 
      return DFB_OK;
 }
@@ -341,6 +361,9 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
      if (config->flags & CSCONF_PREALLOCATED)
           return DFB_UNSUPPORTED;
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
 
      /* Destroy the Surface Buffers. */
      for (i=0; i<surface->num_buffers; i++) {
@@ -397,10 +420,57 @@ dfb_surface_reconfig( CoreSurface             *surface,
 
      dfb_surface_notify( surface, CSNF_SIZEFORMAT );
 
+     fusion_skirmish_dismiss( &surface->lock );
+
      return DFB_OK;
 
 error:
-     D_ERROR("FIXME!");
+     D_UNIMPLEMENTED();
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return ret;
+}
+
+
+DFBResult
+dfb_surface_lock_buffer( CoreSurface            *surface,
+                         CoreSurfaceBufferRole   role,
+                         CoreSurfaceAccessFlags  access,
+                         CoreSurfaceBufferLock  *ret_lock )
+{
+     DFBResult          ret;
+     CoreSurfaceBuffer *buffer;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     buffer = dfb_surface_get_buffer( surface, role );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     ret = dfb_surface_buffer_lock( buffer, access, ret_lock );
+
+     fusion_skirmish_dismiss( &surface->lock );
+
+     return ret;
+}
+
+DFBResult
+dfb_surface_unlock_buffer( CoreSurface           *surface,
+                           CoreSurfaceBufferLock *lock )
+{
+     DFBResult ret;
+
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
+     ret = dfb_surface_buffer_unlock( lock );
+
+     fusion_skirmish_dismiss( &surface->lock );
 
      return ret;
 }
@@ -412,21 +482,25 @@ dfb_surface_set_palette( CoreSurface *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_MAGIC_ASSERT_IF( palette, CorePalette );
 
-     if (surface->palette == palette)
-          return DFB_OK;
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
 
-     if (surface->palette) {
-          dfb_palette_detach_global( surface->palette, &surface->palette_reaction );
-          dfb_palette_unlink( &surface->palette );
+     if (surface->palette != palette) {
+          if (surface->palette) {
+               dfb_palette_detach_global( surface->palette, &surface->palette_reaction );
+               dfb_palette_unlink( &surface->palette );
+          }
+
+          if (palette) {
+               dfb_palette_link( &surface->palette, palette );
+               dfb_palette_attach_global( palette, DFB_SURFACE_PALETTE_LISTENER,
+                                          surface, &surface->palette_reaction );
+          }
+
+          dfb_surface_notify( surface, CSNF_PALETTE_CHANGE );
      }
 
-     if (palette) {
-          dfb_palette_link( &surface->palette, palette );
-          dfb_palette_attach_global( palette, DFB_SURFACE_PALETTE_LISTENER,
-                                     surface, &surface->palette_reaction );
-     }
-
-     dfb_surface_notify( surface, CSNF_PALETTE_CHANGE );
+     fusion_skirmish_dismiss( &surface->lock );
 
      return DFB_OK;
 }
@@ -437,9 +511,14 @@ dfb_surface_set_field( CoreSurface *surface,
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
      surface->field = field;
 
      dfb_surface_notify( surface, CSNF_FIELD );
+
+     fusion_skirmish_dismiss( &surface->lock );
 
      return DFB_OK;
 }
@@ -453,12 +532,17 @@ dfb_surface_set_alpha_ramp( CoreSurface *surface,
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     if (fusion_skirmish_prevail( &surface->lock ))
+          return DFB_FUSION;
+
      surface->alpha_ramp[0] = a0;
      surface->alpha_ramp[1] = a1;
      surface->alpha_ramp[2] = a2;
      surface->alpha_ramp[3] = a3;
 
      dfb_surface_notify( surface, CSNF_ALPHA_RAMP );
+
+     fusion_skirmish_dismiss( &surface->lock );
 
      return DFB_OK;
 }
@@ -473,8 +557,14 @@ _dfb_surface_palette_listener( const void *msg_data,
      if (notification->flags & CPNF_DESTROY)
           return RS_REMOVE;
 
-     if (notification->flags & CPNF_ENTRIES)
+     if (notification->flags & CPNF_ENTRIES) {
+          if (fusion_skirmish_prevail( &surface->lock ))
+               return RS_OK;
+
           dfb_surface_notify( surface, CSNF_PALETTE_UPDATE );
+
+          fusion_skirmish_dismiss( &surface->lock );
+     }
 
      return RS_OK;
 }

@@ -749,7 +749,7 @@ GIFVideo( DirectThread *self, void *arg )
           DFBResult              ret;
           DFBRectangle           rect;
           DFBRegion              clip;
-          CoreSurfaceBuffer     *buffer;
+          CoreSurface           *surface;
           CoreSurfaceBufferLock  lock;
           
           pthread_mutex_lock( &data->lock );
@@ -780,17 +780,16 @@ GIFVideo( DirectThread *self, void *arg )
                  ? data->dst_data->area.wanted : data->dst_rect;          
           dfb_region_from_rectangle( &clip, &data->dst_data->area.current );
           
-
-          buffer = dfb_surface_get_buffer( data->dst_data->surface, CSBR_BACK );
-          D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+          surface = data->dst_data->surface;
+          D_MAGIC_ASSERT( surface, CoreSurface );
 
           if (dfb_rectangle_region_intersects( &rect, &clip ) &&
-              dfb_surface_buffer_lock( buffer, CSAF_CPU_WRITE, &lock ) == DFB_OK)
+              dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock ) == DFB_OK)
           {
                dfb_scale_linear_32( data->image, data->Width, data->Height,
                                     lock.addr, lock.pitch, &rect, data->dst_data->surface, &clip );
                                     
-               dfb_surface_buffer_unlock( &lock );
+               dfb_surface_unlock_buffer( surface, &lock );
                
                if (data->callback)
                     data->callback( data->callback_ctx );

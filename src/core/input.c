@@ -1903,9 +1903,16 @@ dump_primary_layer_surface( CoreDFB *core )
 
                /* Get the surface of the region. */
                if (dfb_layer_region_get_surface( region, &surface ) == DFB_OK) {
-                    /* Dump the surface contents. */
-                    dfb_surface_buffer_dump( dfb_surface_get_buffer( surface, CSBR_FRONT ),
-                                             dfb_config->screenshot_dir, "dfb" );
+                    if (dfb_surface_lock( surface ) == DFB_OK) {
+                         CoreSurfaceBuffer *buffer = dfb_surface_get_buffer( surface, CSBR_FRONT );
+
+                         D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+                         /* Dump the surface contents. */
+                         dfb_surface_buffer_dump( buffer, dfb_config->screenshot_dir, "dfb" );
+
+                         dfb_surface_unlock( surface );
+                    }
 
                     /* Release the surface. */
                     dfb_surface_unref( surface );

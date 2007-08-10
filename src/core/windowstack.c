@@ -743,7 +743,6 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
      DFBResult              ret;
      int                    i;
      FILE                  *f;
-     CoreSurfaceBuffer     *buffer;
      CoreSurfaceBufferLock  lock;
      void                  *data;
 
@@ -763,10 +762,8 @@ load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
           stack->cursor.size.h = 40;
      }
 
-     buffer = dfb_surface_get_buffer( stack->cursor.surface, CSBR_FRONT );
-
      /* lock the cursor surface */
-     ret = dfb_surface_buffer_lock( buffer, CSAF_CPU_WRITE, &lock );
+     ret = dfb_surface_lock_buffer( stack->cursor.surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (ret) {
           D_ERROR( "Core/WindowStack: cannot lock the cursor surface!\n" );
           return ret;
@@ -821,7 +818,7 @@ finish:
      if (f)
           fclose( f );
 
-     dfb_surface_buffer_unlock( &lock );
+     dfb_surface_unlock_buffer( stack->cursor.surface, &lock );
 
      return ret;
 }

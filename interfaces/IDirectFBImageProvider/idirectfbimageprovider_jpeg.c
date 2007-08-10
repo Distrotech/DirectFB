@@ -367,7 +367,6 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
-     CoreSurfaceBuffer     *dst_buffer;
      CoreSurfaceBufferLock  lock;
      DIRenderCallbackResult cb_result = DIRCR_OK;
 
@@ -402,10 +401,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     dst_buffer = dfb_surface_get_buffer( dst_surface, CSBR_BACK );
-     D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
-
-     ret = dfb_surface_buffer_lock( dst_buffer, CSAF_CPU_WRITE, &lock );
+     ret = dfb_surface_lock_buffer( dst_surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
      if (ret)
           return ret;
 
@@ -429,7 +425,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                if (data->image) {
                     dfb_scale_linear_32( data->image, data->width, data->height,
                                          lock.addr, lock.pitch, &rect, dst_surface, &clip );
-                    dfb_surface_buffer_unlock( &lock );
+                    dfb_surface_unlock_buffer( dst_surface, &lock );
                     if (data->render_callback) {
                          DFBRectangle r = { 0, 0, data->width, data->height };
 
@@ -440,7 +436,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     return DFB_INCOMPLETE;
                }
                else
-                    dfb_surface_buffer_unlock( &lock );
+                    dfb_surface_unlock_buffer( dst_surface, &lock );
 
                return DFB_FAILURE;
           }
@@ -463,7 +459,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
           data->image = D_CALLOC( data->height, data->width * 4 );
           if (!data->image) {
-               dfb_surface_buffer_unlock( &lock );
+               dfb_surface_unlock_buffer( dst_surface, &lock );
                return D_OOM();
           }
           row_ptr = data->image;
@@ -517,7 +513,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           }
      }
      
-     dfb_surface_buffer_unlock( &lock );
+     dfb_surface_unlock_buffer( dst_surface, &lock );
 
      if (cb_result != DIRCR_OK)
          return DFB_INTERRUPTED;

@@ -551,6 +551,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (ret)
                               return ret;
 
+                         surface->notifications |= CSNF_FLIP;
+
                          init_palette( surface, desc );
 
                          DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );

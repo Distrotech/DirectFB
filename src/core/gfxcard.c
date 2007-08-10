@@ -2035,7 +2035,7 @@ void dfb_gfxcard_after_set_var()
           card->funcs.AfterSetVar( card->driver_data, card->device_data );
 }
 
-void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags )
+void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags flags )
 {
      D_ASSUME( card != NULL );
 
@@ -2043,7 +2043,7 @@ void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags
           card->funcs.SurfaceEnter( card->driver_data, card->device_data, buffer, flags );
 }
 
-void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer )
+void dfb_gfxcard_surface_leave( CoreSurfaceBuffer *buffer )
 {
      D_ASSUME( card != NULL );
 

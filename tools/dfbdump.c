@@ -93,7 +93,7 @@ static DFBBoolean parse_command_line( int argc, char *argv[] );
 /**********************************************************************************************************************/
 
 static inline int
-buffer_size( CoreSurface *surface, SurfaceBuffer *buffer, bool video )
+buffer_size( CoreSurface *surface, CoreSurfaceBuffer *buffer, bool video )
 {
      int                    i, mem = 0;
      CoreSurfaceAllocation *allocation;

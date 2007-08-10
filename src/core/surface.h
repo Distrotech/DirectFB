@@ -147,6 +147,8 @@ struct __DFB_CoreSurface
      CoreSurfaceConfig        config;
      CoreSurfaceTypeFlags     type;
 
+     CoreSurfaceNotificationFlags notifications;
+
      DirectSerial             serial;
 
      int                      field;
@@ -201,6 +203,14 @@ DFBResult dfb_surface_flip          ( CoreSurface                  *surface,
 DFBResult dfb_surface_reconfig      ( CoreSurface                  *surface,
                                       const CoreSurfaceConfig      *config );
 
+DFBResult dfb_surface_lock_buffer   ( CoreSurface                  *surface,
+                                      CoreSurfaceBufferRole         role,
+                                      CoreSurfaceAccessFlags        access,
+                                      CoreSurfaceBufferLock        *ret_lock );
+
+DFBResult dfb_surface_unlock_buffer ( CoreSurface                  *surface,
+                                      CoreSurfaceBufferLock        *lock );
+
 DFBResult dfb_surface_set_palette   ( CoreSurface                  *surface,
                                       CorePalette                  *palette );
 
@@ -214,6 +224,21 @@ DFBResult dfb_surface_set_alpha_ramp( CoreSurface                  *surface,
                                       __u8                          a3 );
 
 
+static inline DFBResult
+dfb_surface_lock( CoreSurface *surface )
+{
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     return fusion_skirmish_prevail( &surface->lock );
+}
+
+static inline DFBResult
+dfb_surface_unlock( CoreSurface *surface )
+{
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     return fusion_skirmish_dismiss( &surface->lock );
+}
 
 static inline CoreSurfaceBuffer *
 dfb_surface_get_buffer( CoreSurface           *surface,

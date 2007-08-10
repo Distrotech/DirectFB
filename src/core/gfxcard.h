@@ -183,12 +183,12 @@ typedef struct _GraphicsDeviceFuncs {
       * Called before a software access to a video surface buffer.
       */
      void (*SurfaceEnter)( void *driver_data, void *device_data,
-                           SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
+                           CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
 
      /*
       * Called after a software access to a video surface buffer.
       */
-     void (*SurfaceLeave)( void *driver_data, void *device_data, SurfaceBuffer *buffer );
+     void (*SurfaceLeave)( void *driver_data, void *device_data, CoreSurfaceBuffer *buffer );
 
      /*
       * Return the serial of the last (queued) operation.
@@ -390,8 +390,8 @@ DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache( void );
 void dfb_gfxcard_flush_read_cache( void );
 void dfb_gfxcard_after_set_var( void );
-void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
-void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer );
+void dfb_gfxcard_surface_enter( CoreSurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
+void dfb_gfxcard_surface_leave( CoreSurfaceBuffer *buffer );
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 

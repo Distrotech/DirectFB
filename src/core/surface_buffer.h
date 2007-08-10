@@ -62,7 +62,7 @@ typedef enum {
 /*
  * An Allocation of a Surface Buffer
  */
-typedef struct {
+struct __DFB_CoreSurfaceAllocation {
      int                            magic;
 
      DirectSerial                   serial;       /* Equals serial of buffer if content is up to date. */
@@ -77,12 +77,12 @@ typedef struct {
      CoreSurfaceAllocationFlags     flags;        /* Pool can return CSALF_ONEFORALL upon allocation of first buffer. */
 
      CoreSurfaceAccessFlags         accessed;     /* Access since last synchronization. */
-} CoreSurfaceAllocation;
+};
 
 /*
  * A Lock on a Surface Buffer
  */
-typedef struct {
+struct __DFB_CoreSurfaceBufferLock {
      int                      magic;
 
      CoreSurfaceAccessFlags   access;
@@ -96,7 +96,7 @@ typedef struct {
      unsigned int             pitch;
 
      void                    *handle;
-} CoreSurfaceBufferLock;
+};
 
 /*
  * A Surface Buffer of a Surface

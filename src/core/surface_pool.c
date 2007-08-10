@@ -240,6 +240,8 @@ dfb_surface_pool_destroy( CoreSurfacePool *pool )
      while (pool_count > 0 && !pools[pool_count-1])
           pool_count--;
 
+     fusion_skirmish_destroy( &pool->lock );
+
      fusion_vector_destroy( &pool->allocs );
 
      D_MAGIC_CLEAR( pool );
@@ -635,6 +637,8 @@ init_pool( CoreDFB                *core,
           }
           return ret;
      }
+
+     fusion_skirmish_init( &pool->lock, pool->desc.name, dfb_core_world(core) );
 
      return DFB_OK;
 }

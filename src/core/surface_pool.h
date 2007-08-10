@@ -161,6 +161,8 @@ typedef struct {
 struct __DFB_CoreSurfacePool {
      int                         magic;
 
+     FusionSkirmish              lock;
+
      CoreSurfacePoolID           pool_id;
 
      CoreSurfacePoolDescription  desc;
