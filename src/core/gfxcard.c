@@ -696,12 +696,11 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 static bool
 dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 {
+     DFBResult               ret;
      CoreSurface            *dst;
-     CoreSurface            *src = NULL;
-     CoreSurfaceBuffer      *dst_buffer;
-     CoreSurfaceBuffer      *src_buffer = NULL;
+     CoreSurface            *src;
      DFBGraphicsCoreShared  *shared;
-     CoreSurfaceAccessFlags  flags = CSAF_GPU_WRITE;
+     CoreSurfaceAccessFlags  access = CSAF_GPU_WRITE;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -710,57 +709,39 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      D_MAGIC_ASSERT_IF( state->destination, CoreSurface );
      D_MAGIC_ASSERT_IF( state->source, CoreSurface );
 
-     dst        = state->destination;
-     dst_buffer = dfb_surface_get_buffer( dst, state->to );
-
-     D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
-
-     if (DFB_BLITTING_FUNCTION( accel )) {
-          src        = state->source;
-          src_buffer = dfb_surface_get_buffer( src, state->from );
-
-          D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
-     }
+     dst    = state->destination;
+     src    = state->source;
+     shared = card->shared;
 
      /* find locking flags */
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                       DSBLIT_BLEND_COLORALPHA   |
                                       DSBLIT_DST_COLORKEY))
-               flags |= CSAF_GPU_READ;
+               access |= CSAF_GPU_READ;
      }
      else if (state->drawingflags & (DSDRAW_BLEND | DSDRAW_DST_COLORKEY))
-          flags |= CSAF_GPU_READ;
+          access |= CSAF_GPU_READ;
 
-     shared = card->shared;
-
-     /* lock surface manager */
-//FIXME_SMANLOCK     dfb_surfacemanager_lock( shared->surface_manager );
+     /* lock destination */
+     ret = dfb_surface_lock_buffer( dst, state->to, access, &state->dst );
+     if (ret) {
+          D_DERROR( ret, "Core/Graphics: Could not lock destination for GPU access!\n" );
+          return false;
+     }
 
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          if (dfb_surface_buffer_lock( src_buffer, CSAF_GPU_READ, &state->src )) {
-//FIXME_SMANLOCK               dfb_surfacemanager_unlock( shared->surface_manager );
+          ret = dfb_surface_lock_buffer( src, state->from, CSAF_GPU_READ, &state->src );
+          if (ret) {
+               D_DERROR( ret, "Core/Graphics: Could not lock source for GPU access!\n" );
+               dfb_surface_unlock_buffer( dst, &state->dst );
                return false;
           }
 
           state->flags |= CSF_SOURCE_LOCKED;
      }
-
-       /* lock destination */
-     if (dfb_surface_buffer_lock( dst_buffer, flags, &state->dst )) {
-          if (state->flags & CSF_SOURCE_LOCKED) {
-               dfb_surface_buffer_unlock( &state->src );
-               state->flags &= ~CSF_SOURCE_LOCKED;
-          }
-
-//FIXME_SMANLOCK          dfb_surfacemanager_unlock( shared->surface_manager );
-          return false;
-     }
-
-     /* unlock surface manager */
-//FIXME_SMANLOCK     dfb_surfacemanager_unlock( shared->surface_manager );
 
      /*
       * Make sure that state setting with subsequent command execution
@@ -770,10 +751,12 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * the first argument being true (e.g. DRI).
       */
      if (dfb_gfxcard_lock( GDLF_NONE )) {
-          dfb_surface_buffer_unlock( &state->dst );
+          D_DERROR( ret, "Core/Graphics: Could not lock GPU!\n" );
+
+          dfb_surface_unlock_buffer( dst, &state->dst );
 
           if (state->flags & CSF_SOURCE_LOCKED) {
-               dfb_surface_buffer_unlock( &state->src );
+               dfb_surface_unlock_buffer( src, &state->src );
                state->flags &= ~CSF_SOURCE_LOCKED;
           }
 
@@ -813,9 +796,6 @@ dfb_gfxcard_state_release( CardState *state )
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( state->destination != NULL );
-#if FIXME_SC_2
-     D_ASSERT( state->destination->back_buffer != NULL );
-#endif
 
      /* start command processing if not already running */
      if (card->funcs.EmitCommands)
@@ -834,11 +814,11 @@ dfb_gfxcard_state_release( CardState *state )
      dfb_gfxcard_unlock();
 
      /* destination always gets locked during acquisition */
-     dfb_surface_buffer_unlock( &state->dst );
+     dfb_surface_unlock_buffer( state->destination, &state->dst );
 
      /* if source got locked this value is true */
      if (state->flags & CSF_SOURCE_LOCKED) {
-          dfb_surface_buffer_unlock( &state->src );
+          dfb_surface_unlock_buffer( state->source, &state->src );
 
           state->flags &= ~CSF_SOURCE_LOCKED;
      }

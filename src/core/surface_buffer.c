@@ -113,7 +113,6 @@ dfb_surface_buffer_destroy( CoreSurfaceBuffer *buffer )
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      surface = buffer->surface;
-
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_destroy( %p [%dx%d] )\n",
@@ -165,6 +164,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      fusion_vector_foreach (alloc, i, buffer->allocs) {
           D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
@@ -281,7 +282,10 @@ dfb_surface_buffer_unlock( CoreSurfaceBufferLock *lock )
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
      D_MAGIC_ASSERT( lock->buffer, CoreSurfaceBuffer );
+     D_MAGIC_ASSERT( lock->buffer->surface, CoreSurface );
      D_MAGIC_ASSERT( lock->allocation, CoreSurfaceAllocation );
+
+     FUSION_SKIRMISH_ASSERT( &lock->buffer->surface->lock );
 
      pool = lock->allocation->pool;
 
@@ -332,6 +336,8 @@ dfb_surface_buffer_read( CoreSurfaceBuffer  *buffer,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      /* Determine area. */
      rect.x = 0;
@@ -436,6 +442,8 @@ dfb_surface_buffer_write( CoreSurfaceBuffer  *buffer,
 
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
+
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      /* Determine area. */
      rect.x = 0;

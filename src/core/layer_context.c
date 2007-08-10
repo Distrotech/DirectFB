@@ -631,7 +631,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                          if (D_FLAGS_IS_SET( region->state, CLRSF_REALIZED )) {
                               D_ASSERT( region->surface_lock.buffer != NULL );
 
-                              dfb_surface_buffer_unlock( &region->surface_lock );
+                              dfb_surface_unlock_buffer( region->surface, &region->surface_lock );
                          }
 
                          ret = reallocate_surface( layer, region, &region_config, &context->config );

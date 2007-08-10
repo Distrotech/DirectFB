@@ -121,6 +121,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                               const DFBRegion     *region,
                               DFBSurfaceFlipFlags  flags )
 {
+     DFBResult ret;
      DFBRegion reg;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
@@ -184,7 +185,15 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
                if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
                    reg.x2 == data->base.surface->config.size.w  - 1 &&
                    reg.y2 == data->base.surface->config.size.h - 1)
+               {
+                    ret = dfb_surface_lock( data->base.surface );
+                    if (ret)
+                         return ret;
+
                     dfb_surface_flip( data->base.surface, false );
+
+                    dfb_surface_unlock( data->base.surface );
+               }
                else
                     dfb_back_to_front_copy( data->base.surface, &reg );
           }

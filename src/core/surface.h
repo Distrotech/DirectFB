@@ -137,12 +137,22 @@ typedef enum {
      CSBR_IDLE           = 2
 } CoreSurfaceBufferRole;
 
+typedef enum {
+     CSSF_NONE           = 0x00000000,
+
+     CSSF_DESTROYED      = 0x00000001,  /* surface is being or has been destroyed */
+
+     CSSF_ALL            = 0x00000001
+} CoreSurfaceStateFlags;
+
 struct __DFB_CoreSurface
 {
      FusionObject             object;
      int                      magic;
 
      FusionSkirmish           lock;
+
+     CoreSurfaceStateFlags    state;
 
      CoreSurfaceConfig        config;
      CoreSurfaceTypeFlags     type;

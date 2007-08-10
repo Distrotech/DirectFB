@@ -61,6 +61,8 @@ surface_destructor( FusionObject *object, bool zombie, void *ctx )
      D_DEBUG_AT( Core_Surface, "destroying %p (%dx%d%s)\n", surface,
                  surface->config.size.h, surface->config.size.h, zombie ? " ZOMBIE" : "");
 
+     surface->state |= CSSF_DESTROYED;
+
      /* announce surface destruction */
      dfb_surface_notify( surface, CSNF_DESTROY );
 
@@ -312,8 +314,12 @@ dfb_surface_notify( CoreSurface                  *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_FLAGS_ASSERT( flags, CSNF_ALL );
 
-     if (!(surface->notifications & flags))
-          return DFB_OK;
+     if (!(surface->state & CSSF_DESTROYED)) {
+          FUSION_SKIRMISH_ASSERT( &surface->lock );
+
+          if (!(surface->notifications & flags))
+               return DFB_OK;
+     }
 
      notification.flags   = flags;
      notification.surface = surface;
@@ -328,8 +334,7 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
 {
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     if (fusion_skirmish_prevail( &surface->lock ))
-          return DFB_FUSION;
+     FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      if (swap) {
           int tmp = surface->buffer_indices[CSBR_BACK];
@@ -341,8 +346,6 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
           surface->flips++;
 
      dfb_surface_notify( surface, CSNF_FLIP );
-
-     fusion_skirmish_dismiss( &surface->lock );
 
      return DFB_OK;
 }

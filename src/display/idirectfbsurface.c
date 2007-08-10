@@ -133,7 +133,7 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      if (data->surface) {
           if (data->locked)
-               dfb_surface_buffer_unlock( &data->lock );
+               dfb_surface_unlock_buffer( data->surface, &data->lock );
 
           dfb_surface_unref( data->surface );
      }
@@ -488,6 +488,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
                        const DFBRegion     *region,
                        DFBSurfaceFlipFlags  flags )
 {
+     DFBResult    ret;
      DFBRegion    reg;
      CoreSurface *surface;
 
@@ -538,7 +539,15 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
          reg.x2 == surface->config.size.w - 1 && reg.y2 == surface->config.size.h - 1)
+     {
+          ret = dfb_surface_lock( data->surface );
+          if (ret)
+               return ret;
+
           dfb_surface_flip( data->surface, false );
+
+          dfb_surface_unlock( data->surface );
+     }
      else
           dfb_back_to_front_copy( data->surface, &reg );
 
