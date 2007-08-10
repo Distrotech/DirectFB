@@ -48,7 +48,8 @@ typedef struct {
 } x11PoolData;
 
 typedef struct {
-     DirectHash     *hash;
+     pthread_mutex_t  lock;
+     DirectHash      *hash;
 } x11PoolLocalData;
 
 /**********************************************************************************************************************/
@@ -79,6 +80,9 @@ x11InitPool( CoreDFB                    *core,
              void                       *system_data,
              CoreSurfacePoolDescription *ret_desc )
 {
+     DFBResult         ret;
+     x11PoolLocalData *local = pool_local;
+
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
@@ -91,6 +95,39 @@ x11InitPool( CoreDFB                    *core,
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "X11 Shm Images" );
 
+     ret = direct_hash_create( 7, &local->hash );
+     if (ret) {
+          D_DERROR( ret, "X11/Surfaces: Could not create local hash table!\n" );
+          return ret;
+     }
+
+     pthread_mutex_init( &local->lock, NULL );
+
+     return DFB_OK;
+}
+
+static DFBResult
+x11JoinPool( CoreDFB                    *core,
+             CoreSurfacePool            *pool,
+             void                       *pool_data,
+             void                       *pool_local,
+             void                       *system_data )
+{
+     DFBResult         ret;
+     x11PoolLocalData *local = pool_local;
+
+     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     ret = direct_hash_create( 7, &local->hash );
+     if (ret) {
+          D_DERROR( ret, "X11/Surfaces: Could not create local hash table!\n" );
+          return ret;
+     }
+
+     pthread_mutex_init( &local->lock, NULL );
+
      return DFB_OK;
 }
 
@@ -99,9 +136,33 @@ x11DestroyPool( CoreSurfacePool *pool,
                 void            *pool_data,
                 void            *pool_local )
 {
+     x11PoolLocalData *local = pool_local;
+
      D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     pthread_mutex_destroy( &local->lock );
+
+     direct_hash_destroy( local->hash );
+
+     return DFB_OK;
+}
+
+static DFBResult
+x11LeavePool( CoreSurfacePool *pool,
+              void            *pool_data,
+              void            *pool_local )
+{
+     x11PoolLocalData *local = pool_local;
+
+     D_DEBUG_AT( X11_Surfaces, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+
+     pthread_mutex_destroy( &local->lock );
+
+     direct_hash_destroy( local->hash );
 
      return DFB_OK;
 }
@@ -187,21 +248,16 @@ x11Lock( CoreSurfacePool       *pool,
      buffer = allocation->buffer;
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
-     if (!local->hash) {
-          ret = direct_hash_create( 7, &local->hash );
-          if (ret) {
-               D_DERROR( ret, "X11/Surfaces: Could not create local hash table!\n" );
-               return ret;
-          }
-     }
-
      D_ASSERT( local->hash != NULL );
+
+     pthread_mutex_lock( &local->lock );
 
      addr = direct_hash_lookup( local->hash, alloc->image.seginfo.shmid );
      if (!addr) {
           ret = x11ImageAttach( &alloc->image, &addr );
           if (ret) {
                D_DERROR( ret, "X11/Surfaces: x11ImageAttach() failed!\n" );
+               pthread_mutex_unlock( &local->lock );
                return ret;
           }
 
@@ -209,6 +265,8 @@ x11Lock( CoreSurfacePool       *pool,
 
           /* FIXME: remove/detach? */
      }
+
+     pthread_mutex_unlock( &local->lock );
 
      lock->addr   = addr;
      lock->pitch  = DFB_BYTES_PER_LINE( buffer->format, alloc->image.width );
@@ -238,8 +296,11 @@ const SurfacePoolFuncs x11SurfacePoolFuncs = {
      PoolDataSize:       x11PoolDataSize,
      PoolLocalDataSize:  x11PoolLocalDataSize,
      AllocationDataSize: x11AllocationDataSize,
+
      InitPool:           x11InitPool,
+     JoinPool:           x11JoinPool,
      DestroyPool:        x11DestroyPool,
+     LeavePool:          x11LeavePool,
 
      TestConfig:         x11TestConfig,
 
