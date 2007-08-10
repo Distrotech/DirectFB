@@ -404,10 +404,16 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
 
      D_MAGIC_SET( allocation, CoreSurfaceAllocation );
 
+     if (fusion_skirmish_prevail( &pool->lock )) {
+          ret = DFB_FUSION;
+          goto error;
+     }
+
      ret = funcs->AllocateBuffer( pool, pool->data, get_local(pool), buffer, allocation, allocation->data );
      if (ret) {
           D_DEBUG_AT( Core_SurfacePool, "  -> %s\n", DirectFBErrorString( ret ) );
           D_MAGIC_CLEAR( allocation );
+          fusion_skirmish_dismiss( &pool->lock );
           goto error;
      }
 
@@ -431,6 +437,8 @@ dfb_surface_pool_allocate( CoreSurfacePool        *pool,
           fusion_vector_add( &buffer->allocs, allocation );
           fusion_vector_add( &pool->allocs, allocation );
      }
+
+     fusion_skirmish_dismiss( &pool->lock );
 
      direct_serial_init( &allocation->serial );
 
@@ -470,9 +478,13 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
 
      D_ASSERT( funcs->DeallocateBuffer != NULL );
 
+     if (fusion_skirmish_prevail( &pool->lock ))
+          return DFB_FUSION;
+
      ret = funcs->DeallocateBuffer( pool, pool->data, get_local(pool), allocation->buffer, allocation, allocation->data );
      if (ret) {
           D_DERROR( ret, "Core/SurfacePool: Could not deallocate buffer!\n" );
+          fusion_skirmish_dismiss( &pool->lock );
           return ret;
      }
 
@@ -490,6 +502,8 @@ dfb_surface_pool_deallocate( CoreSurfacePool       *pool,
           fusion_vector_remove( &buffer->allocs, fusion_vector_index_of( &buffer->allocs, allocation ) );
           fusion_vector_remove( &pool->allocs, fusion_vector_index_of( &pool->allocs, allocation ) );
      }
+
+     fusion_skirmish_dismiss( &pool->lock );
 
      if (allocation->data)
           SHFREE( pool->shmpool, allocation->data );
