@@ -82,5 +82,22 @@ DirectResult fusion_skirmish_dismiss( FusionSkirmish    *skirmish );
 DirectResult fusion_skirmish_destroy( FusionSkirmish    *skirmish );
 
 
+
+#if D_DEBUG_ENABLED
+#define FUSION_SKIRMISH_ASSERT(skirmish)                                                  \
+     do {                                                                                 \
+          int lock_count;                                                                 \
+                                                                                          \
+          D_ASSERT( skirmish != NULL );                                                   \
+                                                                                          \
+          D_ASSERT( fusion_skirmish_lock_count( skirmish, &lock_count ) == DFB_OK );      \
+          D_ASSERT( lock_count > 0 );                                                     \
+     } while (0)
+#else
+#define FUSION_SKIRMISH_ASSERT(skirmish)                                                  \
+     do {                                                                                 \
+     } while (0)
+#endif
+
 #endif
 
