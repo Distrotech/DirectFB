@@ -1432,6 +1432,7 @@ allocate_surface( CoreLayer             *layer,
      DisplayLayerFuncs      *funcs;
      CoreSurface            *surface = NULL;
      DFBSurfaceCapabilities  caps    = DSCAPS_VIDEOONLY;
+     CoreSurfaceTypeFlags    type    = CSTF_LAYER;
      CoreSurfaceConfig       scon;
 
      D_ASSERT( layer != NULL );
@@ -1492,8 +1493,11 @@ allocate_surface( CoreLayer             *layer,
           scon.format = config->format;
           scon.caps   = caps;
 
+          if (layer->shared->contexts.primary == region->context)
+               type |= CSTF_SHARED;
+
           /* Use the default surface creation. */
-          ret = dfb_surface_create( layer->core, &scon, CSTF_SHARED | CSTF_LAYER, NULL, &surface );
+          ret = dfb_surface_create( layer->core, &scon, type, NULL, &surface );
           if (ret) {
                D_DERROR( ret, "Core/layers: Surface creation failed!\n" );
                return ret;
