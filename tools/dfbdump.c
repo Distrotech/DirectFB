@@ -244,7 +244,7 @@ static DFBEnumerationResult
 alloc_callback( CoreSurfaceAllocation *alloc,
                 void                  *ctx )
 {
-     int                i;
+     int                i, index;
      CoreSurface       *surface;
      CoreSurfaceBuffer *buffer;
 
@@ -260,12 +260,21 @@ alloc_callback( CoreSurfaceAllocation *alloc,
                printf( "%8s ", format_names[i].name );
      }
 
+     index = dfb_surface_buffer_index( alloc->buffer );
+
+     printf( " %-5s",
+             (dfb_surface_get_buffer( surface, CSBR_FRONT ) == buffer) ? "front" :
+             (dfb_surface_get_buffer( surface, CSBR_BACK  ) == buffer) ? "back"  :
+             (dfb_surface_get_buffer( surface, CSBR_IDLE  ) == buffer) ? "idle"  : "" );
+
      printf( direct_serial_check(&alloc->serial, &buffer->serial) ? " * " : "   " );
 
      printf( "%d  ", buffer->allocs.count );
 
      if (surface->type & CSTF_SHARED)
-          printf( "SHARED " );
+          printf( "SHARED  " );
+     else
+          printf( "PRIVATE " );
 
      if (surface->type & CSTF_LAYER)
           printf( "LAYER " );
@@ -288,10 +297,6 @@ alloc_callback( CoreSurfaceAllocation *alloc,
           printf( "EXTERNAL " );
 
      printf( " " );
-
-     /* FIXME: assumes all buffers have this flag (or none) */
-//     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
-//          printf( "preallocated " );
 
      if (surface->config.caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
@@ -324,7 +329,7 @@ surface_pool_callback( CoreSurfacePool *pool,
 
      printf( "\n" );
      printf( "--------------------[ Surface Buffer Allocations in %s ]-------------------%n\n", pool->desc.name, &length );
-     printf( "Offset    Length   Width Height     Format  U C  Type / Storage / Caps\n" );
+     printf( "Offset    Length   Width Height     Format  Role  U C  Usage   Type / Storage / Caps\n" );
 
      while (length--)
           putc( '-', stdout );
