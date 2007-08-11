@@ -1493,7 +1493,7 @@ allocate_surface( CoreLayer             *layer,
           scon.caps   = caps;
 
           /* Use the default surface creation. */
-          ret = dfb_surface_create( layer->core, &scon, CSTF_LAYER, NULL, &surface );
+          ret = dfb_surface_create( layer->core, &scon, CSTF_SHARED | CSTF_LAYER, NULL, &surface );
           if (ret) {
                D_DERROR( ret, "Core/layers: Surface creation failed!\n" );
                return ret;

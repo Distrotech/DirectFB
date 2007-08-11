@@ -336,6 +336,13 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
 
      FUSION_SKIRMISH_ASSERT( &surface->lock );
 
+     D_ASSERT( surface->buffer_indices[CSBR_BACK]  < surface->num_buffers );
+     D_ASSERT( surface->buffer_indices[CSBR_FRONT] < surface->num_buffers );
+
+     if (surface->buffers[surface->buffer_indices[CSBR_BACK]]->policy !=
+         surface->buffers[surface->buffer_indices[CSBR_FRONT]]->policy)
+          return DFB_UNSUPPORTED;
+
      if (swap) {
           int tmp = surface->buffer_indices[CSBR_BACK];
 

@@ -567,15 +567,15 @@ allocate_buffer( CoreSurfaceBuffer       *buffer,
 
      ret = dfb_surface_pools_negotiate( buffer, access, &pool );
      if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed! %dx%d %s - %s%s%s\n",
+          D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed! %dx%d %s - %s%s%s%s%s%s%s\n",
                     surface->config.size.w, surface->config.size.h,
                     dfb_pixelformat_name( surface->config.format ),
                     (surface->type & CSTF_SHARED)   ? "SHARED "  : "PRIVATE ",
-                    (surface->type & CSTF_LAYER)    ? "LAYER "   :
-                    (surface->type & CSTF_WINDOW)   ? "WINDOW "  :
-                    (surface->type & CSTF_CURSOR)   ? "CURSOR "  :
+                    (surface->type & CSTF_LAYER)    ? "LAYER "   : "",
+                    (surface->type & CSTF_WINDOW)   ? "WINDOW "  : "",
+                    (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
                     (surface->type & CSTF_FONT)     ? "FONT "    : "",
-                    (surface->type & CSTF_INTERNAL) ? "INTERNAL" :
+                    (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
                     (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
           return ret;
      }

@@ -295,9 +295,10 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                              CoreSurfaceAccessFlags   access,
                              CoreSurfacePool        **ret_pool )
 {
-     int          i;
-     int          best = -1;
-     CoreSurface *surface;
+     int                   i;
+     int                   best = -1;
+     CoreSurface          *surface;
+     CoreSurfaceTypeFlags  type;
 
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_ASSERT( ret_pool != NULL );
@@ -308,13 +309,28 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
      surface = buffer->surface;
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     type = surface->type & ~(CSTF_INTERNAL | CSTF_EXTERNAL);
+
+     switch (buffer->policy) {
+          case CSP_SYSTEMONLY:
+               type |= CSTF_INTERNAL;
+               break;
+
+          case CSP_VIDEOONLY:
+               type |= CSTF_EXTERNAL;
+               break;
+
+          default:
+               break;
+     }
+
      for (i=0; i<pool_count; i++) {
           CoreSurfacePool *pool = pools[i];
 
           D_DEBUG_AT( Core_SurfacePool, "  -> 0x%02x [%s]\n", pool->desc.access, pool->desc.name );
 
           if (D_FLAGS_ARE_SET( pool->desc.access, access ) &&
-              D_FLAGS_ARE_SET( pool->desc.types,  surface->type ))
+              D_FLAGS_ARE_SET( pool->desc.types,  type ))
           {
                const SurfacePoolFuncs *funcs;
 
