@@ -37,6 +37,8 @@
 
 #include "fbdev.h"
 
+extern FBDev *dfb_fbdev;
+
 D_DEBUG_DOMAIN( FBDev_Surfaces, "FBDev/Surfaces", "FBDev Framebuffer Surface Pool" );
 
 /**********************************************************************************************************************/
@@ -110,14 +112,22 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      surface = buffer->surface;
-
      D_MAGIC_ASSERT( surface, CoreSurface );
 
-     dfb_surface_calc_buffer_size( surface, 8, 0, &alloc->pitch, &alloc->size );
+     if (surface->type & CSTF_LAYER) {
+          int index = dfb_surface_buffer_index( buffer );
 
-     alloc->addr = D_MALLOC( alloc->size );
-     if (!alloc->addr)
-          return D_OOM();
+          alloc->pitch = dfb_fbdev->shared->fix.line_length;
+          alloc->size  = surface->config.size.h * alloc->pitch;
+          alloc->base  = index * alloc->size;
+          alloc->addr  = dfb_fbdev->framebuffer_base + alloc->base;
+     }
+     else {
+          return DFB_UNIMPLEMENTED;
+     }
+
+     allocation->size   = alloc->size;
+     allocation->offset = alloc->base;
 
      D_MAGIC_SET( alloc, FBDevAllocationData );
 
@@ -139,8 +149,6 @@ fbdevDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, FBDevAllocationData );
-
-     D_FREE( alloc->addr );
 
      D_MAGIC_CLEAR( alloc );
 
@@ -164,8 +172,10 @@ fbdevLock( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( alloc, FBDevAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
-     lock->addr  = alloc->addr;
-     lock->pitch = alloc->pitch;
+     lock->pitch  = alloc->pitch;
+     lock->offset = alloc->base;
+     lock->addr   = alloc->addr;
+     lock->phys   = dfb_fbdev->shared->fix.smem_start + alloc->base;
 
      return DFB_OK;
 }
