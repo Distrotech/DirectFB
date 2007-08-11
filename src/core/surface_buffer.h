@@ -144,5 +144,26 @@ DFBResult dfb_surface_buffer_dump   ( CoreSurfaceBuffer       *buffer,
                                       const char              *directory,
                                       const char              *prefix );
 
+static inline int
+dfb_surface_buffer_index( CoreSurfaceBuffer *buffer )
+{
+     int          index;
+     CoreSurface *surface;
+
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     for (index=0; index<MAX_SURFACE_BUFFERS; index++) {
+          if (surface->buffers[index] == buffer)
+               return index;
+     }
+
+     D_ASSERT( index<MAX_SURFACE_BUFFERS );
+
+     return 0;
+}
+
 #endif
 
