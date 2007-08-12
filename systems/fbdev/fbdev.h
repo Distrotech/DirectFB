@@ -97,6 +97,9 @@ typedef struct {
 
      CoreLayerRegionConfig    config;
 
+     VideoMode               *test_mode;
+     CoreLayerRegionConfig    test_config;
+
      SurfaceManager          *manager;
 } FBDevShared;
 
@@ -128,5 +131,8 @@ DFBResult dfb_fbdev_join();
 DFBResult dfb_fbdev_shutdown( bool emergency );
 DFBResult dfb_fbdev_leave( bool emergency );
 
+DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
+                              VideoMode             *mode,
+                              CoreLayerRegionConfig *config );
 
 #endif

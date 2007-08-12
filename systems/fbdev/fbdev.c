@@ -216,9 +216,6 @@ static DFBResult dfb_fbdev_set_palette( CorePalette *palette );
 static DFBResult dfb_fbdev_set_rgb332_palette();
 static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync );
 static DFBResult dfb_fbdev_blank( int level );
-static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
-                                     VideoMode             *mode,
-                                     CoreLayerRegionConfig *config );
 static void      dfb_fbdev_var_to_mode( struct fb_var_screeninfo *var,
                                         VideoMode                *mode );
 
@@ -1271,6 +1268,11 @@ primaryTestRegion( CoreLayer                  *layer,
 
      if (failed)
           *failed = fail;
+     else {
+          /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
+          dfb_fbdev->shared->test_mode   = videomode;  /* HACK */
+          dfb_fbdev->shared->test_config = *config;    /* HACK */
+     }
 
      if (fail)
           return DFB_UNSUPPORTED;
@@ -1324,19 +1326,20 @@ primarySetRegion( CoreLayer                  *layer,
      case CLRCF_SOURCE:
           if (config->source.w == shared->current_mode.xres &&
               config->source.h == shared->current_mode.yres) {
-/*FIXME_SC_3               ret = dfb_fbdev_pan( config->source.x,
-                                    surface->front_buffer->video.offset /
-                                    surface->front_buffer->video.pitch + config->source.y,
+               ret = dfb_fbdev_pan( config->source.x,
+                                    lock->offset / lock->pitch + config->source.y,
                                     true );
                if (ret)
-                    return ret;*/
+                    return ret;
                break;
           }
           /* fall through */
      default:
-          ret = dfb_fbdev_set_mode( surface, highest, config );
-          if (ret)
-               return ret;
+          /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
+          //ret = dfb_fbdev_set_mode( surface, highest, config );
+          //if (ret)
+          //     return ret;
+          ;
      }
 
      if ((updated & CLRCF_PALETTE) && palette)
@@ -1590,9 +1593,10 @@ static DFBResult dfb_fbdev_blank( int level )
  * sets (if surface != NULL) or tests (if surface == NULL) video mode,
  * sets virtual y-resolution according to buffermode
  */
-static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
-                                     VideoMode             *mode,
-                                     CoreLayerRegionConfig *config )
+DFBResult
+dfb_fbdev_set_mode( CoreSurface           *surface,
+                    VideoMode             *mode,
+                    CoreLayerRegionConfig *config )
 {
      unsigned int              vxres, vyres;
      struct fb_var_screeninfo  var;
@@ -1905,6 +1909,10 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
           /* To get the new pitch */
           FBDEV_IOCTL( FBIOGET_FSCREENINFO, &fix );
+
+          D_INFO( "FBDev/Mode: Switched to %dx%d (%dx%d) at %d bit %s (wanted %s).\n",
+                  var.xres, var.yres, var.xres_virtual, var.yres_virtual, var.bits_per_pixel,
+                  dfb_pixelformat_name(format), dfb_pixelformat_name(config->format) );
 
           /* ++Tony: Other information (such as visual formats) will also change */
           shared->fix = fix;

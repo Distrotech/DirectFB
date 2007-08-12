@@ -35,6 +35,8 @@
 
 #include <core/surface_pool.h>
 
+#include <gfx/convert.h>
+
 #include "fbdev.h"
 #include "surfacemanager.h"
 
@@ -133,20 +135,70 @@ fbdevInitPool( CoreDFB                    *core,
 }
 
 static DFBResult
+fbdevJoinPool( CoreDFB                    *core,
+               CoreSurfacePool            *pool,
+               void                       *pool_data,
+               void                       *pool_local,
+               void                       *system_data )
+{
+     FBDevPoolData      *data  = pool_data;
+     FBDevPoolLocalData *local = pool_local;
+
+     D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
+
+     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( data, FBDevPoolData );
+     D_ASSERT( local != NULL );
+
+     (void) data;
+
+     local->core = core;
+
+     D_MAGIC_SET( local, FBDevPoolLocalData );
+
+     return DFB_OK;
+}
+
+static DFBResult
 fbdevDestroyPool( CoreSurfacePool *pool,
                   void            *pool_data,
                   void            *pool_local )
 {
-     FBDevPoolData *data = pool_data;
+     FBDevPoolData      *data  = pool_data;
+     FBDevPoolLocalData *local = pool_local;
 
      D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( data, FBDevPoolData );
+     D_MAGIC_ASSERT( local, FBDevPoolLocalData );
 
      dfb_surfacemanager_destroy( data->manager );
 
      D_MAGIC_CLEAR( data );
+     D_MAGIC_CLEAR( local );
+
+     return DFB_OK;
+}
+
+static DFBResult
+fbdevLeavePool( CoreSurfacePool *pool,
+                void            *pool_data,
+                void            *pool_local )
+{
+     FBDevPoolData      *data  = pool_data;
+     FBDevPoolLocalData *local = pool_local;
+
+     D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( data, FBDevPoolData );
+     D_MAGIC_ASSERT( local, FBDevPoolLocalData );
+
+     (void) data;
+
+     D_MAGIC_CLEAR( local );
 
      return DFB_OK;
 }
@@ -208,11 +260,30 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( surface, CoreSurface );
 
      if (surface->type & CSTF_LAYER) {
-          int index = dfb_surface_buffer_index( buffer );
+          int i, index = dfb_surface_buffer_index( buffer );
+
+          /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
+          for (i=0; i<surface->num_buffers; i++) {
+               if (surface->buffers[i]->allocs.elements)
+                    break;
+          }
+
+          if (i == surface->num_buffers && dfb_fbdev->shared->test_mode) {
+               ret = dfb_fbdev_set_mode( surface, dfb_fbdev->shared->test_mode, &dfb_fbdev->shared->test_config );
+               if (ret)
+                    return ret;
+
+               dfb_fbdev->shared->test_mode = NULL;
+          }
+          /* /HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
 
           alloc->pitch  = dfb_fbdev->shared->fix.line_length;
           alloc->size   = surface->config.size.h * alloc->pitch;
           alloc->offset = index * alloc->size;
+
+          D_INFO( "FBDev/Surface: Allocated %dx%d %dbit %s buffer at offset %d and pitch %d.\n",
+                  surface->config.size.w, surface->config.size.h, dfb_fbdev->shared->current_var.bits_per_pixel,
+                  dfb_pixelformat_name(buffer->format), alloc->offset, alloc->pitch );
      }
      else {
           Chunk *chunk;
@@ -288,7 +359,7 @@ fbdevLock( CoreSurfacePool       *pool,
      lock->addr   = dfb_fbdev->framebuffer_base + alloc->offset;
      lock->phys   = dfb_fbdev->shared->fix.smem_start + alloc->offset;
 
-     D_DEBUG_AT( FBDev_SurfLock, "  -> offset %d, pitch %d, addr %p, phys 0x%08lx\n",
+     D_DEBUG_AT( FBDev_SurfLock, "  -> offset %lu, pitch %d, addr %p, phys 0x%08lx\n",
                  lock->offset, lock->pitch, lock->addr, lock->phys );
 
      return DFB_OK;
@@ -320,8 +391,11 @@ const SurfacePoolFuncs fbdevSurfacePoolFuncs = {
      PoolDataSize:       fbdevPoolDataSize,
      PoolLocalDataSize:  fbdevPoolLocalDataSize,
      AllocationDataSize: fbdevAllocationDataSize,
+
      InitPool:           fbdevInitPool,
+     JoinPool:           fbdevJoinPool,
      DestroyPool:        fbdevDestroyPool,
+     LeavePool:          fbdevLeavePool,
 
      TestConfig:         fbdevTestConfig,
      AllocateBuffer:     fbdevAllocateBuffer,
