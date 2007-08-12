@@ -1251,6 +1251,9 @@ primaryTestRegion( CoreLayer                  *layer,
      VideoMode                  *videomode = NULL;
      CoreLayerRegionConfigFlags  fail = 0;
 
+     D_INFO( "FBDev/Mode: Testing %dx%d %s\n", config->source.w, config->source.h,
+             dfb_pixelformat_name(config->format) );
+
      videomode = dfb_fbdev->shared->modes;
      while (videomode) {
           if (videomode->xres == config->source.w  &&
@@ -1268,14 +1271,15 @@ primaryTestRegion( CoreLayer                  *layer,
 
      if (failed)
           *failed = fail;
-     else {
-          /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
-          dfb_fbdev->shared->test_mode   = videomode;  /* HACK */
-          dfb_fbdev->shared->test_config = *config;    /* HACK */
-     }
 
      if (fail)
           return DFB_UNSUPPORTED;
+
+     D_INFO( "FBDev/Mode: Preparing switch to %dx%d %s\n", config->source.w, config->source.h,
+             dfb_pixelformat_name(config->format) );
+     /* HACK FIXME_SC_2 ALLOCATE/SETMODE TWIST */
+     dfb_fbdev->shared->test_mode   = videomode;  /* HACK */
+     dfb_fbdev->shared->test_config = *config;    /* HACK */
 
      return DFB_OK;
 }
@@ -1305,6 +1309,9 @@ primarySetRegion( CoreLayer                  *layer,
      VideoMode *videomode;
      VideoMode *highest = NULL;
      FBDevShared *shared = dfb_fbdev->shared;
+
+     D_INFO( "FBDev/Mode: (Post)Setting %dx%d %s\n", config->source.w, config->source.h,
+             dfb_pixelformat_name(config->format) );
 
      videomode = shared->modes;
      while (videomode) {

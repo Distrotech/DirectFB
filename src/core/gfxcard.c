@@ -781,6 +781,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
      dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
 
+     state->mod_hw |= state->modified;
+
      /*
       * If function hasn't been set or state is modified,
       * call the driver function to propagate the state changes.

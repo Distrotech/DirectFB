@@ -118,7 +118,7 @@ dfb_surface_buffer_destroy( CoreSurfaceBuffer *buffer )
      D_DEBUG_AT( Core_SurfBuffer, "dfb_surface_buffer_destroy( %p [%dx%d] )\n",
                  buffer, surface->config.size.w, surface->config.size.h );
 
-     fusion_vector_foreach (allocation, i, buffer->allocs)
+     fusion_vector_foreach_reverse (allocation, i, buffer->allocs)
           dfb_surface_pool_deallocate( allocation->pool, allocation );
 
      fusion_vector_destroy( &buffer->allocs );

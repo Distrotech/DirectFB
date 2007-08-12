@@ -314,6 +314,8 @@ dfb_surface_notify( CoreSurface                  *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_FLAGS_ASSERT( flags, CSNF_ALL );
 
+     direct_serial_increase( &surface->serial );
+
      if (!(surface->state & CSSF_DESTROYED)) {
           FUSION_SKIRMISH_ASSERT( &surface->lock );
 
@@ -323,8 +325,6 @@ dfb_surface_notify( CoreSurface                  *surface,
 
      notification.flags   = flags;
      notification.surface = surface;
-
-     direct_serial_increase( &surface->serial );
 
      return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
