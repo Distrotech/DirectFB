@@ -208,8 +208,8 @@ localDeallocateBuffer( CoreSurfacePool       *pool,
      D_MAGIC_ASSERT( alloc, LocalAllocationData );
 
      ret = fusion_call_execute( &alloc->call, FCEF_ONEWAY, 0, alloc->addr, NULL );
-     if (ret)
-          D_DERROR( ret, "SurfPool/Local: Could not call buffer owner to free it there!\n" );
+//     if (ret)
+//          D_DERROR( ret, "SurfPool/Local: Could not call buffer owner to free it there!\n" );
 
      D_MAGIC_CLEAR( alloc );
 
