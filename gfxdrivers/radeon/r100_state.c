@@ -106,20 +106,20 @@ void r100_set_destination( RadeonDriverData *rdrv,
                            RadeonDeviceData *rdev,
                            CardState        *state )
 {
-     CoreSurface   *surface = state->destination;
-     SurfaceBuffer *buffer  = surface->back_buffer;
-     volatile u8   *mmio    = rdrv->mmio_base;
-     u32            offset;
-     u32            pitch;
+     CoreSurface       *surface = state->destination;
+     CoreSurfaceBuffer *buffer  = state->dst.buffer;
+     volatile u8       *mmio    = rdrv->mmio_base;
+     u32                offset;
+     u32                pitch;
     
      if (RADEON_IS_SET( DESTINATION ))
           return;
 
-     D_ASSERT( (buffer->video.offset % 32) == 0 );
-     D_ASSERT( (buffer->video.pitch % 32) == 0 );
+     D_ASSERT( (state->dst.offset % 32) == 0 );
+     D_ASSERT( (state->dst.pitch % 32) == 0 );
 
-     offset = radeon_buffer_offset( rdev, buffer );
-     pitch  = buffer->video.pitch;
+     offset = radeon_buffer_offset( rdev, &state->dst );
+     pitch  = state->dst.pitch;
     
      if (rdev->dst_offset != offset        ||
          rdev->dst_pitch  != pitch         ||
@@ -228,14 +228,14 @@ void r100_set_source( RadeonDriverData *rdrv,
                       RadeonDeviceData *rdev,
                       CardState        *state )
 {
-     CoreSurface   *surface  = state->source;
-     SurfaceBuffer *buffer   = surface->front_buffer;
-     volatile u8   *mmio     = rdrv->mmio_base;
-     u32            txformat = TXFORMAT_NON_POWER2;
-     u32            txfilter = MAG_FILTER_LINEAR  |
-                               MIN_FILTER_LINEAR  |
-                               CLAMP_S_CLAMP_LAST |
-                               CLAMP_T_CLAMP_LAST;
+     CoreSurface       *surface  = state->source;
+     CoreSurfaceBuffer *buffer   = state->src.buffer;
+     volatile u8       *mmio     = rdrv->mmio_base;
+     u32                txformat = TXFORMAT_NON_POWER2;
+     u32                txfilter = MAG_FILTER_LINEAR  |
+                                   MIN_FILTER_LINEAR  |
+                                   CLAMP_S_CLAMP_LAST |
+                                   CLAMP_T_CLAMP_LAST;
 
      if (RADEON_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
@@ -243,11 +243,11 @@ void r100_set_source( RadeonDriverData *rdrv,
                return;
      }
 
-     D_ASSERT( (buffer->video.offset % 32) == 0 );
-     D_ASSERT( (buffer->video.pitch % 32) == 0 );
+     D_ASSERT( (state->src.offset % 32) == 0 );
+     D_ASSERT( (state->src.pitch % 32) == 0 );
      
-     rdev->src_offset = radeon_buffer_offset( rdev, buffer );
-     rdev->src_pitch  = buffer->video.pitch;
+     rdev->src_offset = radeon_buffer_offset( rdev, &state->src );
+     rdev->src_pitch  = state->src.pitch;
      rdev->src_width  = surface->config.size.w;
      rdev->src_height = surface->config.size.h;
      
@@ -347,7 +347,7 @@ void r100_set_source( RadeonDriverData *rdrv,
 
      if (state->blittingflags & DSBLIT_DEINTERLACE) { 
           rdev->src_height /= 2;
-          if (surface->caps & DSCAPS_SEPARATED) {
+          if (surface->config.caps & DSCAPS_SEPARATED) {
                if (surface->field) {
                     rdev->src_offset    += rdev->src_height * rdev->src_pitch;
                     rdev->src_offset_cr += rdev->src_height * rdev->src_pitch/4;

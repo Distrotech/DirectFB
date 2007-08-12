@@ -66,6 +66,7 @@ typedef struct {
      int                    crtc2;
 
      CoreSurface           *surface;
+     CoreSurfaceBufferLock *lock;
      
      /* overlay registers */
      struct {
@@ -105,13 +106,15 @@ typedef struct {
 static void ovl_calc_regs     ( RadeonDriverData        *rdrv,
                                 RadeonOverlayLayerData  *rovl,
                                 CoreSurface             *surface,
-                                CoreLayerRegionConfig   *config );
+                                CoreLayerRegionConfig   *config,
+                                CoreSurfaceBufferLock   *lock );
 static void ovl_set_regs      ( RadeonDriverData        *rdrv,
                                 RadeonOverlayLayerData  *rovl );                            
 static void ovl_calc_buffers  ( RadeonDriverData        *rdrv,
                                 RadeonOverlayLayerData  *rovl,
                                 CoreSurface             *surface,
-                                CoreLayerRegionConfig   *config );
+                                CoreLayerRegionConfig   *config,
+                                CoreSurfaceBufferLock   *lock );
 static void ovl_set_buffers   ( RadeonDriverData        *rdrv,
                                 RadeonOverlayLayerData  *rovl );
 static void ovl_set_colorkey  ( RadeonDriverData        *rdrv,
@@ -300,7 +303,8 @@ ovlSetRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
-              CorePalette                *palette )
+              CorePalette                *palette,
+              CoreSurfaceBufferLock      *lock )
 {
      RadeonDriverData       *rdrv = (RadeonDriverData*) driver_data;
      RadeonOverlayLayerData *rovl = (RadeonOverlayLayerData*) layer_data;
@@ -313,34 +317,39 @@ ovlSetRegion( CoreLayer                  *layer,
      if (updated & (CLRCF_WIDTH  | CLRCF_HEIGHT | CLRCF_FORMAT  |
                     CLRCF_SOURCE | CLRCF_DEST   | CLRCF_OPTIONS | CLRCF_OPACITY)) 
      {
-          ovl_calc_regs( rdrv, rovl, surface, &rovl->config );
+          ovl_calc_regs( rdrv, rovl, surface, &rovl->config, lock );
           ovl_set_regs( rdrv, rovl );
      }
      
      if (updated & (CLRCF_SRCKEY | CLRCF_DSTKEY))
           ovl_set_colorkey( rdrv, rovl, &rovl->config );
 
+     rovl->lock = lock;
+
      return DFB_OK;
 }
 
 static DFBResult
-ovlFlipRegion( CoreLayer           *layer,
-               void                *driver_data,
-               void                *layer_data,
-               void                *region_data,
-               CoreSurface         *surface,
-               DFBSurfaceFlipFlags  flags )
+ovlFlipRegion( CoreLayer             *layer,
+               void                  *driver_data,
+               void                  *layer_data,
+               void                  *region_data,
+               CoreSurface           *surface,
+               DFBSurfaceFlipFlags    flags,
+               CoreSurfaceBufferLock *lock )
 {
      RadeonDriverData       *rdrv = (RadeonDriverData*) driver_data;
      RadeonOverlayLayerData *rovl = (RadeonOverlayLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface, false );
+     dfb_surface_flip( surface, false );
       
-     ovl_calc_buffers( rdrv, rovl, surface, &rovl->config );
+     ovl_calc_buffers( rdrv, rovl, surface, &rovl->config, lock );
      ovl_set_buffers( rdrv, rovl );
    
      if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( layer );
+
+     rovl->lock = lock;
 
      return DFB_OK;
 }
@@ -385,7 +394,7 @@ ovlSetInputField( CoreLayer *layer,
      rovl->field = field;
              
      if (rovl->surface) {
-          ovl_calc_buffers( rdrv, rovl, rovl->surface, &rovl->config );
+          ovl_calc_buffers( rdrv, rovl, rovl->surface, &rovl->config, rovl->lock );
           ovl_set_buffers( rdrv, rovl );
      }
      
@@ -421,7 +430,7 @@ ovlSetLevel( CoreLayer *layer,
           case -1:
           case  1:
                rovl->level = level;
-               ovl_calc_regs( rdrv, rovl, rovl->surface, &rovl->config );
+               ovl_calc_regs( rdrv, rovl, rovl->surface, &rovl->config, rovl->lock );
                ovl_set_regs( rdrv, rovl );
                break;
           default:
@@ -616,16 +625,16 @@ static void
 ovl_calc_buffers( RadeonDriverData       *rdrv,
                   RadeonOverlayLayerData *rovl,
                   CoreSurface            *surface,
-                  CoreLayerRegionConfig  *config )
+                  CoreLayerRegionConfig  *config,
+                  CoreSurfaceBufferLock  *lock )
 {
-     RadeonDeviceData *rdev       = rdrv->device_data;
-     SurfaceBuffer    *buffer     = surface->front_buffer;
-     DFBRectangle      source     = config->source;
-     u32               offsets[3] = { 0, 0, 0 };
-     u32               pitch      = buffer->video.pitch;
-     int               even       = 0;
-     int               cropleft;
-     int               croptop;
+     RadeonDeviceData  *rdev       = rdrv->device_data;
+     DFBRectangle       source     = config->source;
+     u32                offsets[3] = { 0, 0, 0 };
+     u32                pitch      = lock->pitch;
+     int                even       = 0;
+     int                cropleft;
+     int                croptop;
      
      if (config->options & DLOP_DEINTERLACING) {
           source.y /= 2;
@@ -647,17 +656,17 @@ ovl_calc_buffers( RadeonDriverData       *rdrv,
           cropleft &= ~31;
           croptop  &= ~1;
      
-          offsets[0]  = buffer->video.offset;
-          offsets[1]  = offsets[0] + surface->config.size.h   * buffer->video.pitch; 
-          offsets[2]  = offsets[1] + surface->config.size.h/2 * buffer->video.pitch/2;
+          offsets[0]  = lock->offset;
+          offsets[1]  = offsets[0] + surface->config.size.h   * lock->pitch; 
+          offsets[2]  = offsets[1] + surface->config.size.h/2 * lock->pitch/2;
           offsets[0] += croptop   * pitch   + cropleft;
           offsets[1] += croptop/2 * pitch/2 + cropleft/2;
           offsets[2] += croptop/2 * pitch/2 + cropleft/2;
           
           if (even) {
-               offsets[0] += buffer->video.pitch;
-               offsets[1] += buffer->video.pitch/2;
-               offsets[2] += buffer->video.pitch/2;
+               offsets[0] += lock->pitch;
+               offsets[1] += lock->pitch/2;
+               offsets[2] += lock->pitch/2;
           }
 
           if (surface->config.format == DSPF_YV12) {
@@ -667,27 +676,19 @@ ovl_calc_buffers( RadeonDriverData       *rdrv,
           }
      } 
      else {
-          offsets[0] = buffer->video.offset + croptop * pitch +
+          offsets[0] = lock->offset + croptop * pitch +
                        cropleft * DFB_BYTES_PER_PIXEL( surface->config.format );
           if (even) 
-               offsets[0] += buffer->video.pitch;
+               offsets[0] += lock->pitch;
           
           offsets[1] = 
           offsets[2] = offsets[0];
      }
 
-     switch (buffer->storage) {
-          case CSS_VIDEO:
-               rovl->regs.BASE_ADDR = rdev->fb_offset;
-               break;
-          case CSS_AUXILIARY:
-               rovl->regs.BASE_ADDR = rdev->agp_offset;
-               break;
-          default:
-               D_BUG( "unknown buffer storage" );
-               config->opacity = 0;
-               return;
-     }
+     if (lock->phys - lock->offset == rdev->fb_phys)
+          rovl->regs.BASE_ADDR = rdev->fb_offset;
+     else
+          rovl->regs.BASE_ADDR = rdev->agp_offset;
  
      rovl->regs.VID_BUF0_BASE_ADRS   = (offsets[0] & VIF_BUF0_BASE_ADRS_MASK);
      rovl->regs.VID_BUF1_BASE_ADRS   = (offsets[1] & VIF_BUF1_BASE_ADRS_MASK) |
@@ -707,7 +708,8 @@ static void
 ovl_calc_regs( RadeonDriverData       *rdrv,
                RadeonOverlayLayerData *rovl,
                CoreSurface            *surface,
-               CoreLayerRegionConfig  *config )
+               CoreLayerRegionConfig  *config,
+               CoreSurfaceBufferLock  *lock )
 {
      rovl->regs.SCALE_CNTL = 0;
      
@@ -715,7 +717,7 @@ ovl_calc_regs( RadeonDriverData       *rdrv,
      ovl_calc_coordinates( rdrv, rovl, surface, config );
      
      /* Configure buffers */                                   
-     ovl_calc_buffers( rdrv, rovl, surface, config );
+     ovl_calc_buffers( rdrv, rovl, surface, config, lock );
      
      /* Configure scaler */
      if (rovl->level == -1) {
