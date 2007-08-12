@@ -248,8 +248,13 @@ alloc_callback( CoreSurfaceAllocation *alloc,
      CoreSurface       *surface;
      CoreSurfaceBuffer *buffer;
 
+     D_MAGIC_ASSERT( alloc, CoreSurfaceAllocation );
+
      buffer  = alloc->buffer;
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
      surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
 
      printf( "%9lu %8d  ", alloc->offset, alloc->size );
 
