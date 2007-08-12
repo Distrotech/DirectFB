@@ -178,10 +178,8 @@ dfb_surface_buffer_lock( CoreSurfaceBuffer      *buffer,
 
      if (!allocation) {
           ret = allocate_buffer( buffer, access, &allocation );
-          if (ret) {
-               D_DERROR( ret, "Core/SurfBuffer: Buffer allocation failed!\n" );
+          if (ret)
                return ret;
-          }
 
           D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      }
@@ -567,16 +565,18 @@ allocate_buffer( CoreSurfaceBuffer       *buffer,
 
      ret = dfb_surface_pools_negotiate( buffer, access, &pool );
      if (ret) {
-          D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed! %dx%d %s - %s%s%s%s%s%s%s\n",
-                    surface->config.size.w, surface->config.size.h,
-                    dfb_pixelformat_name( surface->config.format ),
-                    (surface->type & CSTF_SHARED)   ? "SHARED "  : "PRIVATE ",
-                    (surface->type & CSTF_LAYER)    ? "LAYER "   : "",
-                    (surface->type & CSTF_WINDOW)   ? "WINDOW "  : "",
-                    (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
-                    (surface->type & CSTF_FONT)     ? "FONT "    : "",
-                    (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
-                    (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
+          if (ret != DFB_NOVIDEOMEMORY)
+               D_DERROR( ret, "Core/SurfBuffer: Surface pool negotiation failed! %dx%d %s - %s%s%s%s%s%s%s\n",
+                         surface->config.size.w, surface->config.size.h,
+                         dfb_pixelformat_name( surface->config.format ),
+                         (surface->type & CSTF_SHARED)   ? "SHARED "  : "PRIVATE ",
+                         (surface->type & CSTF_LAYER)    ? "LAYER "   : "",
+                         (surface->type & CSTF_WINDOW)   ? "WINDOW "  : "",
+                         (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
+                         (surface->type & CSTF_FONT)     ? "FONT "    : "",
+                         (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
+                         (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
+
           return ret;
      }
 

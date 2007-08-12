@@ -620,37 +620,6 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      if (state->disabled & accel)
           return false;
 
-     /*
-      * If back_buffer policy is 'system only' there's no acceleration
-      * available.
-      */
-     if (dst_buffer->policy == CSP_SYSTEMONLY) {
-          /* Clear 'accelerated functions'. */
-          state->accel   = 0;
-          state->checked = DFXL_ALL;
-
-          /* Return immediately. */
-          return false;
-     }
-
-     /*
-      * If the front buffer policy of the source is 'system only'
-      * no accelerated blitting is available.
-      */
-     if (DFB_BLITTING_FUNCTION( accel )) {
-          src_buffer = dfb_surface_get_buffer( src, state->from );
-
-          D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
-
-          if (src_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
-               /* Clear 'accelerated blitting functions'. */
-               state->accel   &= 0x0000FFFF;
-               state->checked |= 0xFFFF0000;
-     
-               return false;
-          }
-     }
-
      /* If destination or blend functions have been changed... */
      if (state->modified & (SMF_DESTINATION | SMF_SRC_BLEND | SMF_DST_BLEND)) {
           /* ...force rechecking for all functions. */
@@ -683,6 +652,41 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 
           /* Add additional functions the driver might have checked, too. */
           state->checked |= state->accel;
+     }
+
+     /* Move modification flags to the set for drivers. */
+     state->mod_hw   |= state->modified;
+     state->modified  = 0;
+
+     /*
+      * If back_buffer policy is 'system only' there's no acceleration
+      * available.
+      */
+     if (dst_buffer->policy == CSP_SYSTEMONLY) {
+          /* Clear 'accelerated functions'. */
+          state->accel   = 0;
+          state->checked = DFXL_ALL;
+
+          /* Return immediately. */
+          return false;
+     }
+
+     /*
+      * If the front buffer policy of the source is 'system only'
+      * no accelerated blitting is available.
+      */
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          src_buffer = dfb_surface_get_buffer( src, state->from );
+
+          D_MAGIC_ASSERT( src_buffer, CoreSurfaceBuffer );
+
+          if (src_buffer->policy == CSP_SYSTEMONLY && !(card->caps.flags & CCF_READSYSMEM)) {
+               /* Clear 'accelerated blitting functions'. */
+               state->accel   &= 0x0000FFFF;
+               state->checked |= 0xFFFF0000;
+     
+               return false;
+          }
      }
 
      /* Return whether the function bit is set. */
@@ -726,7 +730,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* lock destination */
      ret = dfb_surface_lock_buffer( dst, state->to, access, &state->dst );
      if (ret) {
-          D_DERROR( ret, "Core/Graphics: Could not lock destination for GPU access!\n" );
+          if (ret != DFB_NOVIDEOMEMORY)
+               D_DERROR( ret, "Core/Graphics: Could not lock destination for GPU access!\n" );
           return false;
      }
 
@@ -735,7 +740,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           /* ...lock source for reading */
           ret = dfb_surface_lock_buffer( src, state->from, CSAF_GPU_READ, &state->src );
           if (ret) {
-               D_DERROR( ret, "Core/Graphics: Could not lock source for GPU access!\n" );
+               if (ret != DFB_NOVIDEOMEMORY)
+                    D_DERROR( ret, "Core/Graphics: Could not lock source for GPU access!\n" );
                dfb_surface_unlock_buffer( dst, &state->dst );
                return false;
           }
@@ -766,8 +772,8 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if we are switching to another state... */
      if (state != shared->state || state->fusion_id != shared->holder) {
           /* ...set all modification bits and clear 'set functions' */
-          state->modified |= SMF_ALL;
-          state->set       = 0;
+          state->mod_hw |= SMF_ALL;
+          state->set     = 0;
 
           shared->state  = state;
           shared->holder = state->fusion_id;
@@ -779,7 +785,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * If function hasn't been set or state is modified,
       * call the driver function to propagate the state changes.
       */
-     if (state->modified || !(state->set & accel))
+     if (state->mod_hw || !(state->set & accel))
           card->funcs.SetState( card->driver_data, card->device_data,
                                 &card->funcs, state, accel );
 
@@ -2163,6 +2169,76 @@ int
 dfb_gfxcard_get_accelerator( CoreGraphicsDevice *device )
 {
      return dfb_system_get_accelerator();
+}
+
+void
+dfb_gfxcard_get_limits( CoreGraphicsDevice *device,
+                        CardLimitations    *ret_limits )
+{
+     D_ASSERT( device != NULL );
+     D_ASSERT( ret_limits != NULL );
+
+     if (!device)
+          device = card;
+
+     *ret_limits = device->limits;
+}
+
+void
+dfb_gfxcard_calc_buffer_size( CoreGraphicsDevice *device,
+                              CoreSurfaceBuffer  *buffer,
+                              int                *ret_pitch,
+                              int                *ret_length )
+{
+     int          pitch;
+     int          length;
+     CoreSurface *surface;
+
+     D_ASSERT( device != NULL );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     /* calculate the required length depending on limitations */
+     pitch = MAX( surface->config.size.w, surface->config.min_size.w );
+
+     if (pitch < device->limits.surface_max_power_of_two_pixelpitch &&
+         surface->config.size.h < device->limits.surface_max_power_of_two_height)
+          pitch = 1 << direct_log2( pitch );
+
+     if (device->limits.surface_pixelpitch_alignment > 1) {
+          pitch += device->limits.surface_pixelpitch_alignment - 1;
+          pitch -= pitch % device->limits.surface_pixelpitch_alignment;
+     }
+
+     pitch = DFB_BYTES_PER_LINE( buffer->format, pitch );
+
+     if (pitch < device->limits.surface_max_power_of_two_bytepitch &&
+         surface->config.size.h < device->limits.surface_max_power_of_two_height)
+          pitch = 1 << direct_log2( pitch );
+
+     if (device->limits.surface_bytepitch_alignment > 1) {
+          pitch += device->limits.surface_bytepitch_alignment - 1;
+          pitch -= pitch % device->limits.surface_bytepitch_alignment;
+     }
+
+     length = DFB_PLANE_MULTIPLY( buffer->format,
+                                  MAX( surface->config.size.h, surface->config.min_size.h ) * pitch );
+
+     /* Add extra space for optimized routines which are now allowed to overrun, e.g. prefetching. */
+     length += 16;
+
+     if (device->limits.surface_byteoffset_alignment > 1) {
+          length += device->limits.surface_byteoffset_alignment - 1;
+          length -= length % device->limits.surface_byteoffset_alignment;
+     }
+
+     if (ret_pitch)
+          *ret_pitch = pitch;
+
+     if (ret_length)
+          *ret_length = length;
 }
 
 unsigned long

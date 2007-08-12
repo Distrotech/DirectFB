@@ -100,6 +100,7 @@ typedef struct {
      DFBResult (*TestConfig) ( CoreSurfacePool            *pool,
                                void                       *pool_data,
                                void                       *pool_local,
+                               CoreSurfaceBuffer          *buffer,
                                const CoreSurfaceConfig    *config );
      /*
       * Buffer management

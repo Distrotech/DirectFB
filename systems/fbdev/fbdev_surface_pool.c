@@ -36,15 +36,36 @@
 #include <core/surface_pool.h>
 
 #include "fbdev.h"
+#include "surfacemanager.h"
 
 extern FBDev *dfb_fbdev;
 
 D_DEBUG_DOMAIN( FBDev_Surfaces, "FBDev/Surfaces", "FBDev Framebuffer Surface Pool" );
+D_DEBUG_DOMAIN( FBDev_SurfLock, "FBDev/SurfLock", "FBDev Framebuffer Surface Pool Locks" );
 
 /**********************************************************************************************************************/
 
 typedef struct {
+     int             magic;
+
+     SurfaceManager *manager;
 } FBDevPoolData;
+
+typedef struct {
+     int             magic;
+
+     CoreDFB        *core;
+} FBDevPoolLocalData;
+
+typedef struct {
+     int   magic;
+
+     int   offset;
+     int   pitch;
+     int   size;
+
+     Chunk *chunk;
+} FBDevAllocationData;
 
 /**********************************************************************************************************************/
 
@@ -52,6 +73,12 @@ static int
 fbdevPoolDataSize()
 {
      return sizeof(FBDevPoolData);
+}
+
+static int
+fbdevPoolLocalDataSize()
+{
+     return sizeof(FBDevPoolLocalData);
 }
 
 static int
@@ -68,10 +95,21 @@ fbdevInitPool( CoreDFB                    *core,
                void                       *system_data,
                CoreSurfacePoolDescription *ret_desc )
 {
+     DFBResult           ret;
+     FBDevPoolData      *data  = pool_data;
+     FBDevPoolLocalData *local = pool_local;
+
      D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
 
+     D_ASSERT( core != NULL );
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_ASSERT( data != NULL );
+     D_ASSERT( local != NULL );
      D_ASSERT( ret_desc != NULL );
+
+     ret = dfb_surfacemanager_create( core, dfb_fbdev->shared->fix.smem_len, &data->manager );
+     if (ret)
+          return ret;
 
      ret_desc->caps     = CSPCAPS_NONE;
      ret_desc->access   = CSAF_CPU_READ | CSAF_CPU_WRITE | CSAF_GPU_READ | CSAF_GPU_WRITE | CSAF_SHARED;
@@ -79,6 +117,17 @@ fbdevInitPool( CoreDFB                    *core,
      ret_desc->priority = CSPP_DEFAULT;
 
      snprintf( ret_desc->name, DFB_SURFACE_POOL_DESC_NAME_LENGTH, "Frame Buffer Memory" );
+
+     local->core = core;
+
+     D_MAGIC_SET( data, FBDevPoolData );
+     D_MAGIC_SET( local, FBDevPoolLocalData );
+
+
+     D_ASSERT( dfb_fbdev != NULL );
+     D_ASSERT( dfb_fbdev->shared != NULL );
+
+     dfb_fbdev->shared->manager = data->manager;
 
      return DFB_OK;
 }
@@ -88,11 +137,50 @@ fbdevDestroyPool( CoreSurfacePool *pool,
                   void            *pool_data,
                   void            *pool_local )
 {
+     FBDevPoolData *data = pool_data;
+
      D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( data, FBDevPoolData );
+
+     dfb_surfacemanager_destroy( data->manager );
+
+     D_MAGIC_CLEAR( data );
 
      return DFB_OK;
+}
+
+static DFBResult
+fbdevTestConfig( CoreSurfacePool         *pool,
+                 void                    *pool_data,
+                 void                    *pool_local,
+                 CoreSurfaceBuffer       *buffer,
+                 const CoreSurfaceConfig *config )
+{
+     DFBResult           ret;
+     CoreSurface        *surface;
+     FBDevPoolData      *data  = pool_data;
+     FBDevPoolLocalData *local = pool_local;
+
+     D_DEBUG_AT( FBDev_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
+
+     D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( data, FBDevPoolData );
+     D_MAGIC_ASSERT( local, FBDevPoolLocalData );
+     D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
+
+     surface = buffer->surface;
+     D_MAGIC_ASSERT( surface, CoreSurface );
+
+     if (surface->type & CSTF_LAYER)
+          return DFB_OK;
+
+     ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, NULL );
+
+     D_DEBUG_AT( FBDev_Surfaces, "  -> %s\n", DirectFBErrorString(ret) );
+
+     return ret;
 }
 
 static DFBResult
@@ -103,12 +191,17 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
                      CoreSurfaceAllocation *allocation,
                      void                  *alloc_data )
 {
+     DFBResult            ret;
      CoreSurface         *surface;
+     FBDevPoolData       *data  = pool_data;
+     FBDevPoolLocalData  *local = pool_local;
      FBDevAllocationData *alloc = alloc_data;
 
-     D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( FBDev_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( data, FBDevPoolData );
+     D_MAGIC_ASSERT( local, FBDevPoolLocalData );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
 
      surface = buffer->surface;
@@ -117,17 +210,30 @@ fbdevAllocateBuffer( CoreSurfacePool       *pool,
      if (surface->type & CSTF_LAYER) {
           int index = dfb_surface_buffer_index( buffer );
 
-          alloc->pitch = dfb_fbdev->shared->fix.line_length;
-          alloc->size  = surface->config.size.h * alloc->pitch;
-          alloc->base  = index * alloc->size;
-          alloc->addr  = dfb_fbdev->framebuffer_base + alloc->base;
+          alloc->pitch  = dfb_fbdev->shared->fix.line_length;
+          alloc->size   = surface->config.size.h * alloc->pitch;
+          alloc->offset = index * alloc->size;
      }
      else {
-          return DFB_UNIMPLEMENTED;
+          Chunk *chunk;
+
+          ret = dfb_surfacemanager_allocate( local->core, data->manager, buffer, &chunk );
+          if (ret)
+               return ret;
+
+          D_MAGIC_ASSERT( chunk, Chunk );
+
+          alloc->offset = chunk->offset;
+          alloc->pitch  = chunk->pitch;
+          alloc->size   = surface->config.size.h * alloc->pitch;
+
+          alloc->chunk  = chunk;
      }
 
+     D_DEBUG_AT( FBDev_Surfaces, "  -> offset %d, pitch %d, size %d\n", alloc->offset, alloc->pitch, alloc->size );
+
      allocation->size   = alloc->size;
-     allocation->offset = alloc->base;
+     allocation->offset = alloc->offset;
 
      D_MAGIC_SET( alloc, FBDevAllocationData );
 
@@ -142,13 +248,18 @@ fbdevDeallocateBuffer( CoreSurfacePool       *pool,
                        CoreSurfaceAllocation *allocation,
                        void                  *alloc_data )
 {
+     FBDevPoolData       *data  = pool_data;
      FBDevAllocationData *alloc = alloc_data;
 
-     D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( FBDev_Surfaces, "%s( %p )\n", __FUNCTION__, buffer );
 
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
+     D_MAGIC_ASSERT( data, FBDevPoolData );
      D_MAGIC_ASSERT( buffer, CoreSurfaceBuffer );
      D_MAGIC_ASSERT( alloc, FBDevAllocationData );
+
+     if (alloc->chunk)
+          dfb_surfacemanager_deallocate( data->manager, alloc->chunk );
 
      D_MAGIC_CLEAR( alloc );
 
@@ -165,17 +276,20 @@ fbdevLock( CoreSurfacePool       *pool,
 {
      FBDevAllocationData *alloc = alloc_data;
 
-     D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
-
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, FBDevAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
 
+     D_DEBUG_AT( FBDev_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+
      lock->pitch  = alloc->pitch;
-     lock->offset = alloc->base;
-     lock->addr   = alloc->addr;
-     lock->phys   = dfb_fbdev->shared->fix.smem_start + alloc->base;
+     lock->offset = alloc->offset;
+     lock->addr   = dfb_fbdev->framebuffer_base + alloc->offset;
+     lock->phys   = dfb_fbdev->shared->fix.smem_start + alloc->offset;
+
+     D_DEBUG_AT( FBDev_SurfLock, "  -> offset %d, pitch %d, addr %p, phys 0x%08lx\n",
+                 lock->offset, lock->pitch, lock->addr, lock->phys );
 
      return DFB_OK;
 }
@@ -190,22 +304,26 @@ fbdevUnlock( CoreSurfacePool       *pool,
 {
      FBDevAllocationData *alloc = alloc_data;
 
-     D_DEBUG_AT( FBDev_Surfaces, "%s()\n", __FUNCTION__ );
-
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
      D_MAGIC_ASSERT( alloc, FBDevAllocationData );
      D_MAGIC_ASSERT( lock, CoreSurfaceBufferLock );
+
+     D_DEBUG_AT( FBDev_SurfLock, "%s( %p )\n", __FUNCTION__, lock->buffer );
+
+     (void) alloc;
 
      return DFB_OK;
 }
 
 const SurfacePoolFuncs fbdevSurfacePoolFuncs = {
      PoolDataSize:       fbdevPoolDataSize,
+     PoolLocalDataSize:  fbdevPoolLocalDataSize,
      AllocationDataSize: fbdevAllocationDataSize,
      InitPool:           fbdevInitPool,
      DestroyPool:        fbdevDestroyPool,
 
+     TestConfig:         fbdevTestConfig,
      AllocateBuffer:     fbdevAllocateBuffer,
      DeallocateBuffer:   fbdevDeallocateBuffer,
 

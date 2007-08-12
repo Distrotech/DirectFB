@@ -40,9 +40,10 @@
 #include <fusion/call.h>
 #include <fusion/reactor.h>
 
-#include "fb.h"
-#include "vt.h"
 #include "agp.h"
+#include "fb.h"
+#include "surfacemanager.h"
+#include "vt.h"
 
 #ifndef FBIO_WAITFORVSYNC
 #define FBIO_WAITFORVSYNC	_IOW('F', 0x20, u_int32_t)
@@ -95,6 +96,8 @@ typedef struct {
      FusionSHMPoolShared     *shmpool_data;
 
      CoreLayerRegionConfig    config;
+
+     SurfaceManager          *manager;
 } FBDevShared;
 
 typedef struct {
@@ -124,16 +127,6 @@ DFBResult dfb_fbdev_join();
  */
 DFBResult dfb_fbdev_shutdown( bool emergency );
 DFBResult dfb_fbdev_leave( bool emergency );
-
-
-typedef struct {
-     int   magic;
-
-     void *addr;
-     int   base;
-     int   pitch;
-     int   size;
-} FBDevAllocationData;
 
 
 #endif

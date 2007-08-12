@@ -53,11 +53,7 @@ typedef struct _CoreCleanup                  CoreCleanup;
 typedef struct _CoreFont                     CoreFont;
 typedef struct _CorePalette                  CorePalette;
 
-typedef struct _SurfaceManager               SurfaceManager;
-
 typedef struct _CardState                    CardState;
-
-typedef struct _Chunk                        Chunk;
 
 
 typedef struct __DFB_CoreGraphicsSerial      CoreGraphicsSerial;

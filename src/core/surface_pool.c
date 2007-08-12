@@ -295,8 +295,10 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
                              CoreSurfaceAccessFlags   access,
                              CoreSurfacePool        **ret_pool )
 {
+     DFBResult             ret;
      int                   i;
      int                   best = -1;
+     bool                  oovm = false;
      CoreSurface          *surface;
      CoreSurfaceTypeFlags  type;
 
@@ -338,9 +340,20 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
 
                funcs = get_funcs( pool );
 
-               if (funcs->TestConfig &&
-                   funcs->TestConfig( pool, pool->data, get_local(pool), &surface->config ))
-                    continue;
+               if (funcs->TestConfig) {
+                    ret = funcs->TestConfig( pool, pool->data, get_local(pool), buffer, &surface->config );
+                    switch (ret) {
+                         case DFB_OK:
+                              break;
+
+                         case DFB_NOVIDEOMEMORY:
+                              oovm = true;
+                              /* fall through */
+
+                         default:
+                              continue;
+                    }
+               }
 
                if (best <= (int)pool->desc.priority) {
                     best = pool->desc.priority;
@@ -356,7 +369,7 @@ dfb_surface_pools_negotiate( CoreSurfaceBuffer       *buffer,
           return DFB_OK;
      }
 
-     return DFB_UNSUPPORTED;
+     return oovm ? DFB_NOVIDEOMEMORY : DFB_UNSUPPORTED;
 }
 
 DFBResult

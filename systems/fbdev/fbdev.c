@@ -1909,6 +1909,9 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           /* ++Tony: Other information (such as visual formats) will also change */
           shared->fix = fix;
 
+          dfb_surfacemanager_adjust_heap_offset( dfb_fbdev->shared->manager,
+                                                 var.yres_virtual * fix.line_length );
+
           dfb_fbdev_pan( var.xoffset, var.yoffset, false );
 
           dfb_gfxcard_after_set_var();

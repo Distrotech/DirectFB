@@ -105,6 +105,8 @@ typedef struct {
           void *addr;
           int   pitch;
      }                        preallocated[MAX_SURFACE_BUFFERS];
+
+     DFBDimension             min_size;
 } CoreSurfaceConfig;
 
 typedef enum {

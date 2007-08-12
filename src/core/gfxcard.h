@@ -434,6 +434,14 @@ void dfb_gfxcard_unmap_mmio( CoreGraphicsDevice *device,
 
 int dfb_gfxcard_get_accelerator( CoreGraphicsDevice *device );
 
+void dfb_gfxcard_get_limits( CoreGraphicsDevice *device,
+                             CardLimitations    *ret_limits );
+
+void dfb_gfxcard_calc_buffer_size( CoreGraphicsDevice *device,
+                                   CoreSurfaceBuffer  *buffer,
+                                   int                *ret_pitch,
+                                   int                *ret_length );
+
 unsigned long  dfb_gfxcard_memory_physical   ( CoreGraphicsDevice *device,
                                                unsigned int        offset );
 void          *dfb_gfxcard_memory_virtual    ( CoreGraphicsDevice *device,

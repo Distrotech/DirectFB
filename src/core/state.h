@@ -96,6 +96,7 @@ struct _CardState {
      StateModificationFlags   modified;      /* indicate which fields have been
                                                 modified, these flags will be
                                                 cleared by the gfx drivers */
+     StateModificationFlags   mod_hw;
 
      /* values forming the state for graphics operations */
 

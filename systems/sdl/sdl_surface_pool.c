@@ -105,6 +105,7 @@ static DFBResult
 sdlTestConfig( CoreSurfacePool         *pool,
                void                    *pool_data,
                void                    *pool_local,
+               CoreSurfaceBuffer       *buffer,
                const CoreSurfaceConfig *config )
 {
      D_DEBUG_AT( SDL_Pool, "%s()\n", __FUNCTION__ );

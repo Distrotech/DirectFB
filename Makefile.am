@@ -1,7 +1,7 @@
 ## Makefile.am for DirectFB
 
 if HAVE_LINUX
-LINUXONLY_DIRS = inputdrivers #gfxdrivers
+LINUXONLY_DIRS = inputdrivers gfxdrivers
 endif
 
 if BUILD_TOOLS

@@ -72,10 +72,11 @@ preallocInitPool( CoreDFB                    *core,
 }
 
 static DFBResult
-preallocTestConfig( CoreSurfacePool            *pool,
-                    void                       *pool_data,
-                    void                       *pool_local,
-                    const CoreSurfaceConfig    *config )
+preallocTestConfig( CoreSurfacePool         *pool,
+                    void                    *pool_data,
+                    void                    *pool_local,
+                    CoreSurfaceBuffer       *buffer,
+                    const CoreSurfaceConfig *config )
 {
      D_MAGIC_ASSERT( pool, CoreSurfacePool );
      D_ASSERT( config != NULL );
