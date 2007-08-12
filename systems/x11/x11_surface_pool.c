@@ -171,6 +171,7 @@ static DFBResult
 x11TestConfig( CoreSurfacePool         *pool,
                void                    *pool_data,
                void                    *pool_local,
+               CoreSurfaceBuffer       *buffer,
                const CoreSurfaceConfig *config )
 {
      return x11ImageInit( NULL, config->size.w, config->size.h, config->format );
