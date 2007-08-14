@@ -2891,6 +2891,8 @@ driver_close_device( GraphicsDevice *device,
      mga_waitfifo( mdrv, mdev, 1 );
      mga_out32( mdrv->mmio_base, 0, DSTORG );
 
+     /* make sure BES registers get updated (besvcnt) */
+     mga_out32( mdrv->mmio_base, 0, BESGLOBCTL );
      /* make sure overlay is off */
      mga_out32( mdrv->mmio_base, 0, BESCTL );
 
