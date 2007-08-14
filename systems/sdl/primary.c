@@ -422,14 +422,12 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
 static DFBResult
 update_screen( int x, int y, int w, int h )
 {
-     int          i, n;
+     int          i;
      void        *dst;
      void        *src;
      int          pitch;
      DFBResult    ret;
      CoreSurface *surface;
-     u16         *src16, *dst16;
-     u8          *src8;
 
      D_DEBUG_AT( SDL_Updates, "%s( %d, %d, %d, %d )\n", __FUNCTION__, x, y, w, h );
 

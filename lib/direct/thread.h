@@ -29,6 +29,8 @@
 #ifndef __DIRECT__THREAD_H__
 #define __DIRECT__THREAD_H__
 
+#include <sys/types.h>
+
 #include <direct/types.h>
 
 

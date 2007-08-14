@@ -35,6 +35,7 @@
 #include <stdio.h>
 
 #include <directfb.h>
+#include <directfb_util.h>
 
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
@@ -405,7 +406,6 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 static DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h )
 {
-     int          i;
      void        *dst;
      void        *src;
      int          pitch;

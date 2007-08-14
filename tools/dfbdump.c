@@ -614,14 +614,15 @@ main( int argc, char *argv[] )
      dump_surfaces();
      dump_layers();
 
-#if FUSION_BUILD_MULTI
      if (argc > 1 && !strcmp( argv[1], "-s" )) {
+#if FUSION_BUILD_MULTI
           printf( "\n" );
           dump_shmpool( dfb_core_shmpool(NULL) );
           dump_shmpool( dfb_core_shmpool_data(NULL) );
+#endif
+          printf( "\n" );
           dump_video_memory_chunks();
      }
-#endif
 
      if (argc > 1 && !strcmp( argv[1], "-p" )) {
           pause();
