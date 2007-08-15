@@ -1618,7 +1618,7 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
  */
 static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
 {
-     DFBResult                 ret;
+//     DFBResult                 ret;
      int                       result;
      struct fb_var_screeninfo *var;
      FBDevShared              *shared = dfb_fbdev->shared;
@@ -1665,6 +1665,7 @@ static DFBResult dfb_fbdev_pan( int xoffset, int yoffset, bool onsync )
           errno = result;
 #else
      if (ioctl( dfb_fbdev->fd, FBIOPAN_DISPLAY, var )) {
+          result = errno;
 #endif
           D_PERROR( "DirectFB/FBDev: Panning display failed (x=%u y=%u ywrap=%d vbl=%d)!\n",
                     var->xoffset, var->yoffset,
