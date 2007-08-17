@@ -286,9 +286,11 @@ primaryFlipRegion( CoreLayer           *layer,
                    CoreSurface         *surface,
                    DFBSurfaceFlipFlags  flags )
 {
+     DFBRegion region = { 0, 0, surface->width - 1, surface->height - 1 };
+
      dfb_surface_flip_buffers( surface, false );
 
-     return dfb_x11_update_screen( dfb_x11_core, NULL );
+     return dfb_x11_update_screen( dfb_x11_core, &region );
 }
 
 static DFBResult
@@ -447,8 +449,12 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
 
      XSync(xw->display, False);
 
-     XShmPutImage(xw->display, xw->window, xw->gc, xw->ximage,
-                  x, xw->ximage_offset + y, x, y, w, h, False);
+     if (dfb_x11->use_shm)
+          XShmPutImage(xw->display, xw->window, xw->gc, xw->ximage,
+                       x, xw->ximage_offset + y, x, y, w, h, False);
+     else
+          XPutImage(xw->display, xw->window, xw->gc, xw->ximage,
+                    x, xw->ximage_offset + y, x, y, w, h);
 
      XFlush( xw->display );
 
@@ -512,7 +518,6 @@ dfb_x11_update_screen_handler( const DFBRegion *region )
 static DFBResult
 dfb_x11_set_palette_handler( CorePalette *palette )
 {
-     printf("dfb_x11_set_palette_handler\n");
      return DFB_OK;
 }
 
@@ -522,7 +527,6 @@ dfb_x11_call_handler( int   caller,
                       void *call_ptr,
                       void *ctx )
 {
-     printf("dfb_x11_call_handler\n");
      switch (call_arg) {
           case X11_SET_VIDEO_MODE:
                return dfb_x11_set_video_mode_handler( call_ptr );

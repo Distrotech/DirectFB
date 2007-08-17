@@ -54,7 +54,7 @@ typedef struct
 	XShmSegmentInfo*	shmseginfo;
 	unsigned char*		videomemory;
 
-	unsigned char*		virtualscreen;
+	char*		        virtualscreen;
 	int 				videoaccesstype;
 
 	int 				width;

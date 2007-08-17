@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <direct/mem.h>
+
 #include "x11.h"
 
 extern DFBX11  *dfb_x11;
@@ -119,71 +121,98 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 	XMapRaised(xw->display, xw->window);
 
 	
-	// Shared memory 	
-	xw->shmseginfo=(XShmSegmentInfo *)malloc(sizeof(XShmSegmentInfo));
-	if(!xw->shmseginfo) {
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
-         free( xw );
-         return False;
+    dfb_x11->use_shm = XShmQueryExtension(dfb_x11->display);
+
+    D_INFO( "X11/Display: %ssing XShm.\n", dfb_x11->use_shm ? "U" : "Not u" );
+
+
+    if (dfb_x11->use_shm) {
+         // Shared memory 	
+         xw->shmseginfo=(XShmSegmentInfo *)malloc(sizeof(XShmSegmentInfo));
+         if(!xw->shmseginfo) {
+              XFreeGC(xw->display,xw->gc);
+              XDestroyWindow(xw->display,xw->window);
+              free( xw );
+              return False;
+         }
+
+         memset(xw->shmseginfo,0, sizeof(XShmSegmentInfo));
+
+         xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
+                                    NULL,xw->shmseginfo, xw->width, xw->height * 2);
+         if(!xw->ximage) {
+             printf("X11: Error creating shared image (XShmCreateImage) \n");
+             free(xw->shmseginfo);
+             XFreeGC(xw->display,xw->gc);
+             XDestroyWindow(xw->display,xw->window);
+             free( xw );
+             return False;
+         }
+
+         xw->bpp = (xw->ximage->bits_per_pixel + 7) / 8;
+
+         /* we firstly create our shared memory segment with the size we need, and
+         correct permissions for the owner, the group and the world --> 0777 */
+         xw->shmseginfo->shmid=shmget(IPC_PRIVATE, 
+                                      xw->ximage->bytes_per_line * xw->ximage->height * 2,
+                                      IPC_CREAT|0777);
+
+         if(xw->shmseginfo->shmid<0) {
+              XDestroyImage(xw->ximage);
+              free(xw->shmseginfo);
+              XFreeGC(xw->display,xw->gc);
+              XDestroyWindow(xw->display,xw->window);
+              free( xw );
+              return False;
+         }
+
+         /* Then, we have to attach the segment to our process, and we let the
+         function search the correct memory place --> NULL. It's safest ! */
+         xw->shmseginfo->shmaddr = shmat( xw->shmseginfo->shmid, NULL, 0 );
+         if(!xw->shmseginfo->shmaddr) {
+              shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
+              XDestroyImage(xw->ximage);
+              free(xw->shmseginfo);
+              XFreeGC(xw->display,xw->gc);
+              XDestroyWindow(xw->display,xw->window);
+              free( xw );
+              return False;
+         }
+
+         /* We set the buffer in Read and Write mode */
+         xw->shmseginfo->readOnly=False;
+
+         xw->virtualscreen= xw->ximage->data = xw->shmseginfo->shmaddr;
+         if(!XShmAttach(xw->display,xw->shmseginfo)) {
+              shmdt(xw->shmseginfo->shmaddr);
+              shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
+              XDestroyImage(xw->ximage);
+              free(xw->shmseginfo);
+              XFreeGC(xw->display,xw->gc);
+              XDestroyWindow(xw->display,xw->window);
+              free( xw );
+              return False;
+         }
     }
+    else {
+         int pitch;
 
-	memset(xw->shmseginfo,0, sizeof(XShmSegmentInfo));
+         xw->bpp = xw->depth / 8;
 
-	xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
-							   NULL,xw->shmseginfo, xw->width, xw->height * 2);
-	if(!xw->ximage) {
-		printf("X11: Error creating shared image (XShmCreateImage) \n");
-        free(xw->shmseginfo);
-        XFreeGC(xw->display,xw->gc);
-        XDestroyWindow(xw->display,xw->window);
-        free( xw );
-        return False;
-	}
-	
-    xw->bpp = (xw->ximage->bits_per_pixel + 7) / 8;
-	
-    /* we firstly create our shared memory segment with the size we need, and
-	correct permissions for the owner, the group and the world --> 0777 */
-	xw->shmseginfo->shmid=shmget(IPC_PRIVATE, 
-								 xw->ximage->bytes_per_line * xw->ximage->height * 2,
-								 IPC_CREAT|0777);
+         pitch = (xw->bpp * xw->width + 3) & ~3;
 
-	if(xw->shmseginfo->shmid<0) {
-         XDestroyImage(xw->ximage);
-         free(xw->shmseginfo);
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
-         free( xw );
-         return False;
-    }
+         xw->virtualscreen = D_MALLOC( 2 * xw->height * pitch );
 
-    /* Then, we have to attach the segment to our process, and we let the
-	function search the correct memory place --> NULL. It's safest ! */
-	xw->shmseginfo->shmaddr = shmat( xw->shmseginfo->shmid, NULL, 0 );
-	if(!xw->shmseginfo->shmaddr) {
-         shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
-         XDestroyImage(xw->ximage);
-         free(xw->shmseginfo);
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
-         free( xw );
-         return False;
-    }
-
-	/* We set the buffer in Read and Write mode */
-	xw->shmseginfo->readOnly=False;
-
-	xw->virtualscreen= (unsigned char *) (xw->ximage->data = xw->shmseginfo->shmaddr );
-	if(!XShmAttach(xw->display,xw->shmseginfo)) {
-         shmdt(xw->shmseginfo->shmaddr);
-         shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
-         XDestroyImage(xw->ximage);
-         free(xw->shmseginfo);
-         XFreeGC(xw->display,xw->gc);
-         XDestroyWindow(xw->display,xw->window);
-         free( xw );
-         return False;
+         xw->ximage=XCreateImage(xw->display, xw->visual, xw->depth, ZPixmap, 0,
+                                 xw->virtualscreen,
+                                 xw->width, xw->height * 2, 32, pitch);
+         if(!xw->ximage) {
+             printf("X11: Error creating image (XCreateImage) \n");
+             XFreeGC(xw->display,xw->gc);
+             XDestroyWindow(xw->display,xw->window);
+             free( xw );
+             return False;
+         }
     }
 	
     (*ppXW) = xw;
@@ -193,11 +222,16 @@ dfb_x11_open_window(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeigh
 
 void dfb_x11_close_window(XWindow* xw)
 {
-     XShmDetach(xw->display, xw->shmseginfo);
-     shmdt(xw->shmseginfo->shmaddr);
-     shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
+     if (dfb_x11->use_shm) {
+          XShmDetach(xw->display, xw->shmseginfo);
+          shmdt(xw->shmseginfo->shmaddr);
+          shmctl(xw->shmseginfo->shmid,IPC_RMID,NULL);
+          free(xw->shmseginfo);
+     }
+     else
+          D_FREE( xw->virtualscreen );
+
      XDestroyImage(xw->ximage);
-     free(xw->shmseginfo);
 
      XFreeGC(xw->display,xw->gc);
      XDestroyWindow(xw->display,xw->window);

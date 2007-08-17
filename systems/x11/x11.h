@@ -47,6 +47,8 @@ typedef struct {
      UpdateScreenData update;
      SetModeData      setmode;
 
+     bool             use_shm;
+
      FusionSkirmish   lock;
      FusionCall       call;
 
