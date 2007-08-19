@@ -35,6 +35,8 @@
 extern ScreenFuncs       x11PrimaryScreenFuncs;
 extern DisplayLayerFuncs x11PrimaryLayerFuncs;
 
+DFBResult dfb_x11_update_screen( const DFBRegion *region );
+
 int dfb_x11_call_handler( int   caller,
                           int   call_arg,
                           void *call_ptr,

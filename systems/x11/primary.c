@@ -71,8 +71,7 @@ extern CoreDFB *dfb_x11_core;
 
 /******************************************************************************/
 
-static DFBResult dfb_x11_set_video_mode( CoreDFB *core, const CoreLayerRegionConfig *config );
-static DFBResult dfb_x11_update_screen( CoreDFB *core, const DFBRegion *region );
+static DFBResult dfb_x11_set_video_mode( const CoreLayerRegionConfig *config );
 static DFBResult dfb_x11_set_palette( CorePalette *palette );
 
 static DFBResult update_screen( CoreSurface *surface,
@@ -254,7 +253,7 @@ primarySetRegion( CoreLayer                  *layer,
 {
      DFBResult ret;
 
-     ret = dfb_x11_set_video_mode( dfb_x11_core, config );
+     ret = dfb_x11_set_video_mode( config );
      if (ret)
           return ret;
 
@@ -290,7 +289,7 @@ primaryFlipRegion( CoreLayer           *layer,
 
      dfb_surface_flip_buffers( surface, false );
 
-     return dfb_x11_update_screen( dfb_x11_core, &region );
+     return dfb_x11_update_screen( &region );
 }
 
 static DFBResult
@@ -303,7 +302,7 @@ primaryUpdateRegion( CoreLayer           *layer,
 {
      DFBRegion region = { 0, 0, surface->width - 1, surface->height - 1 };
 
-     return dfb_x11_update_screen( dfb_x11_core, update ? : &region );
+     return dfb_x11_update_screen( update ? : &region );
 }
 
 static DFBResult
@@ -546,7 +545,7 @@ dfb_x11_call_handler( int   caller,
 }
 
 static DFBResult
-dfb_x11_set_video_mode( CoreDFB *core, const CoreLayerRegionConfig *config )
+dfb_x11_set_video_mode( const CoreLayerRegionConfig *config )
 {
      int ret;
 
@@ -560,8 +559,8 @@ dfb_x11_set_video_mode( CoreDFB *core, const CoreLayerRegionConfig *config )
      return ret;
 }
 
-static DFBResult
-dfb_x11_update_screen( CoreDFB *core, const DFBRegion *region )
+DFBResult
+dfb_x11_update_screen( const DFBRegion *region )
 {
      int ret;
 
