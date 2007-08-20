@@ -235,6 +235,8 @@ DirectFBCreate( IDirectFB **interface )
                D_ERROR( "DirectFB/DirectFBCreate: Could not start desktop!\n" );
 
           dfb_layer_context_unref( context );
+
+          dfb_core_activate( core );
      }
 
      *interface = idirectfb_singleton = dfb;
