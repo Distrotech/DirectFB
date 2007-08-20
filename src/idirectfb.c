@@ -1677,6 +1677,8 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
                DIRECT_DEALLOCATE_INTERFACE(thiz);
                return ret;
           }
+
+          dfb_core_activate( core );
      }
 
      return DFB_OK;
