@@ -309,9 +309,14 @@ dfb_core_create( CoreDFB **ret_core )
 
      fusion_skirmish_prevail( &shared->lock );
 
-     if (core->fusion_id != FUSION_ID_MASTER) {
-          while (!shared->active)
-               fusion_skirmish_wait( &shared->lock, 0 );
+     if (!core->master) {
+          while (!shared->active) {
+               fusion_skirmish_dismiss( &shared->lock );
+               
+               usleep( 50000 );
+               
+               fusion_skirmish_prevail( &shared->lock );
+          }
      }
 
      fusion_skirmish_dismiss( &shared->lock );
@@ -593,8 +598,6 @@ dfb_core_activate( CoreDFB *core )
      fusion_skirmish_prevail( &shared->lock );
 
      shared->active = true;
-
-     fusion_skirmish_notify( &shared->lock );
 
      fusion_skirmish_dismiss( &shared->lock );
 }
