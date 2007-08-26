@@ -236,7 +236,7 @@ DirectFBCreate( IDirectFB **interface )
 
           dfb_layer_context_unref( context );
 
-          dfb_core_activate( core );
+          dfb_core_activate( core_dfb );
      }
 
      *interface = idirectfb_singleton = dfb;
