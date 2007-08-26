@@ -1,3 +1,154 @@
+1.0.1
+-----
+
+API
+- Extend list of custom key definitions: DIKS_CUSTOM<0-99>
+
+API | IDirectFB
+- Fix code that controls single/double buffer window creation for primary surfaces in windowed mode. If
+  DSCAPS_FLIPPING is set, it uses one buffer which already requires a Flip due to the window. Only if
+  DOUBLE is set explicitly, create two buffers.
+
+API | IDirectFBFont
+- Added DFFA_FIXEDCLIP that can be used in addition to fixed advance
+  and cuts off glyphs if they are wider than that.
+
+API | IDirectFBImageProvider
+- Added DFB_INCOMPLETE and return it from image providers
+  if rendering has been aborted by the render callback.
+
+Pixel formats
+- Added DSPF_RGB444 and DSPF_RGB555, thanks to Daniel J Laird!
+
+Core
+- Use a Skirmish to synchronize slaves with the master's post core initialization.
+  The new function dfb_core_activate() will allow other processes to join.
+- Explicit shutdown order of core parts and pools.
+
+Graphics Core
+- Validate clip in dfb_state_update() also if destination
+  was just set manually, not via dfb_state_set_destination().
+
+Layer Core
+- Fix potential dead lock in layer context initialization.
+- Fix potential dead lock in dfb_layer_context_get_primary_region().
+
+Surface Core
+- dfb_surface_reformat() no longer fails immediatly if the surface is locked,
+  instead it waits for 3 loops before doing it.
+
+libdirect
+- Added direct_thread_detach() and direct_thread_is_detached().
+- Use pthread cleanup to free the DirectThread structure etc.
+- Added direct_thread_get_tid().
+- Avoid "unused warning" if debug domains are declared, but not used.
+- Fix 64 bit symbol address parsing in trace code.
+- Fix missing target directory for nm-n files.
+- Readded "%.nm" as an alternative to "nm-n.%".
+- Added direct_sched_yield().
+- Open log file with mode 0664. Automatically flush stderr.
+- Added direct_list_foreach_reverse().
+- Added direct_serial_check() returning true if the target serial is not higher.
+- Flush stdout and stderr before showing the signal handler message.
+
+libfusion
+- Close file descriptor of shared memory files and be happy with just the
+  static mmap() and the filename for using truncate() instead of ftruncate().
+- Reinitialize entries in static pool array properly.
+- Added fusion_hash_set_autofree() to enable/disable automatic freeing of values and/or keys.
+- Use FusionHash for arena fields.
+- Fix general dead lock problem with reactors by using read/write locks.
+- Fix zero FusionID in forked process by entering the world after reopening it.
+- Added fusion_dispatcher_tid().
+- Fix lock order in fusion_shm_pool_destroy().
+- Added fusion_reactor_set_lock_only() which does not lock and use it in fusion_object_set_lock()
+  as this is called during object initialization.
+- Added FUSION_SKIRMISH_ASSERT macro for debug mode
+  failing if the skirmish is not locked by the current thread.
+
+Software Rendering
+- Fixed RGB24 to RGB16 conversion.
+- Fix ARGB on RGB16 blending. Use Duff's Device and optimize for 0% and 100% opaque.
+- Fix hi/lo mixup for big/little endian in 32 bit wise 16 bit color keying code.
+
+PNG Image provider
+- Avoid abort() caused by libpng and return an error instead.
+- Plug a memory leak in the PNG image provider. Thanks to Eugene Everson.
+- Fixes for grayscale PNGs.
+
+Mach64 driver
+- Added RGB444 and RGB555 support.
+
+Matrox driver
+- Added RGB444 and RGB555 support.
+- Eliminate libsysfs dependency from i2c detection.
+
+nVidia driver
+- Added support for RGB555.
+- Fixed support for premultiplied surfaces.
+- Dropped down blits from system memory on the NV20 (crashes on Xbox).
+- Optimizations and cleanup.
+
+Radeon driver
+- Support RGB555 and RGB444.
+- RGB555 support on Overlay and CRTC2.
+- Removed limit of 8x8 surfaces:
+  apparently it comes from the Rage128 driver but it doesn't apply to Radeon(s).
+
+Unichrome driver
+- Fix blitting of planar surfaces (YV12/I420) when a source rectangle is used
+  or the source and destination surfaces are different sizes.
+
+Linux Input driver
+- Fix evdev ioctl() parameters.
+- Only use FBDev system module data in linux input driver if system is built.
+- Don't bail out with other system modules if LINUX_INPUT_USE_FBDEV is not set.
+
+FBDev System module
+- Add source rectangle support to fbdev layer.
+- Check fbdev pan/wrap capabilities for double/triple buffering.
+
+DevMem System module
+- Added generic /dev/mem based system module.
+- There's no screen or layer registered, a graphics driver is required.
+- Added some new runtime options for the new system module.
+- video-phys=<hexaddress> sets the physical start of video memory.
+- video-length=<bytes> sets the length of video memory.
+- mmio-phys=<hexaddress> sets the physical start of MMIO area.
+- mmio-length=<bytes> sets the length of MMIO area.
+- accelerator=<id> sets the accelerator ID for selecting the graphics driver.
+
+SDL System module
+- Support different DirectFB formats on 32 and 16 bit displays.
+
+X11 System module
+- Support different DirectFB formats on 32 and 16 bit displays.
+- Use an ShmImage with twice the height of the output. Alternate between bottom and top image and
+  do XSync() BEFORE doing the next XShmPutImage(). Only call XShmPutImage() for the updated region.
+- Takes advantage of SMP now.
+- Added true keymap support to X11 input driver. Read the X11 keymap entries properly and translate to
+  identifier and symbols. Only send key code in events. X KeySym to DFBInputDeviceKeySymbol translation
+  might not be complete for everyone.
+- Provide the original timestamps from the X events.
+- Use DIEF_FOLLOW for x/y motion.
+- Added call to XFlush() after XShmPutImage() boosting df_andi from 100 to 130 FPS
+  and making window stack updates really smooth and no longer distorted.
+- Use preallocated shared memory for calls, the layer context lock allows this.
+- Support non-SHM connections.
+- Fall back to non-shm if XShmAttach() or XShmPutImage() fail after XShmQuesryExtension() returned success.
+- Handle expose events.
+- Enable X11 System Module by default.
+
+Default WM module
+- Pan the layer to follow the mouse cursor (aka. virtual resolution).
+
+dfbdump tool
+- List buffers in video memory if "-s" is passed.
+
+directfb-csource tool
+-  Add --raw option to directfb-csource to allow encoding data files in headers
+
+
 1.0.0
 -----
 
