@@ -8264,7 +8264,6 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
      GenefxState  *gfxs   = state->gfxs;
      DFBRectangle  orect  = *drect;
-     CoreSurface  *source = state->source;
 
      int fx, fy;
      int ix, iy;
