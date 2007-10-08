@@ -1392,7 +1392,8 @@ LoadBackgroundImage( IDirectFB       *dfb,
           provider->GetSurfaceDescription( provider, &desc );
      }
 
-     desc.flags |= DSDESC_PIXELFORMAT;
+     desc.flags |= DSDESC_CAPS | DSDESC_PIXELFORMAT;
+     desc.caps = DSCAPS_SHARED;
      desc.pixelformat = conf->config.pixelformat;
 
      ret = dfb->CreateSurface( dfb, &desc, &image );
