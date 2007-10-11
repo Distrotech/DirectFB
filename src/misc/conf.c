@@ -1325,6 +1325,8 @@ DFBResult dfb_config_set( const char *name, const char *value )
                char *stackings = D_STRDUP( value );
                char *p = NULL, *r, *s = stackings;
 
+               conf->stacking = 0;
+
                while ((r = strtok_r( s, ",", &p ))) {
                     direct_trim( &r );
 
