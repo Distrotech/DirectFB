@@ -80,6 +80,8 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
+
+#include <direct/direct.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -201,6 +203,8 @@ IDirectFB_Destruct( IDirectFB *thiz )
      idirectfb_singleton = NULL;
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
+
+     direct_shutdown();
 }
 
 
