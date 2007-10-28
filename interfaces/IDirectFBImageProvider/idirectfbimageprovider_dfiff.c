@@ -48,8 +48,11 @@
 
 #include <direct/debug.h>
 #include <direct/interface.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/util.h>
+
+#include <core/surfaces.h>
 
 #include <idirectfb.h>
 
@@ -169,12 +172,29 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
 
      if (DFB_RECTANGLE_EQUAL( rect, clipped ) &&
          rect.w == header->width && rect.h == header->height &&
-         dst_surface->config.format == header->format)
+         dst_surface->format == header->format)
      {
-          ret = dfb_surface_write_buffer( dst_surface, CSBR_BACK,
-                                          data->ptr + sizeof(DFIFFHeader), header->pitch, &rect );
+          int   y;
+          void *src;
+          void *dst;
+          int   pitch;
+
+          src = data->ptr + sizeof(DFIFFHeader);
+
+          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, false );
           if (ret)
                return ret;
+
+          dst += rect.y * pitch + DFB_BYTES_PER_LINE( dst_surface->format, rect.x );
+
+          for (y=0; y<rect.h; y++) {
+               direct_memcpy( dst, src, DFB_BYTES_PER_LINE( dst_surface->format, rect.w ) );
+
+               dst += pitch;
+               src += header->pitch;
+          }
+
+          dfb_surface_unlock( dst_surface, false );
      }
      else {
           IDirectFBSurface      *source;
