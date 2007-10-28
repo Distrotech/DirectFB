@@ -336,6 +336,8 @@ ovlFlipRegion( CoreLayer           *layer,
 
      dfb_surface_flip_buffers( surface, false );
       
+     rovl->field = rovl->config.parity;
+
      ovl_calc_buffers( rdrv, rovl, surface, &rovl->config );
      ovl_set_buffers( rdrv, rovl );
    
