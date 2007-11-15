@@ -409,7 +409,6 @@ DisplayLayerFuncs x11PrimaryLayerFuncs = {
 static DFBResult
 update_screen( CoreSurface *surface, int x, int y, int w, int h )
 {
-     int          i;
      void        *dst;
      void        *src;
      int          pitch;

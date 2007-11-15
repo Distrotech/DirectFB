@@ -274,7 +274,7 @@ xsymbol_to_id( KeySym xKeySymbol )
           case 0                   : break;
 
           default:
-               printf("X11: Unknown key symbol 0x%x\n", xKeySymbol);
+               printf("X11: Unknown key symbol 0x%x\n", (unsigned int) xKeySymbol);
      }    
 
      return DIKI_UNKNOWN;
@@ -369,7 +369,7 @@ xsymbol_to_symbol( KeySym xKeySymbol )
           case 0                   : break;
 
           default:
-               printf("X11: Unknown key symbol 0x%x\n", xKeySymbol);
+               printf("X11: Unknown key symbol 0x%x\n", (unsigned int) xKeySymbol);
      }    
 
      return DIKS_NULL;
