@@ -65,10 +65,13 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
-DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER_ABI_VERSION );
-
 
 D_DEBUG_DOMAIN( Core_Graphics, "Core/Graphics", "DirectFB Graphics Core" );
+D_DEBUG_DOMAIN( Core_GraphicsOps, "Core/GraphicsOps", "DirectFB Graphics Core Operations" );
+
+
+DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER_ABI_VERSION );
+
 
 /*
  * struct for graphics cards
@@ -504,6 +507,9 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      D_ASSERT( card != NULL );
      D_MAGIC_ASSERT( state, CardState );
 
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p, 0x%08x ) [%d,%d - %d,%d]\n",
+                 __FUNCTION__, state, accel, DFB_REGION_VALS( &state->clip ) );
+
      D_ASSERT( state->clip.x2 >= state->clip.x1 );
      D_ASSERT( state->clip.y2 >= state->clip.y1 );
      D_ASSERT( state->clip.x1 >= 0 );
@@ -780,6 +786,8 @@ dfb_gfxcard_state_release( CardState *state )
 void
 dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state )
 {
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %p )\n", __FUNCTION__, rects, num, state );
+
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -925,7 +933,9 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
-     D_ASSERT( rect != NULL );
+     DFB_RECTANGLE_ASSERT( rect );
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d, %p )\n", __FUNCTION__, DFB_RECTANGLE_VALS(rect), state );
 
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
@@ -987,6 +997,8 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 {
      int i = 0;
 
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %p )\n", __FUNCTION__, lines, num_lines, state );
+
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -1033,6 +1045,8 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *state )
 {
      int i = 0;
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %d, %p [%d], %p )\n", __FUNCTION__, y, spans, num_spans, state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1202,6 +1216,9 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( tri != NULL );
 
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %d,%d - %d,%d, %p )\n", __FUNCTION__,
+                 tri->x1, tri->y1, tri->x2, tri->y2, tri->x3, tri->y3, state );
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -1262,6 +1279,9 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      D_ASSERT( rect->x + rect->w - 1 < state->source->width );
      D_ASSERT( rect->y + rect->h - 1 < state->source->height );
 
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d -> %d,%d, %p )\n",
+                 __FUNCTION__, DFB_RECTANGLE_VALS(rect), dx, dy, state );
+
      /* The state is locked during graphics operations. */
      dfb_state_lock( state );
 
@@ -1301,6 +1321,8 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                             int num, CardState *state )
 {
      int i = 0;
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p, %p [%d], %p )\n", __FUNCTION__, rects, points, num, state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1364,6 +1386,8 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
      int           odx;
      DFBRectangle  srect;
      DFBRegion    *clip;
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %d,%d, %p )\n", __FUNCTION__, dx1, dy1, dx2, dy2, state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1481,6 +1505,9 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      D_ASSERT( srect != NULL );
      D_ASSERT( drect != NULL );
 
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %d,%d - %dx%d -> %d,%d - %dx%d, %p )\n",
+                 __FUNCTION__, DFB_RECTANGLE_VALS(srect), DFB_RECTANGLE_VALS(drect), state );
+
      if (srect->w == drect->w && srect->h == drect->h) {
           dfb_gfxcard_blit( srect, drect->x, drect->y, state );
           return;
@@ -1527,6 +1554,11 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
                                     CardState *state )
 {
      bool hw = false;
+
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %s, %p )\n", __FUNCTION__, vertices, num,
+                 (formation == DTTF_LIST)  ? "LIST"  :
+                 (formation == DTTF_STRIP) ? "STRIP" :
+                 (formation == DTTF_FAN)   ? "FAN"   : "unknown formation", state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1643,6 +1675,13 @@ dfb_gfxcard_drawstring( const u8 *text, int bytes,
      int kern_x;
      int kern_y;
      int blit = 0;
+
+     if (encoding == DTEID_UTF8)
+          D_DEBUG_AT( Core_GraphicsOps, "%s( '%s' [%d], %d,%d, %p, %p )\n",
+                      __FUNCTION__, text, bytes, x, y, font, state );
+     else
+          D_DEBUG_AT( Core_GraphicsOps, "%s( %p [%d], %d, %d,%d, %p, %p )\n",
+                      __FUNCTION__, text, bytes, encoding, x, y, font, state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1783,7 +1822,7 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
      DFBRectangle   rect;
      bool           hw = false;
 
-     D_DEBUG_AT( Core_Graphics, "%s( %d, %d,%d, %p, %p )\n",
+     D_DEBUG_AT( Core_GraphicsOps, "%s( %u, %d,%d, %p, %p )\n",
                  __FUNCTION__, index, x, y, font, state );
 
      D_ASSERT( card != NULL );
