@@ -8269,7 +8269,7 @@ stretch_hvx( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      if (DFB_PIXELFORMAT_IS_INDEXED( gfxs->src_format )) {
           int             i;
           const DFBColor *entries;
-          u16            *colors16 = (u16*) colors;
+          u16            *colors16 = (void*) colors;
 
           D_ASSERT( gfxs->Blut != NULL );
 
@@ -8377,11 +8377,11 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      CHECK_PIPELINE();
 
-     D_INFO("STRETCH  0x%x\n", state->blittingflags);
+//     D_INFO("STRETCH  0x%x\n", state->blittingflags);
      if (state->render_options & (DSRO_SMOOTH_UPSCALE | DSRO_SMOOTH_DOWNSCALE) &&
          stretch_hvx( state, srect, drect ))
           return;
-     D_WARN(":(\n");
+//     D_WARN(":(\n");
 
      /* Clip destination rectangle. */
      if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
