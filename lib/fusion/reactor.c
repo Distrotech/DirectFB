@@ -487,7 +487,7 @@ fusion_reactor_set_name( FusionReactor *reactor,
      D_MAGIC_ASSERT( reactor, FusionReactor );
      D_ASSERT( name != NULL );
 
-     D_DEBUG_AT( Fusion_Reactor, "%s( %p, '%s' )\n", reactor, name );
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p, '%s' )\n", __FUNCTION__, reactor, name );
 
      /* Initialize reactor info. */
      info.type = FT_REACTOR;
@@ -1581,7 +1581,7 @@ DirectResult
 fusion_reactor_set_lock_only( FusionReactor  *reactor,
                               FusionSkirmish *lock )
 {
-     D_MAGIC_ASSERT( reactor, FusionReactor );
+     D_ASSERT( reactor != NULL );
      D_ASSERT( lock != NULL );
 
      return DFB_UNIMPLEMENTED;
