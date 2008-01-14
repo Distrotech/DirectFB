@@ -70,6 +70,8 @@ static const char *config_usage =
      "  scaled=<width>x<height>        Scale the window to this size for 'force-windowed' apps\n"
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
+     "  surface-shmpool-size=<kb>      Set the size of the shared memory pool used\n"
+     "                                 for shared system memory surfaces.\n"
      "  session=<num>                  Select multi app world (zero based, -1 = new)\n"
      "  force-slave                    Always enter as a slave, waiting for the master, if not there\n"
      "  remote=<host>[:<session>]      Select remote session to connect to\n"
@@ -409,6 +411,7 @@ static void config_allocate()
      dfb_config->agp                      = 0;
      dfb_config->matrox_tv_std            = DSETV_PAL;
      dfb_config->i8xx_overlay_pipe_b      = false;
+     dfb_config->surface_shmpool_size     = 64 * 1024 * 1024;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -586,6 +589,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'font-format': No format specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (!strcmp( name, "surface-shmpool-size" )) {
+          if (value) {
+               int size_kb;
+
+               if (sscanf( value, "%d", &size_kb ) < 1) {
+                    D_ERROR( "DirectFB/Config '%s': Could not parse value!\n", name);
+                    return DFB_INVARG;
+               }
+
+               dfb_config->surface_shmpool_size = size_kb * 1024;
+          }
+          else {
+               D_ERROR( "FusionDale/Config '%s': No value specified!\n", name );
                return DFB_INVARG;
           }
      } else
