@@ -321,7 +321,7 @@ parse_args( const char *args )
 static void config_values_parse( FusionVector *vector, const char *arg )
 {
      char *values    = D_STRDUP( arg );
-     char *p, *r, *s = values;
+     char *p = NULL, *r, *s = values;
 
      while ((r = strtok_r( s, ",", &p ))) {
           direct_trim( &r );
