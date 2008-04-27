@@ -307,8 +307,7 @@ dump_video_memory_chunks()
      printf( "Offset    Length   Width Height     Format  Tolerations / Capabilities\n" );
      printf( "-----------------------------------------------------------------------\n" );
 
-     dfb_surfacemanager_enumerate_chunks( dfb_gfxcard_surface_manager(),
-                                          chunk_callback, NULL );
+     dfb_surfacemanager_enumerate_chunks( dfb_gfxcard_surface_manager(), chunk_callback, NULL );
 }
 
 static bool
@@ -522,7 +521,6 @@ dump_layers()
      dfb_layers_enumerate( layer_callback, NULL );
 }
 
-#if FUSION_BUILD_MULTI
 static void
 dump_shmpool( FusionSHMPoolShared *pool )
 {
@@ -562,7 +560,6 @@ dump_shmpool( FusionSHMPoolShared *pool )
 
      fusion_skirmish_dismiss( &pool->lock );
 }
-#endif
 
 int
 main( int argc, char *argv[] )
@@ -614,14 +611,12 @@ main( int argc, char *argv[] )
      dump_surfaces();
      dump_layers();
 
-#if FUSION_BUILD_MULTI
      if (argc > 1 && !strcmp( argv[1], "-s" )) {
           printf( "\n" );
           dump_shmpool( dfb_core_shmpool(NULL) );
           dump_shmpool( dfb_core_shmpool_data(NULL) );
           dump_video_memory_chunks();
      }
-#endif
 
      if (argc > 1 && !strcmp( argv[1], "-p" )) {
           pause();

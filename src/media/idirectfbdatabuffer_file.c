@@ -58,15 +58,6 @@
 
 #include <media/idirectfbdatabuffer.h>
 
-/*
- * private data struct of IDirectFBDataBuffer_File
- */
-typedef struct {
-     IDirectFBDataBuffer_data base;
-
-     DirectStream    *stream;
-     pthread_mutex_t  mutex;
-} IDirectFBDataBuffer_File_data;
 
 
 static void
@@ -200,8 +191,8 @@ IDirectFBDataBuffer_File_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
           }
      }
          
-     pthread_mutex_lock( &data->mutex ); 
      ret = direct_stream_wait( data->stream, length, &tv );
+     
      pthread_mutex_unlock( &data->mutex );
 
      return ret;

@@ -32,6 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include <sys/param.h>
 #include <sys/types.h>
 
 #include <fusion/build.h>
@@ -372,63 +373,41 @@ fusion_ref_init (FusionRef         *ref,
 }
 
 DirectResult
-fusion_ref_up (FusionRef *ref, bool global)
+_fusion_ref_change (FusionRef *ref, int add, bool global)
 {
      DirectResult ret;
-     
+
      D_ASSERT( ref != NULL );
-          
+     D_ASSERT( add != 0 );
+     
      ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
      if (ret)
           return ret;
      
      if (global) {
-          ref->multi.builtin.global++;
-     }
-     else {
-          ref->multi.builtin.local++;
-
-          _fusion_add_local( _fusion_world(ref->multi.shared), ref, +1 );
-     }
-     
-     fusion_skirmish_dismiss( &ref->multi.builtin.lock );
-
-     return DFB_OK;
-}
-
-DirectResult
-fusion_ref_down (FusionRef *ref, bool global)
-{
-     DirectResult ret;
-     
-     D_ASSERT( ref != NULL );
-          
-     ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
-     if (ret)
-          return ret;
-     
-     if (global) {
-          if (!ref->multi.builtin.global) {
+          if (ref->multi.builtin.global+add < 0) {
                D_BUG( "ref has no global references" );
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
                return DFB_BUG;
           }
-               
-          ref->multi.builtin.global--;
+
+          ref->multi.builtin.global += add;
      }
-     else {
-          if (!ref->multi.builtin.local) {
+     else {          
+          if (ref->multi.builtin.local+add < 0) {
                D_BUG( "ref has no local references" );
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
                return DFB_BUG;
           }
-               
-          ref->multi.builtin.local--;
 
-          _fusion_add_local( _fusion_world(ref->multi.shared), ref, -1 );
-     } 
+          ref->multi.builtin.local += add;
+          
+          _fusion_add_local( _fusion_world(ref->multi.shared), ref, add ); 
+     }
 
      if (ref->multi.builtin.local+ref->multi.builtin.global == 0) {
+          fusion_skirmish_notify( &ref->multi.builtin.lock );
+
           if (ref->multi.builtin.call) {
                fusion_skirmish_dismiss( &ref->multi.builtin.lock );
                return fusion_call_execute( ref->multi.builtin.call, 0, 
@@ -439,6 +418,18 @@ fusion_ref_down (FusionRef *ref, bool global)
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );
 
      return DFB_OK;
+}
+
+DirectResult
+fusion_ref_up (FusionRef *ref, bool global)
+{
+     return _fusion_ref_change( ref, +1, global );
+}
+
+DirectResult
+fusion_ref_down (FusionRef *ref, bool global)
+{
+     return _fusion_ref_change( ref, -1, global );
 }
 
 DirectResult
@@ -467,21 +458,21 @@ fusion_ref_zero_lock (FusionRef *ref)
           ret = DFB_ACCESSDENIED;
      }
      else {
-          while (ref->multi.builtin.local+ref->multi.builtin.global) {
-               FusionSkirmish *skirmish = &ref->multi.builtin.lock;
-              
-               fusion_skirmish_dismiss( skirmish );
-               
-               usleep( 10000 );
-               
-               ret = fusion_skirmish_prevail( skirmish );
-               if (ret);
+          if (ref->multi.builtin.local)
+               _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
+          
+          while (ref->multi.builtin.local+ref->multi.builtin.global) {    
+               ret = fusion_skirmish_wait( &ref->multi.builtin.lock, 1000 ); /* 1 second */
+               if (ret && ret != DFB_TIMEOUT);
                     return ret;
                
                if (ref->multi.builtin.call) {
                     ret = DFB_ACCESSDENIED;
                     break;
                }
+
+               if (ref->multi.builtin.local)
+                    _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
           }
      }
           
@@ -501,6 +492,9 @@ fusion_ref_zero_trylock (FusionRef *ref)
      ret = fusion_skirmish_prevail( &ref->multi.builtin.lock );
      if (ret)
           return ret;
+
+     if (ref->multi.builtin.local)
+          _fusion_check_locals( _fusion_world(ref->multi.shared), ref );
 
      if (ref->multi.builtin.local+ref->multi.builtin.global)
           ret = DFB_BUSY;
@@ -543,6 +537,7 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
      else {
           ref->multi.builtin.call = call;
           ref->multi.builtin.call_arg = call_arg;
+          fusion_skirmish_notify( &ref->multi.builtin.lock );
      }
      
      fusion_skirmish_dismiss( &ref->multi.builtin.lock );

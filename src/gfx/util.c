@@ -60,15 +60,16 @@ static pthread_mutex_t cd_lock   = PTHREAD_MUTEX_INITIALIZER;
 
 
 void
-dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect )
+dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect )
 {
      dfb_gfx_copy_to( source, destination, rect, rect ? rect->x : 0, rect ? rect->y : 0, false );
 }
 
 void
-dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect, int x, int y, bool from_back )
+dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, const DFBRectangle *rect, int x, int y, bool from_back )
 {
      SurfaceBuffer *tmp;
+     DFBRectangle   sourcerect = { 0, 0, source->width, source->height };
 
      pthread_mutex_lock( &copy_lock );
 
@@ -93,15 +94,13 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
      }
 
      if (rect) {
-          /* Wrokaround for window managers passing negative rectangles */
-          DFBRectangle sourcerect = { 0, 0, source->width, source->height };
-          if (dfb_rectangle_intersect( rect, &sourcerect ))
-               dfb_gfxcard_blit( rect, x, y, &copy_state );
+          if (dfb_rectangle_intersect( &sourcerect, rect ))
+               dfb_gfxcard_blit( &sourcerect,
+                                 x + sourcerect.x - rect->x,
+                                 y + sourcerect.y - rect->y, &copy_state );
      }
-     else {
-          DFBRectangle sourcerect = { 0, 0, source->width, source->height };
+     else
           dfb_gfxcard_blit( &sourcerect, x, y, &copy_state );
-     }
 
      if (from_back) {
           tmp = source->front_buffer;

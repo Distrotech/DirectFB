@@ -404,11 +404,44 @@ net_connect( struct addrinfo *addr, int sock, int proto, int *ret_fd )
 
           D_DEBUG_AT( Direct_Stream, 
                       "connecting to %s...\n", tmp->ai_canonname );
- 
-          err = connect( fd, tmp->ai_addr, tmp->ai_addrlen );
+
+          if (proto == IPPROTO_UDP)
+               err = bind( fd, tmp->ai_addr, tmp->ai_addrlen );
+          else
+               err = connect( fd, tmp->ai_addr, tmp->ai_addrlen );
+
           if (err == 0 || errno == EINPROGRESS) {
                struct timeval t = { NET_TIMEOUT, 0 };
                fd_set         s;
+
+               /* Join multicast group? */
+               if (tmp->ai_addr->sa_family == AF_INET) {
+                    struct sockaddr_in *saddr = (struct sockaddr_in *) tmp->ai_addr;
+
+                    if (IN_MULTICAST( ntohl(saddr->sin_addr.s_addr) )) {
+                         struct ip_mreq req;
+
+                         D_DEBUG_AT( Direct_Stream, 
+                                     "joining multicast group (%u.%u.%u.%u)...\n",
+                                     (u8)tmp->ai_addr->sa_data[2], (u8)tmp->ai_addr->sa_data[3],
+                                     (u8)tmp->ai_addr->sa_data[4], (u8)tmp->ai_addr->sa_data[5] );
+
+                         req.imr_multiaddr.s_addr = saddr->sin_addr.s_addr;
+                         req.imr_interface.s_addr = 0;
+
+                         err = setsockopt( fd, SOL_IP, IP_ADD_MEMBERSHIP, &req, sizeof(req) );
+                         if (err < 0) {
+                              ret = errno2result( errno );
+                              D_PERROR( "Direct/Stream: Could not join multicast group (%u.%u.%u.%u)!\n",
+                                        (u8)tmp->ai_addr->sa_data[2], (u8)tmp->ai_addr->sa_data[3],
+                                        (u8)tmp->ai_addr->sa_data[4], (u8)tmp->ai_addr->sa_data[5] );
+                              close( fd );
+                              continue;
+                         }
+
+                         setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, saddr, sizeof(*saddr) );
+                    }
+               }
 
                FD_ZERO( &s );
                FD_SET( fd, &s );
@@ -1918,12 +1951,12 @@ file_seek( DirectStream *stream, unsigned int offset )
 }
 
 static DirectResult
-file_open( DirectStream *stream, const char *filename )
+file_open( DirectStream *stream, const char *filename, int fileno )
 {
      if (filename)
           stream->fd = open( filename, O_RDONLY | O_NONBLOCK );
      else
-          stream->fd = dup( fileno( stdin ) );
+          stream->fd = dup( fileno );
      
      if (stream->fd < 0)
           return errno2result( errno );
@@ -1974,10 +2007,14 @@ direct_stream_create( const char    *filename,
      stream->fd  = -1;
 
      if (!strncmp( filename, "stdin:/", 7 )) {
-          ret = file_open( stream, NULL );
+          ret = file_open( stream, NULL, STDIN_FILENO );
      }
      else if (!strncmp( filename, "file:/", 6 )) {
-          ret = file_open( stream, filename+6 );
+          ret = file_open( stream, filename+6, -1 );
+     }
+     else if (!strncmp( filename, "fd:/", 4 )) {
+          ret = (filename[4] >= '0' && filename[4] <= '9')
+                ? file_open( stream, NULL, atoi(filename+4) ) : DFB_INVARG;
      }
 #if DIRECT_BUILD_NETWORK
      else if (!strncmp( filename, "http://", 7 ) ||
@@ -1998,7 +2035,7 @@ direct_stream_create( const char    *filename,
      }
 #endif
      else {
-          ret = file_open( stream, filename );
+          ret = file_open( stream, filename, -1 );
      }
 
      if (ret) {
@@ -2223,10 +2260,8 @@ direct_stream_close( DirectStream *stream )
      }
 
      if (stream->fd >= 0) {
-          if (stream->fd == STDIN_FILENO) {
-               fcntl( stream->fd, F_SETFL, 
+          fcntl( stream->fd, F_SETFL, 
                     fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
-          }
           close( stream->fd );
           stream->fd = -1;
      }

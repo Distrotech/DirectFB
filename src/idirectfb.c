@@ -80,6 +80,8 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
+
+#include <direct/direct.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -201,6 +203,8 @@ IDirectFB_Destruct( IDirectFB *thiz )
      idirectfb_singleton = NULL;
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
+
+     direct_shutdown();
 }
 
 
@@ -1234,6 +1238,8 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
                                                       desc->memory.length,
                                                       data->core );
      }
+     else
+          return DFB_INVARG;
 
      if (!ret)
           *interface = iface;
@@ -1392,7 +1398,8 @@ LoadBackgroundImage( IDirectFB       *dfb,
           provider->GetSurfaceDescription( provider, &desc );
      }
 
-     desc.flags |= DSDESC_PIXELFORMAT;
+     desc.flags |= DSDESC_CAPS | DSDESC_PIXELFORMAT;
+     desc.caps = DSCAPS_SHARED;
      desc.pixelformat = conf->config.pixelformat;
 
      ret = dfb->CreateSurface( dfb, &desc, &image );

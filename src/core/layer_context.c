@@ -562,6 +562,8 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
      CoreLayerRegionConfigFlags  flags;
      DisplayLayerFuncs          *funcs;
 
+     D_DEBUG_AT( Core_Layers, "%s (%p, %p)\n", __FUNCTION__, context, config );
+
      D_ASSERT( context != NULL );
      D_ASSERT( config != NULL );
 
@@ -637,11 +639,16 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                if (surface) {
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
-                    if (region->surface)
-                         ret = reallocate_surface( layer, region, &region_config,
-                                                   &context->config );
-                    else
+                    if (region->surface) {
+                         ret = reallocate_surface( layer, region, &region_config, &context->config );
+                         if (ret)
+                              D_DERROR( ret, "Core/Layers: Reallocation of layer surface failed!\n" );
+                    }
+                    else {
                          ret = allocate_surface( layer, region, &region_config );
+                         if (ret)
+                              D_DERROR( ret, "Core/Layers: Allocation of layer surface failed!\n" );
+                    }
 
                     if (ret) {
                          dfb_layer_region_unlock( region );
@@ -786,6 +793,8 @@ dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
      CoreLayerRegionConfig config;
 
      D_ASSERT( context != NULL );
+
+     D_DEBUG_AT( Core_Layers, "%s (%02x %02x %02x - %d)\n", __FUNCTION__, r, g, b, index );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
