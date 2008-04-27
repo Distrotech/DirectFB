@@ -37,3 +37,6 @@ boot*
 *.diff
 INSTALL
 makedirectfb.sh
+*.o
+*.so
+*.so.nm
