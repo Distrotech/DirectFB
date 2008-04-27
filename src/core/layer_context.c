@@ -752,6 +752,8 @@ update_primary_region_config( CoreLayerContext           *context,
      D_ASSERT( context != NULL );
      D_ASSERT( config != NULL );
 
+     D_DEBUG_AT( Core_Layers, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, context, config, flags );
+
      if (context->primary.region) {
           /* Set the new configuration. */
           ret = dfb_layer_region_set_configuration( context->primary.region, config, flags );
@@ -979,12 +981,15 @@ dfb_layer_context_set_screenposition( CoreLayerContext  *context,
 
      D_ASSERT( context != NULL );
 
+     D_DEBUG_AT( Core_Layers, "%s( %p, %d, %d )\n", __FUNCTION__, context, x, y );
+
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
      /* Do nothing if the location didn't change. */
      if (context->primary.config.dest.x == x && context->primary.config.dest.y == y) {
+          D_DEBUG_AT( Core_Layers, "  -> no change!\n" );
           dfb_layer_context_unlock( context );
           return DFB_OK;
      }
@@ -1406,6 +1411,8 @@ build_updated_config( CoreLayer                   *layer,
                     break;
 
                case CLLM_LOCATION:
+                    /* Initialize screen rectangle. */
+                    screen_rectangle( context, &context->screen.location, &ret_config->dest );
                case CLLM_RECTANGLE:
                     break;
 

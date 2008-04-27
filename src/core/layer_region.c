@@ -565,6 +565,8 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
      DisplayLayerFuncs     *funcs;
      CoreLayerRegionConfig  new_config;
 
+     D_DEBUG_AT( Core_Layers, "%s( %p, %p, 0x%08x )\n", __FUNCTION__, region, config, flags );
+
      D_ASSERT( region != NULL );
      D_ASSERT( region->context != NULL );
      D_ASSERT( config != NULL );
@@ -808,6 +810,7 @@ set_region( CoreLayerRegion            *region,
             CoreSurface                *surface )
 {
      CoreLayer         *layer;
+     CoreLayerShared   *shared;
      DisplayLayerFuncs *funcs;
 
      D_ASSERT( region != NULL );
@@ -820,10 +823,15 @@ set_region( CoreLayerRegion            *region,
      layer = dfb_layer_at( region->context->layer_id );
 
      D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
      D_ASSERT( layer->funcs != NULL );
      D_ASSERT( layer->funcs->SetRegion != NULL );
 
-     funcs = layer->funcs;
+     shared = layer->shared;
+     funcs  = layer->funcs;
+
+     D_DEBUG_AT( Core_Layers, "Setting region (%d, %d - %dx%d) of '%s'.\n",
+                 DFB_RECTANGLE_VALS( &config->dest ), shared->description.name );
 
      /* Setup hardware. */
      return funcs->SetRegion( layer, layer->driver_data, layer->layer_data,
