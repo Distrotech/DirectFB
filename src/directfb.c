@@ -174,7 +174,7 @@ DirectFBCreate( IDirectFB **interface )
           return DFB_OK;
      }
 
-     if (!direct_config->quiet && dfb_config->banner) {
+     if ( !(direct_config->quiet & DMT_BANNER) && dfb_config->banner) {
           direct_log_printf( NULL,
                              "\n"
                              "     =======================|  DirectFB " DIRECTFB_VERSION "  |=======================\n"
