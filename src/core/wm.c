@@ -45,6 +45,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/core_parts.h>
+#include <core/layer_context.h>
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 #include <core/wm.h>
@@ -405,9 +406,10 @@ dfb_wm_core_resume( DFBWMCore *data )
 DFBResult
 dfb_wm_close_all_stacks( void *data )
 {
-     CoreWindowStack *stack, *next;
-     DFBWMCore       *local;
-     DFBWMCoreShared *shared;
+     CoreLayerContext *context;
+     CoreWindowStack  *stack, *next;
+     DFBWMCore        *local;
+     DFBWMCoreShared  *shared;
 
      D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, data );
 
@@ -423,9 +425,20 @@ dfb_wm_close_all_stacks( void *data )
 
      direct_list_foreach_safe (stack, next, wm_shared->stacks) {
           D_MAGIC_ASSERT( stack, CoreWindowStack );
-
+          
+          context = stack->context;
+          D_ASSERT( context != NULL );
+          
+          dfb_layer_context_ref( context );
+          
+          dfb_layer_context_lock( context );
+          
           if (stack->flags & CWSF_INITIALIZED)
                dfb_wm_close_stack( stack );
+          
+          dfb_layer_context_unlock( context );
+          
+          dfb_layer_context_unref( context );
      }
 
      return DFB_OK;
@@ -557,6 +570,9 @@ dfb_wm_close_stack( CoreWindowStack *stack )
           D_ASSUME( !(stack->flags & CWSF_ACTIVATED) );
           return DFB_OK;
      }
+
+     D_ASSERT( stack->context != NULL );
+     FUSION_SKIRMISH_ASSERT( &stack->context->lock );
 
      /* Deactivate before deinitialization. */
      if (stack->flags & CWSF_ACTIVATED)
