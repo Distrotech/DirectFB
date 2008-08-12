@@ -100,25 +100,16 @@ static const ReactionFunc dfb_window_globals[] = {
 static void
 window_destructor( FusionObject *object, bool zombie, void *ctx )
 {
-     CoreWindow      *window = (CoreWindow*) object;
-     CoreWindowStack *stack  = window->stack;
+     CoreWindow *window = (CoreWindow*) object;
 
      D_DEBUG_AT( Core_Windows, "destroying %p (%d,%d - %dx%d%s)\n", window,
                  DFB_RECTANGLE_VALS( &window->config.bounds ), zombie ? " ZOMBIE" : "");
 
-     D_ASSUME( window->stack != NULL );
+     dfb_window_destroy( window );
 
-     if (stack) {
-          dfb_windowstack_lock( stack );
-
-          dfb_window_destroy( window );
-
-          /* Unlink the primary region of the context. */
-          if (window->primary_region)
-               dfb_layer_region_unlink( &window->primary_region );
-
-          dfb_windowstack_unlock( stack );
-     }
+     /* Unlink the primary region of the context. */
+     if (window->primary_region)
+          dfb_layer_region_unlink( &window->primary_region );
 
      fusion_object_destroy( object );
 }
