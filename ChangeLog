@@ -1,40 +1,191 @@
-commit 8881c385160ebb1fbf20093755866c1f29b1993f
+commit 0172f9a200f1002a44d763d4e5a3c7d9f4e5243f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 21:00:04 2008 +0200
+
+    [strings] Generate name/value pairs for DFBWindowOptions.
+
+commit 373df01467c8da421967ed5bba5ff6c999701da5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 21:01:13 2008 +0200
+
+    [version] Bump to 1.2.2.
+
+commit 30e8e357f2db8e60d2664ef35675eaf223461f5e
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Aug 15 20:09:50 2008 +0200
+
+    [x11] improve shutdown behaviour of X11 module.
+    
+    Certain race conditions at shutdown prevented, leading to lock or crash.
+    x11input and x11 modules combined into 1.
+
+commit 9254527c0c98bcee0f9bb7358627c68bf9b1fd5e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 18:54:59 2008 +0200
+
+    [interfaces] Fix previous commit for unregistering interfaces, removing the proto type which had the old name.
+
+commit 7daac4ab3dc87c405c1f999480f7a88556eeb245
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 18:31:34 2008 +0200
+
+    [interfaces] Added DirectUnregisterInterface() and destructor to call it.
+    
+    Added magic value to interface implementation structure and use D_CALLOC/D_FREE.
+
+commit b3802912fe9f47e262f62e51de388692a968def2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 19:08:55 2008 +0200
+
+    [dfbmaster] Added very simple dedicated master for safety, stability or enhanced testing pleasure.
+
+commit f9b65693d2872b5c0c2c3384044d3847612664e7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 06:14:49 2008 +0200
+
+    [default wm] Build fix for previous commit that reduces recursion.
+
+commit bf266ffd6ff5f18bfbf14079a482323561905ab1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 06:05:55 2008 +0200
+
+    [default wm] Make sure window has a surface before restoring its size when disabling scaling.
+
+commit 7c4bcf746f59b6e5d28bafbae0a31d87d56a0e99
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 06:05:02 2008 +0200
+
+    [strings] Generate name/value pairs for DFBWindowCapabilities.
+
+commit 7db90a8127fd00f07bbd9b40e2d4b816a643bde2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 05:07:11 2008 +0200
+
+    [x11] Implemented primaryRemoveRegion() with a new call to destroy the X11 window.
+    
+    Also cleaned up name of window creation call (set_video_mode -> create_window).
+
+commit 5522fb50aa128f66783c9597f20e19483f461595
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 03:27:54 2008 +0200
+
+    [default wm] Avoid most of the recursive calls of wind_of_change().
+
+commit 1a713bfc4ccfb93d3097c7c95b62740b94e115b4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Aug 13 00:55:38 2008 +0200
+
+    [x11] Fixed race condition and X error when switching resolution quickly.
+
+commit 83ee17843cc6273a8503e52022ae3586facf6de9
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:25:28 2008 +0200
+
+    [x11] More X locking and checks for input thread exit... still not satisfied...
+
+commit ff8bd3ef078eff538cebac111a2256168e694e5d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 14:14:46 2008 +0200
+
+    [windows] Added missing locks around direct dfb_wm_... calls...
+
+commit 378cf314eb1ad197bca969e8b813bfe1022cc844
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 16:39:50 2008 +0200
+
+    updated TODO
+
+commit b1767f930d9c4b3dcadbb722ea9dfe0aad90ada6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:56:35 2008 +0200
+
+    [layers] Added debug message to print context being returned by dfb_layer_get_active_context().
+
+commit e075ec35c293ba8487f5e6826a95f8c7cb17e694
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:47:03 2008 +0200
+
+    [IDirectFBSurface_Window] Added missing layer context locking around dfb_wm_get_insets() in IDirectFBSurface_Window_Construct().
+
+commit f7dfda097e2fe02703647142dfd6b2d68eea8bb5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:20:27 2008 +0200
+
+    [layers] Fixed failing context lock assertion in dfb_wm_close_stack() by locking in context destructor.
+
+commit c0823fb5bbaec92d823846c5e6abf3a6c2a8010a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:15:21 2008 +0200
+
+    [fusion] Fixed single app skirmish lock counting (copy'n'paste bug).
+
+commit 47511ddacdef45a1a3c7442da40ecc746a385b78
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 10:08:15 2008 +0200
+
+    [windows] In dfb_wm_close_all_stacks() lock each context and temporarily ref it for following unlock. (1.2 only)
+
+commit 8e093b63f9d297f8202b5e397a31bf8b84cc4941
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 09:46:36 2008 +0200
+
+    [windows] Fixed crash in window destructor caused by (un)locking the stack. [1.2 only]
+
+commit cad7f7f28a5aca9a045b6be6db8a8b539bf3398d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 12 08:27:39 2008 +0200
+
+    [windows] Avoid recursive dfb_wm_close_stack() caused by SaWMan's CloseStack() unref on the layer region.
+    
+    This issue happens only in single app build, where the layer region constructor gets called synchronously
+    and destroys the window stack structure before the dfb_wm_close_stack() has finished.
+    
+    Fixed by calling CloseStack() at the end dfb_wm_close_stack(), moving the list removal and flag clearing
+    before the call and freeing the stack data in dfb_windowstack_destroy() or recurring dfb_wm_init_stack().
+
+commit 857a85bbde61157f0c9a567a868e00f6b106c87d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 8 16:00:31 2008 +0200
+
+    updated ChangeLog
+
+commit d9c8b82f87a171821d6e4fc3916d9ca40ffd5611
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 15:59:01 2008 +0200
 
     Updated NEWS for 1.2.1 release
 
-commit 3a7f7c9872db39a131bfec3be411568ecaa356d0
+commit 881103787a32c4d0bf0edf392c83966465c2573a
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 15:56:00 2008 +0200
 
     [keyboard] Only become active if FBDev or DevMem is used to avoid grabbing keyboard from X11 for example.
 
-commit 7a34de0dd8584cc4c5bc4ab20288099e1c535177
+commit 691004d1ffa274f85c0df2005033b2642ad1022c
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 15:47:42 2008 +0200
 
     [fbdev] Update surface manager code from X11 virtual physical testing pool.
 
-commit c450bca736be7850a064ae3071d560a948fdcd5e
+commit 4690e2b6fd9da362b3bb025a278c928a54099f5e
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 15:47:05 2008 +0200
 
     [devmem] Update surface manager code from X11 virtual physical testing pool.
 
-commit 5de1c0424fdd7a08288f071cd2e891a87c78b70e
+commit cf02445dc365b0296a32e477dd1c2cadd5a5781a
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 14:59:18 2008 +0200
 
     [x11] Set buffer lock offset in fallback mode to satisfy assumption in surface core.
 
-commit dca79d97500dab35ff3a6c407b6a9c191bdeec44
+commit 414b9517a536c96cef4ecb0b8fc53035db54553a
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 14:58:15 2008 +0200
 
     [surfaces] Cleanup buffer initialization and reset with two new convenience functions.
 
-commit 11703ae62d1e7246dd55d755b8b1a742c047cae4
+commit 491f6b541d3bf4b91296b3b4a9c4c717ac5d3229
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 11:34:04 2008 +0200
 
@@ -45,49 +196,49 @@ Date:   Fri Aug 8 11:34:04 2008 +0200
     checking if there's a physical address provided by the surface pool via the
     buffer lock in GetFramebufferOffset().
 
-commit 79332a26310c7b03abe059c08b1a0d087f7ed14b
+commit 48ded2684b6e272cfd1cff1b6e86bcf12bfe2982
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 8 11:33:36 2008 +0200
 
     [dfblayer] Add testing Lock() with read/write, read only or write only.
 
-commit 56a7aefda6b61c18167574a564defeb5c6058c3d
+commit d788593157ffe1ca84643c115c2aa45655bb7fda
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 29 05:44:41 2008 +0200
 
     [sh7722] Build fix (link against libdirectfb for dfb_pixelformat_name).
 
-commit 435ca9a063582bbafe07563b0c1d3d9c4044268d
+commit ec0cacfbaefa379236dbe14a872b006c16ab9514
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 29 05:37:54 2008 +0200
 
     [sh7722] JPEG encoding, code moved into library, JPEG lock and buffer allocation in kernel
 
-commit aa8fd4aa6d4261979900a3c51a4aa5ff926e3e09
+commit 415c15207af106bd7f440694c3423d8204660422
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 29 04:35:01 2008 +0200
 
     [IDirectFBImageProvider] Added simple WriteBack() method for encoding surface data.
 
-commit 871bc2ac72d15c1cb2f8f702e268e2774d7b2b0e
+commit ffdb559985deab2588c6e02a94f539f573a47454
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 29 04:34:36 2008 +0200
 
     [options] Fixed warning.
 
-commit db4030c985b3b824c0986b95a4ec9d92325f7cd0
+commit d9bd9e38830e1c94ab21db40928034dcad3ee3c5
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Jul 29 00:26:56 2008 +0200
 
     [x11] Return accelerator as set in config.
 
-commit 62c8ed26e0585926c7d9ce16e8c8bba02ad3d356
+commit 7f85e4b6062e88ee1ba028aed80ecf1a3b3a1879
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Jul 25 16:56:56 2008 +0200
 
     [config] Allocate palette on demand saving 16kB of the 60kB allocated until after DirectFBCreate().
 
-commit 99f4fd47a12f26d8ddae00101b354563ea863ca1
+commit bb740a7db83eb4ae52def560d8311d282dba1b45
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Jul 25 16:42:12 2008 +0200
 
@@ -97,7 +248,7 @@ Date:   Fri Jul 25 16:42:12 2008 +0200
     
     The default is 1024 which already means up to 16kB are kept!
 
-commit 9c09c56afb9c3b2d491d27ab4ac292d13d997fdd
+commit 0151578e0639c982c0b932b2ee3087b5de8aacf7
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Jul 25 16:06:41 2008 +0200
 
@@ -105,13 +256,13 @@ Date:   Fri Jul 25 16:06:41 2008 +0200
     
     TODO: Update information on both when surface is reconfigured!
 
-commit c326ef6b5556111a870d4cce2b66f41401185999
+commit b058cdd7744df29fce86a0fa890c9d7b11401329
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Jul 25 16:06:04 2008 +0200
 
     [fusion] Added fusion_ref_set_name(), e.g. for better debug information on object references.
 
-commit b180da246613406fec27abbe2139fed2cafbedf1
+commit 014743ed7f0ff995ec997336118dab7127ebd2f2
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Jul 25 16:00:48 2008 +0200
 
@@ -122,39 +273,13 @@ Date:   Fri Jul 25 16:00:48 2008 +0200
     
     Prints a warning for every surface buffer allocation made with both width and height of 300 or above.
 
-commit 4abe47f51b2164e37632566dd300e7f69548ff9c
+commit d4b688c1cbc031d2d47bd3631a0c5b16a2a491e6
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Jul 23 15:53:22 2008 +0200
 
     [x11] Build fix.
 
-commit 5730f838a7ac3b39b5e83e3bc7cea197fac513ed
-Merge: 701aa94... d9461ad...
-Author: Denis Oliver Kropp <dok@cyto.(none)>
-Date:   Wed Jul 23 15:51:47 2008 +0200
-
-    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
-
-commit d9461ad5e8e46a5d0f8f1279f214bce64c9bfb0b
-Author: Denis Oliver Kropp <dok@cyto.(none)>
-Date:   Wed Jul 23 15:28:23 2008 +0200
-
-    [x11] Build fix.
-
-commit b815d1b7adb82c9791fc31e546a8e3e8bbbfd73a
-Author: Denis Oliver Kropp <dok@cyto.(none)>
-Date:   Wed Jul 23 15:24:47 2008 +0200
-
-    [version] Also increase binary age (don't think compatibility is broken).
-
-commit 701aa94e931d85cd18b0b5ff47a32beeb1472fec
-Merge: f00bc9f... 10fc3aa...
-Author: Denis Oliver Kropp <dok@cyto.(none)>
-Date:   Wed Jul 23 14:59:27 2008 +0200
-
-    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
-
-commit f00bc9fc3a4febd48b159f6534068552917a8610
+commit 57a512da8aea5b8ba2e606b456f65f53acf21fe7
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Jul 23 11:05:29 2008 +0200
 
@@ -164,13 +289,13 @@ Date:   Wed Jul 23 11:05:29 2008 +0200
     The code that determines these allocations is still O(1) and finds the best matching
     group within all possible combinations.
 
-commit 3a607bdc5cae5e0766b4962794741b7476db496e
+commit 7e130c7dd72cf3f32e7f4ffacc60f1ad63be8e23
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Wed Jul 23 11:03:46 2008 +0200
 
     [surfaces] Fixes for mucking out multiple allocations. Cleanups.
 
-commit 97727598045878dba91d7f61d3bb77d9acf61b3f
+commit 8217cb7e7992a9e74e7495e7dc7e2b43a4f35942
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 18:17:16 2008 +0200
 
@@ -190,7 +315,7 @@ Date:   Mon Jul 21 18:17:16 2008 +0200
     Update allocation size from chunk length which is usually bigger (at least 16
     bytes of safety area).
 
-commit 29ab6ef9f3d1e978d99a6523b429398e8df8edf1
+commit 6398f0d97e263d48119231e9c24f2a9f67b46ac5
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 18:07:07 2008 +0200
 
@@ -207,13 +332,7 @@ Date:   Mon Jul 21 18:07:07 2008 +0200
     
     Other fixes and enhanced debugging output.
 
-commit 10fc3aa44ee4c79f06c87a44aecd51a027f6fed5
-Author: Denis Oliver Kropp <dok@cyto.(none)>
-Date:   Mon Jul 21 18:00:21 2008 +0200
-
-    [misc] Bumped version to 1.2.1 and did forgotten increase of the core ABI.
-
-commit 01b57b96155cbcb512218dca1a7997866fb3e0ae
+commit 8a746f8f30c395fc2365eff8c3aa93e810135caa
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 13:35:05 2008 +0200
 
@@ -231,7 +350,7 @@ Date:   Mon Jul 21 13:35:05 2008 +0200
     
     Other cleanups and fixes.
 
-commit 03c500eea0451a8164090f86f5ff9ae1a529aeeb
+commit b8c62eeece437f139348110eaf18f0835d2ea2cd
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 13:33:24 2008 +0200
 
@@ -262,26 +381,37 @@ Date:   Mon Jul 21 13:33:24 2008 +0200
     
     Have a pointer to a backup pool in every pool which is set to the shared memory surface pool by default.
 
-commit 5ffb341a6f716bfc900bd722317dd63451911e0b
-Merge: c148939... d5bda88...
+commit 5103a43e4a9477cb9b12c2adf6745d9111756b2b
 Author: Denis Oliver Kropp <dok@cyto.(none)>
-Date:   Mon Jul 21 13:32:34 2008 +0200
+Date:   Wed Jul 23 15:28:23 2008 +0200
 
-    Merge branch 'master' of git+ssh://git.directfb.org/git/directfb/core/DirectFB
+    [x11] Build fix.
 
-commit c148939c7c01ffc6f4491dc7fb9339180c9350af
+commit 03e85a64f9bb8746a99d574d675a10fd191d0a0a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jul 23 15:24:47 2008 +0200
+
+    [version] Also increase binary age (don't think compatibility is broken).
+
+commit a7615d722bc879382ac9370626bae95ce6f40227
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 21 18:00:21 2008 +0200
+
+    [misc] Bumped version to 1.2.1 and did forgotten increase of the core ABI.
+
+commit 3f8e7f07c33c843de9c514ad83e9a042ea5a6e6a
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 12:57:00 2008 +0200
 
     [surfaces] Use convenience functions where possible, e.g. dfb_surface_lock_buffer() instead of dfb_surface_get_buffer() and dfb_surface_buffer_lock() etc.
 
-commit d5bda88808477881fa5fc58f9684aa1bd0867d83
+commit 4cbc53a99699a0060313d9f16008dbf0fad5345c
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 12:57:00 2008 +0200
 
     [surfaces] Use convenience functions where possible, e.g. dfb_surface_lock_buffer() instead of dfb_surface_get_buffer() and dfb_surface_buffer_lock() etc.
 
-commit 0c9a7dca0bd288479c773191435042b6853e273f
+commit b2a5cc54c281de5408d0bfa589b8bc12eb0ccd8a
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Jul 21 12:56:08 2008 +0200
 
@@ -301,73 +431,73 @@ Date:   Mon Jul 21 12:56:08 2008 +0200
     
     Check return value of dfb_wm_init_stack().
 
-commit c32441475ff21fbbae477129310a9d594a7cb72d
+commit bd97b7c44b998499b9d473cb39327e10b069c2f3
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 15:13:21 2008 +0200
 
     [x11] Output ARGB when depth is 32, support AYUV input (layer format).
 
-commit 38d4b138168b56330c54f3bb92673f5017444f6b
+commit 831321b34244fca072ca7744117abf41f746bd75
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 15:03:15 2008 +0200
 
     [dfbdump] Show capacity in pool info (with "-p") and only dump shared or explicitly specified surfaces to avoid crashes.
 
-commit c2bea38a0855e8c7e050e693a4e36705026bc92a
+commit 2c37602197d94ede04514f0043d7120a1d5bb607
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 15:00:08 2008 +0200
 
     [convert] Added conversion to RGB555 and from AYUV (added to all conversion functions).
 
-commit cc328caa46510e5b0e185edbb17bd732b40a3d8a
+commit c4a1fec5bf0112531309b4d859e529eefdace210
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 14:59:26 2008 +0200
 
     [surfaces] A bit more debug when locking buffers.
 
-commit c319b6a969a064a83e7e7da308daaca7fb1f4866
+commit 384f0e7b487f41fefb7a36d3cae9d9dfb4a9578f
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 14:58:31 2008 +0200
 
     [virtual2d] Fixed copy'n'paste bug in virtual driver.
 
-commit edaf0352f0a90ef68ef0b571fb1fe52abb5907df
+commit 19c0e662c27b49b9649d272c3af8e3216b492633
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 14:57:39 2008 +0200
 
     [surfaces] Cleanup complex assertions, no CORE_SURFACE_ALLOCATION_ASSERT within CORE_SURFACE_BUFFER_LOCK_ASSERT, only D_ASSERTs.
 
-commit 95d25625adbd57ac04dd5a04f42a2b3d1056fd52
+commit f3f4765fc1ca106fc7c5aee4d45ffea90205063c
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 01:06:48 2008 +0200
 
     [layers] Fix failing assertion due to recent code cleanup.
 
-commit 123d8d07824ab4112350d763bb21ababb5b343fb
+commit fc9a14ecd816e9d23fb83aabaae783545c4cab3e
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 01:05:28 2008 +0200
 
     [fusion] Clear object list (pointer to NULL) after cleanup for safety.
 
-commit d52e27ac0165199dc90987bba232474b31bf6385
+commit 192f48130cdc4e69ea91730533117e4febca9f8e
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sun Jul 20 01:02:17 2008 +0200
 
     [fusion] Print warning for FUSION_CALL_RETURN if caller could not receive result due to a signal.
 
-commit f7eee07eac4bf0cf6ca96ac03c77b7c447b32e74
+commit 2d4df4cd890d2ce76499a64e25789cde56fbbf59
 Author: Denis Oliver Kropp <dok@vm.directfb.home>
 Date:   Tue Nov 21 04:56:02 2028 +0100
 
     [x11] Fixed bytes per pixel and pitch calculation for fallback XCreateImage() when no XShm is available.
 
-commit e766efa2b9cac28d76fc014774bb9f28e15df70e
+commit 03abd8613efc7cf8765be534a4f12c6d8a864205
 Author: Denis Oliver Kropp <dok@vm.directfb.home>
 Date:   Tue Nov 21 04:55:54 2028 +0100
 
     [x11] Take first matching visual for each format instead of last and handle RGB32 and ARGB separately (depth 24 and 32).
 
-commit 84059022f5d1bcaf685b38d6a5009230c663d652
+commit d86102053be641c61929c4aef58718aaf7b6c4a6
 Author: Denis Oliver Kropp <dok@vm.directfb.home>
 Date:   Tue Nov 21 04:55:37 2028 +0100
 
@@ -376,7 +506,13 @@ Date:   Tue Nov 21 04:55:37 2028 +0100
     fusion_ref_zero_lock() no longer leaves the mutex locked. Turned
     'waiting' into 'locked' to keep size for binary compatibility.
 
-commit a39849d8bb11301ec3d5c2420b026f7dbaa0e5a7
+commit fd5cf46992572d694b8451273930d923a123db9a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Jul 14 02:45:07 2008 +0200
+
+    [IDirectFBSurface] Added MakeSubSurface() to make this surface a sub surface or adjust the rectangle of this sub surface.
+
+commit 34d2f05d5a29302a614e5f054dbe85642fa12c69
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Sat Jul 19 04:52:11 2008 +0200
 
@@ -384,12 +520,6 @@ Date:   Sat Jul 19 04:52:11 2008 +0200
     
     The workaround for the surface manager creation happening before graphics driver
     initialization with possible dfb_gfxcard_reserve_memory() calls is still required.
-
-commit 811ee7208e30cf72d98e44cbc7a672eb589a6337
-Author: Denis Oliver Kropp <dok@cyto.(none)>
-Date:   Mon Jul 14 02:45:07 2008 +0200
-
-    [IDirectFBSurface] Added MakeSubSurface() to make this surface a sub surface or adjust the rectangle of this sub surface.
 
 commit dac4a5fe8c43205ca9854f48183134325e8897c8
 Author: Denis Oliver Kropp <dok@cyto.(none)>

@@ -1,3 +1,50 @@
+1.2.2
+-----
+
+API | IDirectFBSurface
+- Added missing layer context locking around dfb_wm_get_insets() in IDirectFBSurface_Window_Construct().
+
+API | IDirectFBWindow
+- Added missing locks around direct dfb_wm_... calls...
+
+API | Utilities
+- Generate name/value pairs for DFBWindowCapabilities and DFBWindowOptions.
+
+Layer Core
+- Fixed failing context lock assertion in dfb_wm_close_stack() by locking in context destructor.
+- Added debug message to print context being returned by dfb_layer_get_active_context().
+
+Window Core
+- Avoid recursive dfb_wm_close_stack() caused by SaWMan's CloseStack() unref on the layer region.
+  This issue happens only in single app build, where the layer region constructor gets called synchronously
+  and destroys the window stack structure before the dfb_wm_close_stack() has finished.
+  Fixed by calling CloseStack() at the end dfb_wm_close_stack(), moving the list removal and flag clearing
+  before the call and freeing the stack data in dfb_windowstack_destroy() or recurring dfb_wm_init_stack().
+- Fixed crash in window destructor caused by (un)locking the stack. [1.2 only]
+- In dfb_wm_close_all_stacks() lock each context and temporarily ref it for following unlock. (1.2 only)
+
+libdirect
+- Added DirectUnregisterInterface() and destructor to call it.
+- Added magic value to interface implementation structure and use D_CALLOC/D_FREE.
+
+libfusion
+- Fixed single app skirmish lock counting (copy'n'paste bug).
+
+Default WM
+- Avoid most of the recursive calls of wind_of_change().
+- Make sure window has a surface before restoring its size when disabling scaling.
+
+X11 System
+- Fixed race condition and X error when switching resolution quickly.
+- Implemented primaryRemoveRegion() with a new call to destroy the X11 window.
+- Improve shutdown behaviour of X11 module.
+  Certain race conditions at shutdown prevented, leading to lock or crash.
+  x11input and x11 modules combined into 1.
+
+dfbmaster tool
+- Added very simple dedicated master for safety, stability or enhanced testing pleasure.
+
+
 1.2.1
 -----
 
