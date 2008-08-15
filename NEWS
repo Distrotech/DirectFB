@@ -20,8 +20,8 @@ Window Core
   and destroys the window stack structure before the dfb_wm_close_stack() has finished.
   Fixed by calling CloseStack() at the end dfb_wm_close_stack(), moving the list removal and flag clearing
   before the call and freeing the stack data in dfb_windowstack_destroy() or recurring dfb_wm_init_stack().
-- Fixed crash in window destructor caused by (un)locking the stack. [1.2 only]
-- In dfb_wm_close_all_stacks() lock each context and temporarily ref it for following unlock. (1.2 only)
+- Fixed crash in window destructor caused by (un)locking the stack.
+- In dfb_wm_close_all_stacks() lock each context and temporarily ref it for following unlock.
 
 libdirect
 - Added DirectUnregisterInterface() and destructor to call it.
@@ -39,7 +39,7 @@ X11 System
 - Implemented primaryRemoveRegion() with a new call to destroy the X11 window.
 - Improve shutdown behaviour of X11 module.
   Certain race conditions at shutdown prevented, leading to lock or crash.
-  x11input and x11 modules combined into 1.
+  x11input and x11 modules combined into one.
 
 dfbmaster tool
 - Added very simple dedicated master for safety, stability or enhanced testing pleasure.
