@@ -1,3 +1,33 @@
+commit eb1abad3968236ddfdd8714bb1615dc1b2983bd0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 19 11:26:10 2008 +0200
+
+    [version] 1.2.3
+
+commit b811f2bdc95894562646043afe9c6819acdf0fad
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Aug 16 01:57:03 2008 +0200
+
+    [x11] Fixed new bug with reopening X11 window when layer resizes.
+
+commit 8566b955d91b3d84d591a6087a31aa5222e6face
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 21:23:04 2008 +0200
+
+    [version] Forgot to increase binary age...
+
+commit 2e138f31fe4858509f051d7f1f689d6541c3412b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 21:11:59 2008 +0200
+
+    [NEWS] minor adjustments
+
+commit 47b959fba1ba8acd689c8a5fe4a207e3b83007c1
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 15 21:02:26 2008 +0200
+
+    Updated for 1.2.2 release :)
+
 commit 0172f9a200f1002a44d763d4e5a3c7d9f4e5243f
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Aug 15 21:00:04 2008 +0200

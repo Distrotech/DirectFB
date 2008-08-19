@@ -1,3 +1,10 @@
+1.2.3
+-----
+
+X11 System
+- Fixed new bug with reopening X11 window when layer resizes.
+
+
 1.2.2
 -----
 
