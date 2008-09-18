@@ -1,3 +1,82 @@
+1.2.4
+-----
+
+API | IDirectFBInputDevice
+- Added DFBInputDeviceAxisInfo(Flags) with DIAIF_ABS_MIN/MAX flags and abs_min/max fields.
+- Added DIEF_MIN/MAX and min/max to DFBInputEvent, e.g. for axis boundaries.
+
+API | IDirectFBWindow
+- Added DWCAPS_NOFOCUS: window will never get focus or receive key events, unless it grabs them.
+
+Runtime Options
+- New option "[no-]software-trace" to show every stage of the software rendering pipeline.
+
+Build Options
+- Switch to pkg-config for SDL and FreeType2, thanks to Keith Mok!
+
+Graphics Core
+- Only have DSRO_MATRIX be mandatory for now. Other flags no longer prohibit acceleration.
+  Worst case was when DSRO_SMOOTH_UP/DOWNSCALE was turned on globally via "smooth-upscale" or "smooth-downscale"
+  runtime option which caused all operations to use software fallbacks, not only StretchBlit()!
+
+Input Core
+- Added GetAxisInfo() to InputDriverFuncs to query information about one axis.
+  Make use of it in input_driver.h only if driver has defined DFB_INPUTDRIVER_HAS_AXIS_INFO
+  to avoid having to change all input drivers.
+- Query axis information from driver and put it into events.
+
+Layer Core
+- Set background mode of new contexts to DLBM_DONTCARE.
+
+Pixel Formats
+- Rewrote YCbCr<->RGB conversion routines without lookups which are much more expensive on embedded devices.
+- Fixed many NV12, NV16 and NV21 code areas, mostly for big endian.
+
+Software Rendering
+- Rewrote Dacc_RGB_to_YCbCr_C and Dacc_YCbCr_to_RGB_C using Duff's device with macros.
+  Conversion also supports 4:4:4 by this change, not optimizing for 4:2:x cases.
+- Get rid of YUV tables saving 5k binary size!
+- Added optimized Bop_argb_blend_alphachannel_one_invsrc_Aop_argb() -> 6x speed
+
+Utilities
+- Added exported dfb_pixelformat_names[] and replaced relevant code.
+
+libdirect
+- Important fix for having multiple interface implementations in one module.
+- Added file and symbol lookup functions to trace code for external usage.
+  New functions are direct_trace_lookup_file(), direct_trace_lookup_symbol() and
+  a convenience function combining the above called direct_trace_lookup_symbol_at().
+- Fixed missing magic value in thread structure created for non-direct threads.
+
+Davinci Driver
+- In ARGB OSD dithering use task buffer and add missing locks.
+- Raise OSD surface pool priority to allocate in frame buffer rather than /dev/mem.
+- Workaround broken DSP cache invalidation function.
+
+SH7722 Driver
+- Build only for SH4.
+- Fixed missing update of rendering destination buffer.
+- Fixes for JPEG encoding with conversion, cleanups...
+- Fixed software fallback for JPEG decoding to unsupported formats.
+
+SH7723 Driver
+- Added support for SH7723 to SH7722 driver and kernel module.
+
+Default WM
+- Use min/max values from absolute axis motion events if present.
+- Implemented DWCAPS_NOFOCUS.
+
+X11 System
+- Update X11 system module with cleaned up code from 1.3.x.
+- Fixes in input driver and layer output.
+
+JPEG Image Provider
+- Fix direct decoding to NV16 (no to+from RGB) for little endian.
+
+dfbtest_blit
+- Added test program for (Stretch)Blit with an image from file.
+
+
 1.2.3
 -----
 
