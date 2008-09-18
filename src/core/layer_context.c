@@ -124,8 +124,6 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
      if (context->primary.config.clips)
           SHFREE( context->shmpool, context->primary.config.clips );
 
-     dfb_layer_context_unlock( context );
-
      /* Destroy the object. */
      fusion_object_destroy( object );
 }
