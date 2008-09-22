@@ -152,7 +152,7 @@ dfb_surface_buffer_lock_init( CoreSurfaceBufferLock *lock, CoreSurfaceAccessFlag
                D_ASSUME( (lock)->phys != 0 || (lock)->offset != ~0 || (lock)->handle != NULL ||     \
                          !((lock)->access & (CSAF_GPU_READ|CSAF_GPU_WRITE)) );                      \
                D_ASSUME( (lock)->offset == (lock)->allocation->offset || (lock)->offset == ~0 );    \
-               D_ASSERT( (lock)->pitch > 0 );                                                       \
+               D_ASSERT( (lock)->pitch > 0 || ((lock)->addr == NULL && (lock)->phys == 0) );        \
           }                                                                                         \
           else {                                                                                    \
                D_ASSERT( (lock)->allocation == NULL );                                              \

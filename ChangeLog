@@ -1,3 +1,419 @@
+commit 71eb77b278f81dd9258f268506408acd89dc039c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 19 04:04:48 2008 +0200
+
+    [x11] Fixed missing x11types.h in SOURCES definition.
+
+commit 2e93ab1d81788e74c830eeae17a8af61de171f68
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 19 04:03:06 2008 +0200
+
+    [sh7722] Fixed EXTRA_DIST.
+
+commit 0d0e1a36732372c5e7dbed7b7da56198925baebf
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 22:49:56 2008 +0200
+
+    Updated NEWS for 1.2.4...
+
+commit 1e46e17d9a68d0b22281683517a2f5e9251121f8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 21:27:18 2008 +0200
+
+    [x11] When update goes directly from XShmImage without copy/convert (single buffer layer), do an XSync()!
+
+commit ffebbdb24e53239d47e2b07ebca004dc7139b5f7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 21:26:50 2008 +0200
+
+    [x11] Hotfix missing update queue...
+
+commit 6c62c11070ce58b54df511034bb57301a974c5db
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 21:01:02 2008 +0200
+
+    [x11] Lookup visual in master where XShmCreateImage is actually called.
+
+commit 80101b8b840e37de646b6b563797a776c41b2ad0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:43:30 2008 +0200
+
+    [windowstack] Set background mode of new contexts to DLBM_DONTCARE.
+
+commit 18bb4352ddf8a066aaf30c5ef778ee51fef2b1f7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:11:46 2008 +0200
+
+    [x11] Added missing header file from update with cleaned up code from 1.3.x.
+
+commit 0db513fa12a4b1da7c36ce1a6d74fbed7abcd6e6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:10:57 2008 +0200
+
+    [thread] Fixed missing magic value in thread structure created for non-direct threads.
+
+commit 7918e5933899e4a8029f709eaddb8a92ac9d0ef6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:08:51 2008 +0200
+
+    [x11] Update X11 system module with cleaned up code from 1.3.x.
+
+commit 0d760d1a2d9f3e97271b97c659a653f3df73c946
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 18 19:02:27 2008 +0200
+
+    [layers] Fixed unlocking of destroyed skirmish in context destructor.
+
+commit 7cc2c9e3de81867745988498e690f2525ffcbf21
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 23:55:27 2008 +0200
+
+    [dfbtest_blit] Added option "-R" to rerender image to surface before every blit (benchmark).
+
+commit 60a5e3a35385fa581a018b2fc29a726922f1c263
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 19:08:48 2008 +0200
+
+    [core] check and handle return value of get_layer_dimension().
+    Can go wrong with davinci driver without GET_TIMING patches.
+
+commit 4e655537005796e9ce7c87e4c6c10f83671508cb
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 19:06:07 2008 +0200
+
+    [davinci] param missing in debug print
+
+commit eb3fabc1e786dced2ae59e708a02c1e7fccc76b9
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Sep 17 19:05:19 2008 +0200
+
+    [x11 input] possible lock at shutdown due to thread trying to kill itself
+
+commit d7556f90afc92aa4bfd1a61f8aec72ba782296e2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 18:25:06 2008 +0200
+
+    [surfaces] Assert that pitch is != 0 only if virtual or physical address is present.
+
+commit 1752d74e0ad393466b9a3b9fd72a95c499c68565
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 16:11:12 2008 +0200
+
+    [davinci] Workaround broken DSP cache invalidation function.
+
+commit c29121ed626a7bc71e33b0e10c046970d105ba1d
+Merge: 1a0f8c1... cf66dfc...
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 12:19:48 2008 +0200
+
+    Merge branch 'release_1_2_x' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into release_1_2_x
+
+commit 1a0f8c16daa141fd9b9062b8985de60ff1df3c1f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 12:16:49 2008 +0200
+
+    [davinci] Raise OSD surface pool priority to allocate in frame buffer rather than /dev/mem.
+
+commit cf66dfc43b3af72882eabf178e1cc97d2760edfb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 14 05:35:40 2008 +0200
+
+    [call] Added debug messages.
+
+commit 214f020f8c0bc04b5426aeb18830f2af331141e8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 17 12:05:43 2008 +0200
+
+    [trace] Fixed static build.
+
+commit fea3ed60216fc9a0034ddde759e4a156cba6d3c6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 13 20:53:37 2008 +0200
+
+    [options] Fixed pixel format parsing code, first check for exact, then for partial matches.
+
+commit 21e735d129d56967f4743f35276f3fcaf37966a5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Sep 13 20:49:22 2008 +0200
+
+    [graphics] Only have DSRO_MATRIX be mandatory for now. Other flags no longer prohibit acceleration.
+    
+    Worst case was when DSRO_SMOOTH_UP/DOWNSCALE was turned on globally via "smooth-upscale" or "smooth-downscale"
+    runtime option which caused all operations to use software fallbacks, not only StretchBlit()!
+
+commit 8800da81aff0cdbdbd5e0a3510d0136d325c8175
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 11 02:41:22 2008 +0200
+
+    [generic] Added optimized Bop_argb_blend_alphachannel_one_invsrc_Aop_argb() -> 6x speed
+
+commit bda8c8e278268d9f82d6b60ad4fca77a1ded0d16
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 22:11:03 2008 +0200
+
+    [SH7722] Follow device name change in JPEG code, too.
+
+commit 4866c2a67484516b5ea0dfbe6974d548cfea203e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 21:38:14 2008 +0200
+
+    ignore
+
+commit c5325bd61b698d99d25a97d3248b27afc93b09a0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 21:33:30 2008 +0200
+
+    [SH7723] Added support for SH7723 to SH7722 driver and kernel module.
+    
+    (*) DirectFB/Graphics: Renesas SH7723 0.9 (Denis & Janine Kropp)
+    (*) DirectFB/Core/WM: SaWMan 0.2 (directfb.org)
+    (*) SaWMan/Config: Parsing config file '/etc/sawmanrc'.
+    (*) SaWMan: Initializing stack 0x432078 for tier 0x431a48, 0x0, layer 0, context 0x431e78 [1]...
+    (*) SaWMan/Init: Layer  0:  800x480, RGB16, options: 1
+    (*) SaWMan/Init: Border 0:  800x480, RGB16, options: 8
+    (*) Direct/Interface: Using 'PNG' implementation of 'IDirectFBImageProvider'.
+    (*) Direct/Interface: Using 'FT2' implementation of 'IDirectFBFont'.
+    (*) Direct/Interface: Using 'GIF' implementation of 'IDirectFBImageProvider'.
+    
+    Benchmarking 256x256 on 800x464 RGB16 (16bit)...
+    
+    Fill Rectangle                                 5.350 secs (* 200.895 MPixel/sec) [  3.9%]
+    Fill Rectangle (blend)                         8.590 secs (*  78.582 MPixel/sec) [  1.7%]
+    Fill Rectangles [10]                           5.226 secs (* 200.646 MPixel/sec) [  1.1%]
+    Fill Rectangles [10] (blend)                  11.699 secs (*  78.425 MPixel/sec) [  0.3%]
+    Fill Triangles                                14.254 secs (*  26.436 MPixel/sec) [  1.1%]
+    Fill Triangles (blend)                        26.657 secs (*   8.727 MPixel/sec) [  0.4%]
+    Draw Rectangle                                 3.127 secs (*  30.444 KRects/sec) [ 44.8%]
+    Draw Lines [10]                                3.062 secs (* 122.468 KLines/sec) [ 35.9%]
+    Fill Spans                                     3.013 secs (* 147.907 MPixel/sec) [ 73.4%]
+    Fill Spans (blend)                             3.037 secs (*  73.369 MPixel/sec) [ 27.0%]
+    Blit                                          11.698 secs (*  56.023 MPixel/sec) [  1.4%]
+    Blit colorkeyed                                8.376 secs (*  59.464 MPixel/sec) [  1.6%]
+    
+    TODO: more acceleration work...
+
+commit f9de3db7281a978e309a91693044f6dce180e9e4
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 13:39:32 2008 +0200
+
+    [SH7722] Fixed missing update of rendering destination buffer.
+
+commit d8a068a04b832f9415eb9c2c9fa28e68a2db3362
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 11:07:57 2008 +0200
+
+    [SH7722] Fixed software fallback for JPEG decoding to unsupported formats.
+
+commit 2b0062bbf0c29b33969891a09f2cdcffcff121bd
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 10:38:48 2008 +0200
+
+    [trace] Added missing dummies of new lookup functions for non-trace builds.
+
+commit 7968dcbf2767a8a6c13479e501a689b288e6a1e0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 10:24:22 2008 +0200
+
+    [util] Added exported dfb_pixelformat_names[] and replaced relevant code.
+
+commit 56df57f902260a60f11ca2a241973780201e4cd2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 10:22:42 2008 +0200
+
+    [mknames] Generate separate declaration of value/name pair structures.
+
+commit ac68c2c4cf2c53b5f8544478780c3cb1774aad1e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:30:32 2008 +0200
+
+    [generic] Get rid of YUV tables saving 5k binary size!
+
+commit 9e87cc1be7b6f12234bce4c9434991199483a631
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:05:37 2008 +0200
+
+    [header] tab->space
+
+commit 5e6b93f695c96c684c268cac9b7898ffb1f672f8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:04:21 2008 +0200
+
+    [SDL] Replaced code in commented section by using dfb_convert_to_rgb16().
+
+commit e998566fbcb7b69428f6f9035990f1adb4c5b374
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 09:03:07 2008 +0200
+
+    [formats] Fixed many NV12, NV16 and NV21 code areas, mostly for big endian.
+
+commit 408b396f31fd5caf5e6ca53824badbdaa7539d9e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 08:59:59 2008 +0200
+
+    [JPEG] Fix direct decoding to NV16 (no to+from RGB) for little endian.
+
+commit c8135a6b38b179ee6dbec9424fbe09c0361df214
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 08:59:18 2008 +0200
+
+    [formats] Clarify definition of NV12, NV16 and NV21.
+
+commit 98595b27c770f7e46651c5312235ba92e821b372
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:46:45 2008 +0200
+
+    [dfbtest_blit] Added test program for (Stretch)Blit with an image from file.
+    
+    Options:
+      -h, --help                        Show this help message
+      -v, --version                     Print version information
+      -s, --source    <pixelformat>     Source pixel format
+      -d, --dest      <pixelformat>     Destination pixel format
+      -r, --resize                      Set destination from source size
+      -b, --benchmark                   Enable benchmarking mode
+
+commit 1c4ea214f8f6fe9e634277b933a25e5a5b817fca
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:45:03 2008 +0200
+
+    [generic] Rewrote Dacc_RGB_to_YCbCr_C and Dacc_YCbCr_to_RGB_C using Duff's device with macros.
+    
+    Conversion also supports 4:4:4 by this change, not optimizing for 4:2:x cases.
+
+commit a735f98d97d17dc060c1a3bb5c24e5cc068ce7f2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:42:51 2008 +0200
+
+    [convert] Fix missing parentheses around macro parameters in YCBCR_TO_RGB().
+
+commit ad97e6f5e9ad560b7ed7702234d73f9516d8b6e5
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 06:35:15 2008 +0200
+
+    [convert] Rewrote YCbCr<->RGB conversion routines without lookups which are much more expensive on embedded devices.
+
+commit dd24e44f7f83c5fa166c260f7ef5e2877ba6c73d
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 03:26:18 2008 +0200
+
+    [options] New option "[no-]software-trace" to show every stage of the software rendering pipeline.
+
+commit 1ab3633fba1a8693f31f5d2f8fee052a603d68d8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Sep 10 03:24:30 2008 +0200
+
+    [direct] Added file and symbol lookup functions to trace code for external usage.
+    
+    New functions are direct_trace_lookup_file(), direct_trace_lookup_symbol() and
+    a convenience function combining the above called direct_trace_lookup_symbol_at().
+
+commit fe36a5d4b37de3eedc406daa7421405a7f74cb58
+Author: Denis Oliver Kropp <dok@debian.(none)>
+Date:   Thu Sep 4 01:02:36 2008 +0900
+
+    [README] Added some packages for autofoo...
+
+commit 97ac5ea290a6bb882c57aa8cbf550a1bf53432ff
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Aug 24 21:24:06 2008 +0200
+
+    [default wm] Fixed crash with DWCAPS_NOFOCUS implementation.
+
+commit a007cc5d5b39f9c44c26f15a28125a12d80f4bf6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Aug 24 17:10:45 2008 +0200
+
+    [default wm] Implemented DWCAPS_NOFOCUS.
+
+commit 394071df1cca0f86d63e4f49c0a09de451899ef2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Aug 24 17:10:19 2008 +0200
+
+    [IDirectFBWindow] Added DWCAPS_NOFOCUS: window will never get focus or receive key events, unless it grabs them.
+    
+    [merged from master]
+
+commit 2aa0a12cc2b8a2439e818571123b55b38ddaabfc
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Aug 23 13:58:10 2008 +0200
+
+    [configure] Switch to pkg-config for SDL and FreeType2, thanks to Keith Mok!
+
+commit e24833a86b8fcb590876cc038561369b6c232bb7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 20:32:30 2008 +0200
+
+    [input] Fixed boundary check for axis info array access.
+
+commit 4f66438dae66beddea99889a0b2dfc9e7cacdb74
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 20:01:45 2008 +0200
+
+    [sh7722] Build only for SH4.
+
+commit 45c1c3a317f7771e068902e0d5d0c057e1d9eca3
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 19:46:45 2008 +0200
+
+    [default wm] Use min/max values from absolute axis motion events if present.
+
+commit a9e61781cb742409a696f944282d6968498a19bc
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 19:46:05 2008 +0200
+
+    [input] Query axis information from driver and put it into events.
+
+commit 1307a3c5dea711cb67be9c9b2df45018f8f1a9a7
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 19:41:40 2008 +0200
+
+    [IDirectFBInputDevice] Added DIEF_MIN/MAX and min/max to DFBInputEvent, e.g. for axis boundaries.
+
+commit 40a992360f4a19da7d3d459d6dc2e75e43f75aeb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 16:44:26 2008 +0200
+
+    [input] Added GetAxisInfo() to InputDriverFuncs to query information about one axis.
+    
+    Make use of it in input_driver.h only if driver has defined DFB_INPUTDRIVER_HAS_AXIS_INFO
+    to avoid having to change all input drivers.
+
+commit 706b177ae3eda101955e5e0d60e9dbb6fb6552e9
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Aug 22 16:44:10 2008 +0200
+
+    [IDirectFBInputDevice] Added DFBInputDeviceAxisInfo(Flags) with DIAIF_ABS_MIN/MAX flags and abs_min/max fields.
+
+commit 36ab1898b94ae0be0066d788fb98cf92dce9539b
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Aug 21 17:27:34 2008 +0200
+
+    [davinci] In ARGB OSD dithering use task buffer and add missing locks.
+
+commit 3d8c2e03525c1791f8a2cb9291ae57353acd3f61
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Aug 21 11:36:59 2008 +0200
+
+    1.2.4 at the door
+
+commit 1344ce16b033146da1cb17fac6cddcc53b9b9a41
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Aug 21 11:34:08 2008 +0200
+
+    [sh7722] Fixes for JPEG encoding with conversion, cleanups...
+
+commit 9eba069a68ef1afe00da08a5d5a4be5cfb15654c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Aug 21 08:21:34 2008 +0200
+
+    [interfaces] Important fix for having multiple interface implementations in one module.
+
+commit 9dd40feabec9ad2cb58f014378c31ec2185c7863
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Aug 19 11:27:39 2008 +0200
+
+    Updated NEWS and ChangeLog for 1.2.3
+
 commit eb1abad3968236ddfdd8714bb1615dc1b2983bd0
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Tue Aug 19 11:26:10 2008 +0200
