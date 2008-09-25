@@ -1,3 +1,65 @@
+commit 300486b5d2c50e9ddd55ad67322d85eddd1387e0
+Author: Nikita Egorov <nikego@geos.varma-el.com>
+Date:   Thu Sep 25 13:52:52 2008 +0400
+
+    Set glyph alignment of 8 bytes for all font formats
+
+commit 530cd73caaf5370aef526559de5cea5e815054ae
+Merge: dbbdfef... afdfe4f...
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Sep 25 19:35:04 2008 +0200
+
+    Merge branch 'release_1_2_x' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into release_1_2_x
+
+commit dbbdfef062e86b47fa50013424665f9ac0ba962f
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Sep 25 19:34:40 2008 +0200
+
+    [sh772x] for JPEG encoding: horz/vert up/downscaling + offset
+    scaling is without n-line mode, so there are artefacts visible vertically
+    (since there operation is handled in 16-pixel steps)
+    todo: if enough memory is available, perform full-picture malloc and scale in 1 step
+
+commit afdfe4f8af5056e62dfb4018b1ff6541874606df
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 25 01:19:18 2008 +0200
+
+    [version] 1.2.5
+
+commit df44a12abc0faa117e85815b09fb3553a3897996
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 25 01:10:20 2008 +0200
+
+    [fonts] Fixed alignment on eight byte boundary, thanks to Nikita Egorov for spotting!
+
+commit 0eff2e254ec75d3a9cb86c58cd6e67e74853605b
+Author: Nikita Egorov <nikego@geos.varma-el.com>
+Date:   Mon Sep 22 15:41:00 2008 +0400
+
+    Don't switch to fill rectangle in DrawLine() if matrix is used.
+
+commit fb5c29272ccfa704658f1ff4209a4abb830623aa
+Merge: 64492c3... 1fe9b65...
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Sep 22 20:08:54 2008 +0200
+
+    Merge branch 'release_1_2_x' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into release_1_2_x
+
+commit 64492c38e44dd1f32de90bd6679298b9b039943f
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Sep 22 20:06:12 2008 +0200
+
+    [sh772x] fix JPEG encoding.
+    n-line mode impossible because destination addresses of VEU cannot be updated intermediately.
+    current implementation generates ints every 16 lines to reprogram VEU.
+    Disadvantage: phase is lost when scaling. (scaling not tested yet)
+
+commit 1fe9b65237a8240cbcaab6346caa88e5dcb7fd6a
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 19 04:06:55 2008 +0200
+
+    Updated ChangeLog for 1.2.4 release.
+
 commit 71eb77b278f81dd9258f268506408acd89dc039c
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Fri Sep 19 04:04:48 2008 +0200

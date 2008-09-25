@@ -1,3 +1,16 @@
+1.2.5
+-----
+
+Fonts
+- Fixed alignment on eight byte boundary, thanks to Nikita Egorov!
+
+Software Rendering
+- Don't switch to fill rectangle in DrawLine() if matrix is used.
+
+SH772x
+- More fixes for JPEG encoding with up/down scaling and offset.
+
+
 1.2.4
 -----
 
