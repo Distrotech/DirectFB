@@ -421,23 +421,33 @@ dfb_wm_close_all_stacks( void *data )
 
      shared = local->shared;
 
-     D_MAGIC_ASSERT( local->shared, DFBWMCoreShared );
+     D_MAGIC_ASSERT( shared, DFBWMCoreShared );
 
-     direct_list_foreach_safe (stack, next, wm_shared->stacks) {
+     D_DEBUG_AT( Core_WM, "  -> checking %d stacks...\n", direct_list_count_elements_EXPENSIVE(shared->stacks) );
+
+     direct_list_foreach_safe (stack, next, shared->stacks) {
+          D_DEBUG_AT( Core_WM, "  -> checking %p...\n", stack );
+
           D_MAGIC_ASSERT( stack, CoreWindowStack );
           
           context = stack->context;
           D_ASSERT( context != NULL );
           
+          D_DEBUG_AT( Core_WM, "  -> ref context %p...\n", context );
+
           dfb_layer_context_ref( context );
           
           dfb_layer_context_lock( context );
           
-          if (stack->flags & CWSF_INITIALIZED)
+          if (stack->flags & CWSF_INITIALIZED) {
+               D_DEBUG_AT( Core_WM, "  => CLOSING %p\n", stack );
                dfb_wm_close_stack( stack );
-          
+          }
+
           dfb_layer_context_unlock( context );
           
+          D_DEBUG_AT( Core_WM, "  -> unref context %p...\n", context );
+
           dfb_layer_context_unref( context );
      }
 
@@ -516,6 +526,8 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 {
      DFBResult ret;
 
+     D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, stack );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->InitStack != NULL );
@@ -558,6 +570,8 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 DFBResult
 dfb_wm_close_stack( CoreWindowStack *stack )
 {
+     D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, stack );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->CloseStack != NULL );
@@ -597,6 +611,8 @@ dfb_wm_set_active( CoreWindowStack *stack,
 {
      DFBResult ret;
 
+     D_DEBUG_AT( Core_WM, "%s( %p, %sactive )\n", __FUNCTION__, stack, active ? "" : "in" );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->SetActive != NULL );
@@ -633,6 +649,8 @@ dfb_wm_resize_stack( CoreWindowStack *stack,
                      int              width,
                      int              height )
 {
+     D_DEBUG_AT( Core_WM, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->ResizeStack != NULL );
@@ -648,6 +666,8 @@ DFBResult
 dfb_wm_process_input( CoreWindowStack     *stack,
                       const DFBInputEvent *event )
 {
+     D_DEBUG_AT( Core_WM, "%s( %p, %p )\n", __FUNCTION__, stack, event );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->ProcessInput != NULL );
@@ -664,6 +684,8 @@ dfb_wm_process_input( CoreWindowStack     *stack,
 DFBResult
 dfb_wm_flush_keys( CoreWindowStack *stack )
 {
+     D_DEBUG_AT( Core_WM, "%s( %p )\n", __FUNCTION__, stack );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->FlushKeys != NULL );
@@ -680,6 +702,8 @@ dfb_wm_window_at( CoreWindowStack  *stack,
                   int               y,
                   CoreWindow      **ret_window )
 {
+     D_DEBUG_AT( Core_WM, "%s( %p, %d,%d )\n", __FUNCTION__, stack, x, y );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->WindowAt != NULL );
@@ -697,6 +721,8 @@ dfb_wm_window_lookup( CoreWindowStack  *stack,
                       DFBWindowID       window_id,
                       CoreWindow      **ret_window )
 {
+     D_DEBUG_AT( Core_WM, "%s( %p, %u )\n", __FUNCTION__, stack, window_id );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->WindowLookup != NULL );
@@ -715,6 +741,8 @@ dfb_wm_enum_windows( CoreWindowStack      *stack,
                      CoreWMWindowCallback  callback,
                      void                 *callback_ctx )
 {
+     D_DEBUG_AT( Core_WM, "%s( %p, %p, %p )\n", __FUNCTION__, stack, callback, callback_ctx );
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->EnumWindows != NULL );
@@ -767,6 +795,9 @@ dfb_wm_preconfigure_window( CoreWindowStack *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( wm_local->funcs->PreConfigureWindow != NULL );
 
+     D_DEBUG_AT( Core_WM, "%s( %p, %p [%d,%d-%dx%d] )\n", __FUNCTION__,
+                 stack, window, DFB_RECTANGLE_VALS(&window->config.bounds) );
+
      /* Allocate shared window data. */
      if (wm_shared->info.window_data_size) {
           window_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.window_data_size );
@@ -799,6 +830,7 @@ dfb_wm_add_window( CoreWindowStack *stack,
                    CoreWindow      *window )
 {
      DFBResult  ret;
+
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->AddWindow != NULL );
@@ -808,6 +840,9 @@ dfb_wm_add_window( CoreWindowStack *stack,
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( window != NULL );
+
+     D_DEBUG_AT( Core_WM, "%s( %p, %p [%d,%d-%dx%d] )\n", __FUNCTION__,
+                 stack, window, DFB_RECTANGLE_VALS(&window->config.bounds) );
 
      /* Tell window manager about the new window. */
      ret = wm_local->funcs->AddWindow( stack, wm_local->data,
@@ -834,6 +869,9 @@ dfb_wm_remove_window( CoreWindowStack *stack,
      D_ASSERT( stack->flags & CWSF_INITIALIZED );
 
      D_ASSERT( window != NULL );
+
+     D_DEBUG_AT( Core_WM, "%s( %p, %p [%d,%d-%dx%d] )\n", __FUNCTION__,
+                 stack, window, DFB_RECTANGLE_VALS(&window->config.bounds) );
 
      /* Remove window from window manager. */
      ret = wm_local->funcs->RemoveWindow( stack, wm_local->data,
@@ -866,6 +904,9 @@ dfb_wm_set_window_property( CoreWindowStack  *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
+     D_DEBUG_AT( Core_WM, "%s( %p, %p [%d,%d-%dx%d], '%s' = %p )\n", __FUNCTION__,
+                 stack, window, DFB_RECTANGLE_VALS(&window->config.bounds), key, value );
+
      return wm_local->funcs->SetWindowProperty( stack, wm_local->data, stack->stack_data,
                                                 window, window->window_data,
                                                 key, value, ret_old_value );
@@ -890,6 +931,9 @@ dfb_wm_get_window_property( CoreWindowStack  *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
+     D_DEBUG_AT( Core_WM, "%s( %p, %p [%d,%d-%dx%d], '%s' )\n", __FUNCTION__,
+                 stack, window, DFB_RECTANGLE_VALS(&window->config.bounds), key );
+
      return wm_local->funcs->GetWindowProperty( stack, wm_local->data, stack->stack_data,
                                                 window, window->window_data, key, ret_value );
 }
@@ -913,6 +957,9 @@ dfb_wm_remove_window_property( CoreWindowStack  *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
+     D_DEBUG_AT( Core_WM, "%s( %p, %p [%d,%d-%dx%d], '%s' )\n", __FUNCTION__,
+                 stack, window, DFB_RECTANGLE_VALS(&window->config.bounds), key );
+
      return wm_local->funcs->RemoveWindowProperty( stack, wm_local->data, stack->stack_data,
                                                    window, window->window_data, key, ret_value );
 }
@@ -928,6 +975,9 @@ dfb_wm_set_window_config( CoreWindow             *window,
 
      D_ASSERT( window != NULL );
      D_ASSERT( config != NULL );
+
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], %p, 0x%x )\n", __FUNCTION__,
+                 window, DFB_RECTANGLE_VALS(&window->config.bounds), config, flags );
 
      return wm_local->funcs->SetWindowConfig( window, wm_local->data,
                                               window->window_data, config, flags );
@@ -946,6 +996,9 @@ dfb_wm_restack_window( CoreWindow *window,
 
      D_ASSERT( relative == NULL || relative == window || relation != 0);
 
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], %p, %d )\n", __FUNCTION__,
+                 window, DFB_RECTANGLE_VALS(&window->config.bounds), relative, relation );
+
      return wm_local->funcs->RestackWindow( window, wm_local->data, window->window_data, relative,
                                             relative ? relative->window_data : NULL, relation );
 }
@@ -962,6 +1015,9 @@ dfb_wm_grab( CoreWindow *window,
 
      D_ASSERT( grab != NULL );
 
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], %d )\n", __FUNCTION__,
+                 window, DFB_RECTANGLE_VALS(&window->config.bounds), grab->target );
+
      return wm_local->funcs->Grab( window, wm_local->data, window->window_data, grab );
 }
 
@@ -977,6 +1033,9 @@ dfb_wm_ungrab( CoreWindow *window,
 
      D_ASSERT( grab != NULL );
 
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], %d )\n", __FUNCTION__,
+                 window, DFB_RECTANGLE_VALS(&window->config.bounds), grab->target );
+
      return wm_local->funcs->Ungrab( window, wm_local->data, window->window_data, grab );
 }
 
@@ -988,6 +1047,9 @@ dfb_wm_request_focus( CoreWindow *window )
      D_ASSERT( wm_local->funcs->RequestFocus != NULL );
 
      D_ASSERT( window != NULL );
+
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d] )\n", __FUNCTION__,
+                 window, DFB_RECTANGLE_VALS(&window->config.bounds) );
 
      return wm_local->funcs->RequestFocus( window, wm_local->data, window->window_data );
 }
@@ -1006,6 +1068,9 @@ dfb_wm_update_stack( CoreWindowStack     *stack,
 
      DFB_REGION_ASSERT( region );
 
+     D_DEBUG_AT( Core_WM, "%s( %p, [%d,%d-%dx%d], 0x%x )\n", __FUNCTION__,
+                 stack, DFB_RECTANGLE_VALS_FROM_REGION(region), flags );
+
      return wm_local->funcs->UpdateStack( stack, wm_local->data,
                                           stack->stack_data, region, flags );
 }
@@ -1022,6 +1087,10 @@ dfb_wm_update_window( CoreWindow          *window,
      D_ASSERT( window != NULL );
 
      DFB_REGION_ASSERT_IF( region );
+
+     D_DEBUG_AT( Core_WM, "%s( %p [%d,%d-%dx%d], [%d,%d-%dx%d], 0x%x )\n", __FUNCTION__,
+                 window, DFB_RECTANGLE_VALS(&window->config.bounds),
+                 DFB_RECTANGLE_VALS_FROM_REGION(region), flags );
 
      return wm_local->funcs->UpdateWindow( window, wm_local->data,
                                            window->window_data, region, flags );
