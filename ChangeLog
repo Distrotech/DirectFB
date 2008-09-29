@@ -1,3 +1,83 @@
+commit 728bb7dc160c4ee27c6d425abff062b81d281977
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 11:58:13 2008 +0200
+
+    [NEWS] Updated for 1.2.6.
+
+commit e9c7abb2684241fb5366053423e7b42f47cbb3f6
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 11:57:59 2008 +0200
+
+    [version] 1.2.6
+
+commit a81749f9407670ea5822cecdc9f05a072711d4ca
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:54:05 2008 +0200
+
+    [dispatcher] Use direct_thread_lock()/unlock() in dispatcher and stopping function to fix remaining issues.
+
+commit ff34733b1f91d1bbd94c85b53c63cbe05117e95e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:33:19 2008 +0200
+
+    [x11] Evil error handling...
+
+commit 0b946cf40a7cd115eb41b1f079c8e22b4e1f55ee
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:32:22 2008 +0200
+
+    [x11] Fixed remaining crash with expose events that ran into a NULL window.
+
+commit c63edd253187aedefc6c78f1f1b12510376f427e
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:31:25 2008 +0200
+
+    [wm] Lots of useful debug messages.
+    
+    [merged from master]
+
+commit 401f6b64cd9a2f9f162f21c0622f033eb60e40a9
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:30:39 2008 +0200
+
+    [core] Call fusion_stop_dispatcher() before destroying pools to fix lots of shutdown issues.
+
+commit 76851f05484a25a138a0eb8e5d9a83668fce2f75
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 23:29:45 2008 +0200
+
+    [fusion] Added fusion_stop_dispatcher() to be called before destroying pools etc... fixing lots of shutdown issues!
+
+commit 627ea99c088a75f74e2439491e4b7991ddbdefdf
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 21:25:38 2008 +0200
+
+    [interfaces] Added some debug messages to DirectInterface code.
+
+commit a6bfcfb32615221435c329c2678d74de9fc2f2bc
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 21:24:47 2008 +0200
+
+    [util] Added dfb_updates_get_rectangles() for convenience, doing bounding box trade off etc...
+
+commit 6043ec23987e980285ab62cce6ad9e03ad73a4fb
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sun Sep 28 14:04:20 2008 +0200
+
+    [thread] Added direct_thread_wait() / _notify(), _lock(), _unlock() and _terminate().
+
+commit ed0faa8c4263da0024808bc7eac461bf54d8eb1f
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Sep 26 21:39:40 2008 +0200
+
+    ignore
+
+commit 5c0e84d48f67ddb3ab2c5862e6f99281fdc68ea0
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Sep 25 19:42:16 2008 +0200
+
+    Updated for 1.2.5.
+
 commit 300486b5d2c50e9ddd55ad67322d85eddd1387e0
 Author: Nikita Egorov <nikego@geos.varma-el.com>
 Date:   Thu Sep 25 13:52:52 2008 +0400
