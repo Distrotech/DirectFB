@@ -1,3 +1,26 @@
+1.2.6
+-----
+
+Core
+- Call fusion_stop_dispatcher() before destroying pools to fix lots of shutdown issues.
+
+WM Core
+- Lots of useful debug messages.
+
+libfusion
+- Added fusion_stop_dispatcher() to be called before destroying pools etc... fixing lots of shutdown issues!
+
+libdirect
+- Added direct_thread_wait() / _notify(), _lock(), _unlock() and _terminate().
+- Added some debug messages to DirectInterface code.
+
+Utilities
+- Added dfb_updates_get_rectangles() for convenience, doing bounding box trade off etc...
+
+X11 System
+- Fixed remaining crash with expose events that ran into a NULL window.
+
+
 1.2.5
 -----
 
