@@ -235,7 +235,7 @@ surface_callback( FusionObjectPool *pool,
 }
 
 static void
-dump_surfaces()
+dump_surfaces( void )
 {
      printf( "\n"
              "-----------------------------[ Surfaces ]-------------------------------------\n" );
@@ -359,7 +359,7 @@ surface_pool_callback( CoreSurfacePool *pool,
 }
 
 static void
-dump_surface_pools()
+dump_surface_pools( void )
 {
      dfb_surface_pools_enumerate( surface_pool_callback, NULL );
 }
@@ -442,7 +442,7 @@ surface_pool_info_callback( CoreSurfacePool *pool,
 }
 
 static void
-dump_surface_pool_info()
+dump_surface_pool_info( void )
 {
      printf( "\n" );
      printf( "-------------------------------------[ Surface Buffer Pools ]------------------------------------\n" );
@@ -678,7 +678,7 @@ layer_callback( CoreLayer *layer,
 }
 
 static void
-dump_layers()
+dump_layers( void )
 {
      dfb_layers_enumerate( layer_callback, NULL );
 }
@@ -731,7 +731,7 @@ dump_shmpool( FusionSHMPool *pool,
 }
 
 static void
-dump_shmpools()
+dump_shmpools( void )
 {
      fusion_shm_enum_pools( dfb_core_world(NULL), dump_shmpool, NULL );
 }

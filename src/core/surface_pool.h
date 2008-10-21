@@ -68,9 +68,9 @@ typedef struct {
 
 
 typedef struct {
-     int       (*PoolDataSize)();
-     int       (*PoolLocalDataSize)();
-     int       (*AllocationDataSize)();
+     int       (*PoolDataSize)( void );
+     int       (*PoolLocalDataSize)( void );
+     int       (*AllocationDataSize)( void );
 
      /*
       * Pool init/destroy
