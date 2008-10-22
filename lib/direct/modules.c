@@ -80,9 +80,9 @@ suppress_module (const char *name)
           if (strcmp (direct_config->disable_module[i], name) == 0) {
                D_INFO( "Direct/Modules: suppress module '%s'\n", direct_config->disable_module[i] );
                return 1;
-	  }
+          }
 
-	  i++;
+          i++;
      }
 
      return 0;
@@ -191,8 +191,20 @@ direct_modules_explore_directory( DirectModuleDir *directory )
 
      D_DEBUG_AT( Direct_Modules, "%s( '%s' )\n", __FUNCTION__, directory->path );
 
-     dir_len = strlen( directory->path );
-     dir     = opendir( directory->path );
+     char       *pathfront = "";
+     const char *path      = directory->path;
+     
+     if(path[0]!='/') {
+          pathfront = direct_config->module_dir;
+          if(!pathfront)
+               pathfront = MODULEDIR;
+     }
+
+     char buf[ strlen(pathfront) + 1 + strlen(path) + 1 ]; /* pre, slash, post, 0 */
+     sprintf( buf, "%s%s%s", pathfront, ( pathfront && path && (path[0] != '/') && (pathfront[strlen(pathfront)-1] != '/') ) ? "/" : "", path );
+
+     dir_len = strlen( buf );
+     dir     = opendir( buf );
 
      if (!dir) {
           D_DEBUG_AT( Direct_Modules, "  -> ERROR opening directory: %s!\n", strerror(errno) );
@@ -404,19 +416,24 @@ static void *
 open_module( DirectModuleEntry *module )
 {
      DirectModuleDir *directory;
-     int              entry_len;
-     int              buf_len;
-     char            *buf;
      void            *handle;
+     char            *pathfront;
+     const char      *path;
 
      D_MAGIC_ASSERT( module, DirectModuleEntry );
 
      directory = module->directory;
-     entry_len = strlen(module->file);
-     buf_len   = strlen(directory->path) + entry_len + 2;
-     buf       = alloca( buf_len );
+     path      = directory->path;
+     pathfront = "";
 
-     snprintf( buf, buf_len, "%s/%s", directory->path, module->file );
+     if(path[0]!='/') {
+          pathfront = direct_config->module_dir;
+          if(!pathfront)
+               pathfront = MODULEDIR;
+     }
+
+     char buf[ strlen(pathfront) + 1 + strlen(path) + 1 + strlen(module->file) + 1 ];
+     sprintf( buf, "%s%s%s/%s", pathfront, ( pathfront && path && (path[0] != '/') && (pathfront[strlen(pathfront)-1] != '/') ) ? "/" : "", path, module->file );
 
      D_DEBUG_AT( Direct_Modules, "Loading '%s'...\n", buf );
 
