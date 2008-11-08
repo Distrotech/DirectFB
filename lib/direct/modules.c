@@ -187,7 +187,7 @@ direct_modules_explore_directory( DirectModuleDir *directory )
      struct dirent *entry = NULL;
      struct dirent  tmp;
      int            count = 0;
-     char          *pathfront = "";
+     const char    *pathfront = "";
      const char    *path;
      char          *buf;
 
