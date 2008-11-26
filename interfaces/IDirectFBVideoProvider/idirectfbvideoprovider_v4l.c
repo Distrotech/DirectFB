@@ -382,8 +382,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                 * Because we're constantly writing to the surface we
                 * permanently lock it.
                 */
-               ret = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_GPU,
-                                              CSAF_WRITE, &data->destinationlock );
+               ret = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_GPU_WRITE, &data->destinationlock );
 
                if (ret) {
                     pthread_mutex_unlock( &data->lock );
@@ -761,8 +760,7 @@ static void* GrabThread( DirectThread *thread, void *ctx )
           h = surface->config.size.h;
           src = data->buffer + data->vmbuf.offsets[frame];
           
-          dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU,
-                                   CSAF_WRITE, &data->destinationlock );
+          dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &data->destinationlock );
           dst       = data->destinationlock.addr;
           dst_pitch = data->destinationlock.pitch;
 
