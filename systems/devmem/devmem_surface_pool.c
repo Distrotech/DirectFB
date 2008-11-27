@@ -271,7 +271,7 @@ devmemAllocateBuffer( CoreSurfacePool       *pool,
 
      alloc->offset = chunk->offset;
      alloc->pitch  = chunk->pitch;
-     alloc->size   = surface->config.size.h * alloc->pitch;
+     alloc->size   = chunk->length;
 
      alloc->chunk  = chunk;
 
