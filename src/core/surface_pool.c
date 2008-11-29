@@ -456,7 +456,8 @@ dfb_surface_pools_allocate( CoreSurfaceBuffer       *buffer,
                  (surface->type & CSTF_CURSOR)   ? "CURSOR "  : "",
                  (surface->type & CSTF_FONT)     ? "FONT "    : "",
                  (surface->type & CSTF_INTERNAL) ? "INTERNAL" : "",
-                 (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" );
+                 (surface->type & CSTF_EXTERNAL) ? "EXTERNAL" : "" ,
+                 (surface->type & CSTF_PREALLOCATED) ? "PREALLOCATED" : "" );
 
      /* Build a list of possible pools being free or out of memory */
      ret = dfb_surface_pools_negotiate( buffer, access, pools, pool_count, &num_pools );
