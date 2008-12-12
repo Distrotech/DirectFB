@@ -1673,6 +1673,8 @@ reallocate_surface( CoreLayer             *layer,
 
      if (config->buffermode == DLBM_BACKSYSTEM)
           surface->buffers[1]->policy = CSP_SYSTEMONLY;
+     else
+          surface->buffers[1]->policy = CSP_VIDEOONLY;
 
      dfb_surface_unlock( surface );
      
