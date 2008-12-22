@@ -1271,7 +1271,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
                h = surface->config.size.h;
                src = data->ptr[cur.index];
 
-               dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_CPU, CSAF_WRITE, &lock );
+               dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_CPU_WRITE, &lock );
                dst       = lock.addr;
                dst_pitch = lock.pitch;
                while (h--) {
@@ -1379,7 +1379,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
                return DFB_UNSUPPORTED;
      }
 
-     err = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAID_GPU, CSAF_WRITE, &data->destinationlock );
+     err = dfb_surface_lock_buffer( surface, CSBR_BACK, CSAF_GPU_WRITE, &data->destinationlock );
      if (err)
           return err;
 
