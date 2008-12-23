@@ -1,3 +1,42 @@
+1.2.7
+-----
+
+Config
+- added config option to override module search dir.
+- read /proc/self/cmdline if DirectFBInit() does not receive argv/argc.
+- added option to override initial screen size.
+- Fix build when srcdir != builddir.
+
+Core
+- added documentation for blend functions and some desktop-buffer-mode options
+- better out-of-memory error handling
+- fixed alpha handling for palette SetEntriesYUV
+- rectified changes to surface policy in case a surface is allocated again, of reallocated 
+
+Systems
+- fbdev: Fixes for pan & zoom functionality
+
+Gfxsystems
+- matrox: Wrong chroma plane offset was being used with deinterlace blits.
+- omap: Added omapfb.h to release zipfile.
+- SH772x: LCD parameters not obtained via fbdev ioctl
+- SH772x: improved JPEG Encode/decode performance, JPEG fixes, JPU by default disabled due to conflicts
+- SH772x: detection broadened to SH772x revisions
+
+Input
+- Fix possible array overruns
+- added direct_modules_unregister() when unloading the module
+- linuxinput: Fix LED handling, Count KEY_M
+- font loading: Support premultiplied font formats.
+- Video4Linux: add sources to release zipfile. Conform v4l and v4l2 to new core architecture.
+
+libfusion
+- fixed skirmish wait argument not taken as msec but usec
+
+Tools
+- dfbdump: fixed to show correct buffer allocation sizes for certain formats.
+
+
 1.2.6
 -----
 
