@@ -12,6 +12,7 @@ Core
 - better out-of-memory error handling
 - fixed alpha handling for palette SetEntriesYUV
 - rectified changes to surface policy in case a surface is allocated again, of reallocated 
+- fixed memory leak in local "System Memory" pool when deallocating due to IDirectFB::Release
 
 Systems
 - fbdev: Fixes for pan & zoom functionality

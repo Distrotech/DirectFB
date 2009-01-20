@@ -1,3 +1,469 @@
+commit ad6a2489b7e121eaa90039744d7068845b29dd7c
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Jan 19 16:14:11 2009 +0100
+
+    [surfaces] clean-up local pool on 'leave' and 'destroy'
+    Fixes issue when deallocates are initiated too close to IDirectFB Release.
+
+commit e80db8d373d7a34a971953b57d2affcaf644bc4b
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jan 9 18:09:56 2009 +0100
+
+    [core] typo in debug msg
+
+commit 99287b5fb6c0816c7d95854232d0a29b486e8be3
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 23 18:37:38 2008 +0100
+
+    [NEWS] Updated for 1.2.7.
+
+commit 34a1725198fcc6cf138025b97e0304ee79ddcbc0
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 23 18:37:03 2008 +0100
+
+    [version] 1.2.7
+
+commit f818feb423742234307cb3b60b9b35e299e986f7
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Dec 1 17:33:19 2008 +0100
+
+    [sh772x] namespace conformance
+
+commit fec930355974a005ea820c854cd5e1aa2c46ea17
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Dec 1 15:34:21 2008 +0100
+
+    [sh772x] changes:
+    - obtain LCD parameters via linux/fbdev
+    - BEU byte swapping removed (not needed with current fbdev/LCDC settings)
+    - JPU temporarily disabled due to conflicts
+
+commit 887fad282740e1cf74d22deea5d6cc582f07c921
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Dec 1 12:45:43 2008 +0100
+
+    [devmem] fix the displayed-by-dfbdump devmem pool size.
+    The internal size was not broken.
+
+commit 102e250634df2bc431e2fc77c616d5d81761b9ac
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon Dec 1 07:46:22 2008 +0200
+
+    surface_pool: Fix debug print
+
+commit 1d69f2e92a5798eaa73959f06e99b24271f2aad0
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon Dec 1 07:33:33 2008 +0200
+
+    prealloc_surface_pool: Add CSTF_INTERNAL to types
+
+commit 72d10707517a342949676bc7ec08d036ffcf0027
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 29 11:11:01 2008 +0200
+
+    surface_pool: Show CSTF_PREALLOCATED in the debug output
+
+commit 0e9873a591200e85fbcd6c5b56f5ba00cd9264cc
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Nov 18 17:04:56 2008 +0200
+
+    directfb.h: Document the blend functions
+
+commit cc88fba323663088a3559ead5d31244294bfa587
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 8 21:59:40 2008 +0200
+
+    unichrome/cle266: Make the files non-executable
+
+commit d33c7bce9e65b9414908643c5ba1051f4b253683
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 8 16:53:32 2008 +0200
+
+    unichrome/cle266: Drop useless inline keywords
+    
+    The functions are never inlined since they are defined in another
+    translation unit to the one where they are called.
+
+commit 99d178c8723b8bf2467570afe2739be0544ff8f5
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 8 16:34:49 2008 +0200
+
+    modules: Add some constness
+
+commit dcc8a71903bb40e1147cde359da1d35cc33cb132
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 8 13:10:27 2008 +0200
+
+    Silence compiler warnings
+
+commit eb8d81025cada03e84593ce5c6c1c3b3a765c8ef
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 8 14:02:22 2008 +0200
+
+    Convert to C99 initializers
+
+commit e2f81d01f99d047727f7b1446c2926e1e0107c87
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 8 14:00:50 2008 +0200
+
+    core_parts: Fix prototypes and convert to C99 initializers
+
+commit 54ad3c8a2195952802ebb54dd29beaf1d781f0dd
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon Nov 3 13:52:45 2008 +0200
+
+    Check allocation results
+
+commit 638849520bab4aa0e9ab4796e96849e04f252346
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon Nov 3 00:43:14 2008 +0200
+
+    linuxinput: Include linux/input.h before using the defines from it
+
+commit 4cb2e813612be62c35a8f5df07e8959e2946f6ec
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Mon Nov 3 01:17:22 2008 +0200
+
+    cle266: Linking needs -lm
+
+commit eeea500b3c4c40c1ce595e3f0d6571c99813f0e7
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 1 17:21:24 2008 +0200
+
+    linuxinput: Fix LED handling
+
+commit fe2d6e91c2a46e44e924258068e8ce205bcabcd7
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 1 17:24:02 2008 +0200
+
+    linuxinput: Zero-initialize DFBInputEvents
+
+commit d3eca3b90ffa3ac992cf837cc635ab1ae3b0c610
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat Nov 1 15:07:53 2008 +0200
+
+    fbdev: Nuke trailing whitespace
+
+commit 0eee9430142a1779e838de11ee2e93b411eb86a9
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Oct 22 01:01:07 2008 +0300
+
+    fbdev: Fix pan & zoom functionality
+
+commit ddbc444d72fc0922dceb2fd7171ddb069a1e084c
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Oct 22 00:53:24 2008 +0300
+
+    fbdev: Cleanups for the panning code
+
+commit de4fdae183c82a14ec6192092264c720a783ebdc
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Oct 24 11:21:17 2008 +0200
+
+    [modules] fix for static linking (module unload not available then)
+
+commit 0909a9c56dee2b7858fad63c5c1798c0d5e6a7af
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Oct 22 16:03:30 2008 +0200
+
+    [modules] add option to specify module dir.
+    You have to specify the base-dir, so the dir that contains
+    the drivers/systems/wm directories
+
+commit a5a8704084baa4aa9c406537c17c30b643016aad
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Oct 22 00:19:41 2008 +0300
+
+    directfbrc.5: Document triple and windows desktop-buffer-mode options.
+
+commit 210ad1f558e54a2c2f6ce8ba32bbba6c4b50b944
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Oct 22 00:19:11 2008 +0300
+
+    dfbdump: Deal with CSALF_ONEFORALL
+
+commit 2ddbebbafbd116ea15fc823dfb09a89313d08e58
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Oct 22 00:09:11 2008 +0300
+
+    v4l: Clean up the oddball coding style in the v4l2 code.
+
+commit 3a1301fc22011598717c7fa64cd003444556746a
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Dec 22 17:00:32 2008 +0100
+
+    [v4l] Fix for Fix v4l2 build. Different lock interface on 1.2.x
+
+commit 0d168b477b16a5fe4fb65345c0429bc46d528e12
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 01:13:03 2008 +0300
+
+    v4l: Fix v4l2 build. Untested.
+
+commit 76c033296b448c8a301283e6862e0257f6be521a
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 16:30:51 2008 +0300
+
+    matrox: Wrong chroma plane offset was being used with deinterlace blits.
+
+commit 41f386002f144621e7e4f0439dd37ad485f77953
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 04:43:21 2008 +0300
+
+    inputdrivers: Fix possible array overruns
+
+commit 8eb8638ccab163335b3e9101543d3087a657fd10
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 04:38:25 2008 +0300
+
+    linuxinput: Use proper sizes for the bitmaps.
+
+commit a1586efc8065d0ff1f6bcd16e0398f02e5842009
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 04:35:53 2008 +0300
+
+    linuxinput: Count KEY_M
+
+commit b2f531062fdaa9f0cd17e6a84d97b1947e00301f
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 04:13:37 2008 +0300
+
+    dynapro: Fix warning
+    
+    dynapro.c:124: warning: control reaches end of non-void function
+
+commit 8384feb98c739a821a65e114d8a63eb445f71b7f
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 04:13:05 2008 +0300
+
+    omap: Fix warning
+    
+    omap.c:63: warning: no return statement in function returning non-void
+
+commit fd91812d436c012ab6ddfe5490b4164f9a6c527f
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 04:09:39 2008 +0300
+
+    Function prototype cleanups.
+
+commit bc622699d5c6acfa04c6b9432a341ed0b96a32a3
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 02:19:28 2008 +0300
+
+    Constness cleanups.
+
+commit 8714695873ba9d1e75535e94d953db399e940d73
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 01:51:54 2008 +0300
+
+    Fix build with LDFLAGS="-Wl,-no-undefined".
+
+commit 98eadd775c6695a7b7548cb840fc7ca22f209379
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 01:36:38 2008 +0300
+
+    Fix build when srcdir != builddir.
+
+commit 78c31fb39eef064ecb347fe0a37d2bb384b929d4
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue Oct 21 01:18:27 2008 +0300
+
+    configure: Use -Wno-inline with -fno-inline.
+
+commit 9eed680c14a67c2dd14ca764c1c67d2fb397ae72
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Oct 21 15:08:52 2008 +0200
+
+    [sh772x] allow revisions of sh7722 and sh7723 to be detected
+
+commit 04c4b27b9e7bb1ff8fe50a7810709f28e13894a2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Oct 18 07:49:40 2008 +0200
+
+    [input] In init_devices() use direct_list_foreach_safe() instead of direct_list_foreach().
+
+commit 4492035a8584d24b76211ceddd7b2be832105584
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Oct 18 07:48:21 2008 +0200
+
+    [input] Use direct_modules_unregister() in destructor of input driver modules.
+
+commit 91a7270565522d5d3e0ca5927142914fcd014333
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Oct 18 07:47:25 2008 +0200
+
+    [direct] Added direct_modules_unregister()......
+
+commit 9354a6a31e58ebf47cd2cf5c9bca63bae67f50e7
+Merge: c2142cd... 54260df...
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Dec 22 13:54:12 2008 +0100
+
+    Merge branch 'release_1_2_x' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into release_1_2_x
+
+commit c2142cd444bf3498e32aeb38c315238479e9f712
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Oct 15 15:47:18 2008 +0200
+
+    [sh7722] jpegtool.c - fix
+
+commit a3a39892faa973ad8112852fc15a2a513ab3abfe
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Oct 14 19:33:28 2008 +0200
+
+    [fbdev] use directfbrc for initial screen size, if specified.
+    suggestion and patch by Stefan Lucke.
+
+commit 48cf83c76f6227e2c10058e04875139d23830e1e
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Oct 14 18:44:43 2008 +0200
+
+    [sh772x] JPEG writeback improvements
+    - correct handling of colour of NV12 and NV16 input in line mode
+    - recorrect not-scaled NV12 and NV16 input (jpeg_writing = 2)
+    - handle odd input sizes
+    - handle error condition, on tmp-storage request failure, properly
+
+commit 8b9c5b68d4858d517c3a0968d8958084d0c0f79a
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Oct 10 21:14:51 2008 +0200
+
+    [sh772x] jpeg intermediate buffer creation
+
+commit 54260df6f07bffda4c3aaefe1a03a7ee0b53bdde
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Dec 16 07:53:08 2008 +0100
+
+    [v4l] Fixed warning (unused variables).
+
+commit dc2df128290fcd7d7c7d44730093e4be003981d2
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Tue Dec 16 07:52:10 2008 +0100
+
+    [conf] Fixed warning (unused variable).
+
+commit 4d2ddca43d3649a54e9ad122c7caba28285282fc
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Dec 12 11:36:47 2008 +0100
+
+    [surface] follow policy changes.. fix
+    forgot DLBM_FRONTONLY handling.
+
+commit 022d58d2a75b847c9d9a8adccbf6453d37939da9
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Dec 12 10:28:09 2008 +0100
+
+    [surface] follow policy changes
+
+commit 80b51ce682a5bd022565c14b4b68bea72f93bbd8
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Nov 27 16:40:48 2008 +0100
+
+    [conf] read /proc/self/cmdline if DirectFBInit() does not receive argv/argc.
+
+commit 12c0ad1f79029d2f5398cae16f9daacf4dde1a27
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Nov 27 11:49:55 2008 +0100
+
+    [devmem] fix the displayed-by-dfbdump buffer size for certain formats.
+    The internal size was not broken.
+
+commit 6c192ad078f4a76edd2e0fc7b5b843d5fe7fc558
+Merge: 7c1e1ab... 4bce451...
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Nov 26 19:20:40 2008 +0100
+
+    Merge branch 'release_1_2_x' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into origin/release_1_2_x
+
+commit 7c1e1ab700369cf04c45f1d7977aabaeddde3767
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Nov 26 19:15:22 2008 +0100
+
+    [palette] when setting a YUV Palette alpha is not discarded anymore.
+
+commit 4b4dcb26ae6608b2f85002dc051cb1166a908804
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Nov 26 19:12:05 2008 +0100
+
+    [v4l] make v4l code build. Not tested.
+
+commit 4bce45129a06dc980372b3b570ca5a07e04dafd8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Sat Oct 18 03:34:23 2008 +0200
+
+    [fusion] Don't return calls with zero serial, avoiding overhead when kernel calls or FCEF_ONEWAY is used.
+
+commit 6a5202be8b4333592ad737d326e297a87873a740
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Nov 11 19:33:15 2008 +0100
+
+    [fusion] skirmish wait argument not taken as msec but usec
+
+commit c6cf3ea724ef21a70bb3b9c0dde02164e5d662a7
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Nov 11 19:33:15 2008 +0100
+
+    [fusion] skirmish wait argument not taken as msec but usec
+
+commit f87a074dd2bfc6f6488d40dee8c0031a1b619e42
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Oct 9 18:44:15 2008 +0200
+
+    [SH772X] adjust makefiles to rename
+
+commit c7ce78b604790f9a2adbb84f0a744c5a5fc3fbb1
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Oct 9 18:42:23 2008 +0200
+
+    [SH772X] rename driver
+
+commit 73b4b7118800c93accc9ce22fa0beddff991f54c
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Oct 9 14:48:00 2008 +0200
+
+    [sh772x] added display power on, + other stuff:
+    - include display power-on in sh772x kernel module so we don't need
+    the fb driver from the kernel, current implementation limited to sh7723.
+    - limit pitch alignment to 16 bytes, more currently not needed
+    - extend JPEG encode with tmpphys; will be used to store intermediate
+    between BEU and JPU, to prevent 16-line-chunk-scaling issues.
+
+commit 52062fe35034a55942b456b76d1408edf46724c7
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Oct 8 15:04:09 2008 +0200
+
+    [v4l] conform v4l to new surface core architecture
+
+commit 41f1c7e6a0d3a6649bb8a7fbc748fdf053875c92
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Oct 8 12:03:42 2008 +0200
+
+    [v4l] v4l sources were not part of distro. fixed.
+
+commit ba76f989f04fbb29def690514ddd42892efc2da8
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Thu Oct 2 04:00:19 2008 +0200
+
+    [omap] Added omapfb.h to SOURCES.
+
+commit f3d97293a42b948f09b8066a0bc3b0f6336403de
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Oct 1 00:43:55 2008 +0200
+
+    [default font] Support premultiplied font formats.
+
+commit db2fb26752a8381c01acada1202daea175d6be23
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 16:37:58 2008 +0200
+
+    [sh7722] Fixed wrong number of arguments in JPEG test program.
+
+commit 42e03021991904dffe186b930903d74d2619be4c
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Mon Sep 29 11:58:46 2008 +0200
+
+    Updated for 1.2.6.
+
 commit 728bb7dc160c4ee27c6d425abff062b81d281977
 Author: Denis Oliver Kropp <dok@cyto.(none)>
 Date:   Mon Sep 29 11:58:13 2008 +0200
