@@ -1,3 +1,33 @@
+commit 66c7f10d2ee9bbeda6c08cfedb6d61a4588eddfc
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Mar 31 14:29:42 2009 +0200
+
+    [surfaces] local pool clean-up was too greedy; fixed
+
+commit b2562326a950092fe6a01eb11f71c74ea5474dfd
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Mar 31 11:27:07 2009 +0200
+
+    [surface] add Write/Read
+
+commit 64bbd35ec356f0ae39d2e8193574e23303f3c53b
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon Mar 30 20:26:15 2009 +0200
+
+    [fusion] changes for Fusion 0.8.1, forgotten this.
+
+commit f2044600fe4509fa73b78d38b6a92f4a0302bf80
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Mar 12 21:54:31 2009 +0100
+
+    [fusion] changes for Fusion 0.8.1
+
+commit c25a8bada418260ca689b5b626cef2f9d6327b75
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Jan 20 12:32:53 2009 +0100
+
+    Updated for 1.2.7.
+
 commit ad6a2489b7e121eaa90039744d7068845b29dd7c
 Author: Niels Roest <niels@directfb.org>
 Date:   Mon Jan 19 16:14:11 2009 +0100

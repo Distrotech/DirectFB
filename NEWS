@@ -1,3 +1,14 @@
+1.2.8
+-----
+
+Fusion
+- update to use new 'unified' fusion kernel module.
+  When using multi-app, please use fusion 8.1.1 or newer.
+
+Core
+- Added IDirectFBSurface::Read and ::Write
+- small fix to local "System Memory" pool cleanup
+
 1.2.7
 -----
 
