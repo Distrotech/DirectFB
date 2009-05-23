@@ -24,6 +24,7 @@ lib_LTLIBRARIES = libdirectfb.la
 
 libdirectfb_la_SOURCES = 	\
 	directfb.c		\
+	directfb_result.c	\
 	idirectfb.c
 
 libdirectfb_la_LDFLAGS = \
@@ -41,6 +42,21 @@ libdirectfb_la_LIBADD = \
 	core/libdirectfb_core.la	\
 	../lib/direct/libdirect.la	\
 	../lib/fusion/libfusion.la
+
+
+MKRESULT = $(top_srcdir)/tools/mkresult.sh
+
+directfb_result.c: $(top_srcdir)/include/directfb.h $(MKRESULT)
+	@echo '#include <config.h>'    		> $@
+	@echo                                   >> $@
+	@echo '#include <directfb.h>'    	>> $@
+	@echo                                   >> $@
+	@echo                                   >> $@
+
+	@$(MKRESULT) DFBResult DFB $< 		>> $@
+
+	@echo                                   >> $@
+
 
 
 #
