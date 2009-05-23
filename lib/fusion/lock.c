@@ -27,13 +27,6 @@
 */
 
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <signal.h>
-
-#include <sys/param.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
@@ -49,7 +42,7 @@
 
 #if FUSION_BUILD_MULTI
 
-D_DEBUG_DOMAIN( Fusion_Skirmish, "Fusion/Skirmish", "Fusion's Skirmish (Mutex)" );
+D_LOG_DOMAIN( Fusion_Skirmish, "Fusion/Skirmish", "Fusion's Skirmish (Mutex)" );
 
 
 #if FUSION_BUILD_KERNEL
@@ -64,8 +57,10 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      D_ASSERT( skirmish != NULL );
      D_ASSERT( name != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
-     
+
      D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init( %p, '%s' )\n", skirmish, name ? : "" );
+
+//     direct_trace_print_stack( NULL );
 
      while (ioctl( world->fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->multi.id )) {
           if (errno == EINTR)
@@ -76,7 +71,7 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      }
 
      D_DEBUG_AT( Fusion_Skirmish, "  -> new skirmish %p [%d]\n", skirmish, skirmish->multi.id );
-     
+
      info.type = FT_SKIRMISH;
      info.id   = skirmish->multi.id;
 
@@ -87,13 +82,15 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      /* Keep back pointer to shared world data. */
      skirmish->multi.shared = world->shared;
 
+     D_MAGIC_SET( &skirmish->multi, FusionSkirmish );
+
      return DR_OK;
 }
 
 DirectResult
 fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
-     D_ASSERT( skirmish != NULL );
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_PREVAIL, &skirmish->multi.id)) {
           switch (errno) {
@@ -115,7 +112,7 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
 DirectResult
 fusion_skirmish_swoop( FusionSkirmish *skirmish )
 {
-     D_ASSERT( skirmish != NULL );
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_SWOOP, &skirmish->multi.id)) {
           switch (errno) {
@@ -142,7 +139,7 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      int data[2];
 
-     D_ASSERT( skirmish != NULL );
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
 
      data[0] = skirmish->multi.id;
      data[1] = 0;
@@ -168,7 +165,7 @@ fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
-     D_ASSERT( skirmish != NULL );
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DISMISS, &skirmish->multi.id)) {
           switch (errno) {
@@ -190,15 +187,15 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 DirectResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
-     D_ASSERT( skirmish != NULL );
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
 
      D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p [%d] )\n", skirmish, skirmish->multi.id );
-     
+
      while (ioctl( _fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DESTROY, &skirmish->multi.id )) {
           switch (errno) {
                case EINTR:
                     continue;
-                    
+
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
                     return DR_DESTROYED;
@@ -208,6 +205,8 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
           return DR_FUSION;
      }
 
+     D_MAGIC_CLEAR( &skirmish->multi );
+
      return DR_OK;
 }
 
@@ -216,7 +215,7 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 {
      FusionSkirmishWait wait;
 
-     D_ASSERT( skirmish != NULL );
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
 
      wait.id         = skirmish->multi.id;
      wait.timeout    = timeout;
@@ -245,7 +244,7 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 DirectResult
 fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
-     D_ASSERT( skirmish != NULL );
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
 
      while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_NOTIFY, &skirmish->multi.id)) {
           switch (errno) {
@@ -264,6 +263,42 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
      return DR_OK;
 }
 
+DirectResult
+fusion_skirmish_set_name( FusionSkirmish *skirmish,
+                          const char     *name )
+{
+     FusionEntryInfo info;
+
+     D_MAGIC_ASSERT( &skirmish->multi, FusionSkirmish );
+     D_ASSERT( name != NULL );
+
+     D_DEBUG_AT( Fusion_Skirmish, "%s( %p, '%s' )\n", __FUNCTION__, skirmish, name );
+
+     /* Initialize reactor info. */
+     info.type = FT_SKIRMISH;
+     info.id   = skirmish->multi.id;
+
+     /* Put reactor name into info. */
+     direct_snputs( info.name, name, sizeof(info.name) );
+
+     /* Set the reactor info. */
+     while (ioctl( _fusion_fd( skirmish->multi.shared ), FUSION_ENTRY_SET_INFO, &info )) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+
+               case EINVAL:
+                    D_ERROR( "Fusion/Skirmish: invalid skirmish\n" );
+                    return DR_IDNOTFOUND;
+          }
+
+          D_PERROR( "FUSION_ENTRY_SET_INFO( skirmish 0x%08x, '%s' )\n", skirmish->multi.id, name );
+          return DR_FUSION;
+     }
+
+     return DR_OK;
+}
+
 #else /* FUSION_BUILD_KERNEL */
 
 #include <direct/clock.h>
@@ -272,7 +307,7 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 
 typedef struct {
      DirectLink  link;
-     
+
      pid_t       pid;
      bool        notified;
 } WaitNode;
@@ -286,21 +321,21 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      D_ASSERT( skirmish != NULL );
      //D_ASSERT( name != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
-     
-     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init( %p, '%s' )\n", 
+
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init( %p, '%s' )\n",
                  skirmish, name ? : "" );
-     
+
      skirmish->multi.id = ++world->shared->lock_ids;
-     
+
      /* Set state to unlocked. */
      skirmish->multi.builtin.locked = 0;
      skirmish->multi.builtin.owner  = 0;
 
      skirmish->multi.builtin.waiting = NULL;
-    
+
      skirmish->multi.builtin.requested = false;
      skirmish->multi.builtin.destroyed = false;
-     
+
      /* Keep back pointer to shared world data. */
      skirmish->multi.shared = world->shared;
 
@@ -311,29 +346,29 @@ DirectResult
 fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
-     
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
-          
+
      asm( "" ::: "memory" );
 
      if (skirmish->multi.builtin.locked &&
          skirmish->multi.builtin.owner != direct_gettid())
      {
           int count = 0;
-          
+
           while (skirmish->multi.builtin.locked) {
                /* Check whether owner exited without unlocking. */
-               if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) { 
+               if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) {
                     skirmish->multi.builtin.locked = 0;
-                    skirmish->multi.builtin.requested = false; 
+                    skirmish->multi.builtin.requested = false;
                     break;
                }
 
                skirmish->multi.builtin.requested = true;
-               
+
                asm( "" ::: "memory" );
-               
+
                if (++count > 1000) {
                     usleep( 10000 );
                     count = 0;
@@ -341,15 +376,15 @@ fusion_skirmish_prevail( FusionSkirmish *skirmish )
                else {
                     direct_sched_yield();
                }
-               
+
                if (skirmish->multi.builtin.destroyed)
                     return DR_DESTROYED;
           }
      }
-     
+
      skirmish->multi.builtin.locked++;
      skirmish->multi.builtin.owner = direct_gettid();
-     
+
      asm( "" ::: "memory" );
 
      return DR_OK;
@@ -359,26 +394,26 @@ DirectResult
 fusion_skirmish_swoop( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
-     
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
-          
+
      asm( "" ::: "memory" );
-          
+
      if (skirmish->multi.builtin.locked &&
          skirmish->multi.builtin.owner != direct_gettid()) {
           /* Check whether owner exited without unlocking. */
-          if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) { 
+          if (kill( skirmish->multi.builtin.owner, 0 ) < 0 && errno == ESRCH) {
                skirmish->multi.builtin.locked = 0;
                skirmish->multi.builtin.requested = false;
           }
           else
                return DR_BUSY;
      }
-          
+
      skirmish->multi.builtin.locked++;
      skirmish->multi.builtin.owner = direct_gettid();
-     
+
      asm( "" ::: "memory" );
 
      return DR_OK;
@@ -388,14 +423,14 @@ DirectResult
 fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
      D_ASSERT( skirmish != NULL );
-     
+
      if (skirmish->multi.builtin.destroyed) {
           *lock_count = 0;
           return DR_DESTROYED;
      }
 
      *lock_count = skirmish->multi.builtin.locked;
-     
+
      return DR_OK;
 }
 
@@ -403,10 +438,10 @@ DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
-     
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
-          
+
      asm( "" ::: "memory" );
 
      if (skirmish->multi.builtin.locked) {
@@ -415,7 +450,7 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
                         "Tried to dismiss a skirmish not owned by current process!\n" );
                return DR_ACCESSDENIED;
           }
-          
+
           if (--skirmish->multi.builtin.locked == 0) {
                skirmish->multi.builtin.owner = 0;
 
@@ -425,9 +460,9 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
                }
           }
      }
-     
+
      asm( "" ::: "memory" );
-     
+
      return DR_OK;
 }
 
@@ -437,13 +472,13 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
      D_ASSERT( skirmish != NULL );
 
      D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p )\n", skirmish );
-     
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
-          
+
      if (skirmish->multi.builtin.waiting)
           fusion_skirmish_notify( skirmish );
-          
+
      skirmish->multi.builtin.destroyed = true;
 
      return DR_OK;
@@ -465,31 +500,31 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      struct sigaction  act, oldact;
      sigset_t          mask, set;
      DirectResult      ret = DR_OK;
-     
+
      D_ASSERT( skirmish != NULL );
-     
+
      if (skirmish->multi.builtin.destroyed)
           return DR_DESTROYED;
- 
+
      /* Set timeout. */
      stop = direct_clock_get_micros() + timeout * 1000ll;
-      
-     /* Add ourself to the list of waiting processes. */    
+
+     /* Add ourself to the list of waiting processes. */
      node = SHMALLOC( skirmish->multi.shared->main_pool, sizeof(WaitNode) );
      if (!node)
           return D_OOSHM();
-     
+
      node->pid      = direct_gettid();
      node->notified = false;
-     
+
      direct_list_append( &skirmish->multi.builtin.waiting, &node->link );
-      
+
      /* Install a (fake) signal handler for SIGRESTART. */
      act.sa_handler = restart_handler;
      act.sa_flags   = SA_RESETHAND | SA_RESTART | SA_NOMASK;
-     
+
      sigaction( SIGRESTART, &act, &oldact );
-     
+
      /* Unblock SIGRESTART. */
      sigprocmask( SIG_SETMASK, NULL, &mask );
      sigdelset( &mask, SIGRESTART );
@@ -506,10 +541,10 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
                     ret = DR_TIMEOUT;
                     break;
                }
-               
+
                sigprocmask( SIG_SETMASK, &mask, &set );
                usleep( stop - now );
-               sigprocmask( SIG_SETMASK, &set, NULL );           
+               sigprocmask( SIG_SETMASK, &set, NULL );
           }
           else {
                sigsuspend( &mask );
@@ -519,14 +554,14 @@ fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
      /* Flush pending signals. */
      if (!sigpending( &set ) && sigismember( &set, SIGRESTART ) > 0)
           sigsuspend( &mask );
-     
+
      if (fusion_skirmish_prevail( skirmish ))
           ret = DR_DESTROYED;
-     
+
      direct_list_remove( &skirmish->multi.builtin.waiting, &node->link );
 
      SHFREE( skirmish->multi.shared->main_pool, node );
-     
+
      sigaction( SIGRESTART, &oldact, NULL );
 
      return ret;
@@ -536,7 +571,7 @@ DirectResult
 fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
      WaitNode *node, *temp;
-     
+
      D_ASSERT( skirmish != NULL );
 
      if (skirmish->multi.builtin.destroyed)
@@ -563,6 +598,13 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
      return DR_OK;
 }
 
+DirectResult
+fusion_skirmish_set_name( FusionSkirmish *skirmish,
+                          const char     *name )
+{
+     return DR_UNIMPLEMENTED;
+}
+
 #endif /* FUSION_BUILD_KERNEL */
 
 #else  /* FUSION_BUILD_MULTI */
@@ -574,8 +616,8 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
 {
      D_ASSERT( skirmish != NULL );
 
-     direct_util_recursive_pthread_mutex_init( &skirmish->single.lock );
-     pthread_cond_init( &skirmish->single.cond, NULL );
+     direct_recursive_mutex_init( &skirmish->single.lock );
+     direct_waitqueue_init( &skirmish->single.cond );
 
      return DR_OK;
 }
@@ -583,10 +625,13 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
 DirectResult
 fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
+     DirectResult ret;
+
      D_ASSERT( skirmish != NULL );
 
-     if (pthread_mutex_lock( &skirmish->single.lock ))
-          return errno2result( errno );
+     ret = direct_mutex_lock( &skirmish->single.lock );
+     if (ret)
+          return ret;
 
      skirmish->single.count++;
 
@@ -596,10 +641,13 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
 DirectResult
 fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
+     DirectResult ret;
+
      D_ASSERT( skirmish != NULL );
 
-     if (pthread_mutex_trylock( &skirmish->single.lock ))
-          return errno2result( errno );
+     ret = direct_mutex_trylock( &skirmish->single.lock );
+     if (ret)
+          return ret;
 
      skirmish->single.count++;
 
@@ -609,17 +657,20 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
 DirectResult
 fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
 {
+     DirectResult ret;
+
      D_ASSERT( skirmish != NULL );
      D_ASSERT( lock_count != NULL );
-     
-     if (pthread_mutex_trylock( &skirmish->single.lock )) {
+
+     ret = direct_mutex_trylock( &skirmish->single.lock );
+     if (ret) {
           *lock_count = 0;
-          return errno2result( errno );
+          return ret;
      }
 
      *lock_count = skirmish->single.count;
 
-     pthread_mutex_unlock( &skirmish->single.lock );
+     direct_mutex_unlock( &skirmish->single.lock );
 
      return DR_OK;
 }
@@ -631,46 +682,29 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 
      skirmish->single.count--;
 
-     if (pthread_mutex_unlock( &skirmish->single.lock ))
-          return errno2result( errno );
-
-     return DR_OK;
+     return direct_mutex_unlock( &skirmish->single.lock );
 }
 
 DirectResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
-     
-     pthread_cond_broadcast( &skirmish->single.cond );
-     pthread_cond_destroy( &skirmish->single.cond );
 
-     return pthread_mutex_destroy( &skirmish->single.lock );
+     direct_waitqueue_broadcast( &skirmish->single.cond );
+     direct_waitqueue_deinit( &skirmish->single.cond );
+
+     return direct_mutex_deinit( &skirmish->single.lock );
 }
 
 DirectResult
 fusion_skirmish_wait( FusionSkirmish *skirmish, unsigned int timeout )
 {
      D_ASSERT( skirmish != NULL );
-     
-     if (timeout) {
-          struct timespec ts;
-          struct timeval  tv;
-          int             ret;
-          
-          gettimeofday( &tv, NULL );
-          
-          ts.tv_nsec = tv.tv_usec*1000 + (timeout%1000)*1000000;
-          ts.tv_sec  = tv.tv_sec + timeout/1000 + ts.tv_nsec/1000000000;
-          ts.tv_nsec = ts.tv_nsec % 1000000000;
-          
-          ret = pthread_cond_timedwait( &skirmish->single.cond, 
-                                        &skirmish->single.lock, &ts );
-                                        
-          return (ret == ETIMEDOUT) ? DR_TIMEOUT : DR_OK;
-     }
 
-     return pthread_cond_wait( &skirmish->single.cond, &skirmish->single.lock );
+     if (timeout)
+          return direct_waitqueue_wait_timeout( &skirmish->single.cond, &skirmish->single.lock, timeout * 1000 );
+
+     return direct_waitqueue_wait( &skirmish->single.cond, &skirmish->single.lock );
 }
 
 DirectResult
@@ -678,9 +712,14 @@ fusion_skirmish_notify( FusionSkirmish *skirmish )
 {
      D_ASSERT( skirmish != NULL );
 
-     pthread_cond_broadcast( &skirmish->single.cond );
+     return direct_waitqueue_broadcast( &skirmish->single.cond );
+}
 
-     return DR_OK;
+DirectResult
+fusion_skirmish_set_name( FusionSkirmish *skirmish,
+                          const char     *name )
+{
+     return DR_UNIMPLEMENTED;
 }
 
 #endif

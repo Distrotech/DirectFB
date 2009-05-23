@@ -29,17 +29,19 @@
 #ifndef __FUSION__LOCK_H__
 #define __FUSION__LOCK_H__
 
-#include <pthread.h>
-
-#include <fusion/types.h>
-
 #include <direct/messages.h>
 #include <direct/util.h>
+
+#include <direct/thread.h>
+
+#include <fusion/types.h>
 
 
 typedef union {
      /* multi app */
      struct {
+          int                      magic;
+
           int                      id;
           const FusionWorldShared *shared;
           /* builtin impl */
@@ -54,8 +56,8 @@ typedef union {
      
      /* single app */
      struct {
-          pthread_mutex_t          lock;
-          pthread_cond_t           cond;
+          DirectMutex              lock;
+          DirectWaitQueue          cond;
           int                      count;
      } single;
 } FusionSkirmish;
@@ -100,6 +102,13 @@ DirectResult fusion_skirmish_destroy( FusionSkirmish    *skirmish );
 DirectResult fusion_skirmish_wait   ( FusionSkirmish    *skirmish,
                                       unsigned int       timeout );
 DirectResult fusion_skirmish_notify ( FusionSkirmish    *skirmish );
+
+
+/*
+ * Change the name of the skirmish (debug).
+ */
+DirectResult fusion_skirmish_set_name( FusionSkirmish   *skirmish,
+                                       const char       *name );
 
 
 #if D_DEBUG_ENABLED
