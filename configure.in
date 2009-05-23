@@ -158,7 +158,7 @@ if test x"$CFLAGS" = x"-g -O2"; then
   CFLAGS=
 fi
 
-CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
+CFLAGS="-ffast-math -pipe $CFLAGS"
 
 DFB_INTERNAL_CFLAGS="-D_GNU_SOURCE $DFB_INTERNAL_CFLAGS"
 
@@ -388,7 +388,7 @@ AC_ARG_ENABLE(debug,
   [  --enable-debug            enable debugging [[default=no]]],,
   enable_debug=no)
 if test "$enable_debug" = "yes"; then
-    CFLAGS="$CFLAGS -O0 -g3 -fno-inline -Wno-inline"
+    CFLAGS="-g3 -O0 -fno-inline -Wno-inline $CFLAGS"
     DIRECT_BUILD_DEBUG=1
 else
     DIRECT_BUILD_DEBUG=0
@@ -402,8 +402,12 @@ AC_ARG_ENABLE(debug-support,
   [  --enable-debug-support    enable debugging support [[default=yes]]],, enable_debug_support=yes)
 if test "$enable_debug_support" = "yes" || test "$enable_debug" = "yes"; then
     enable_debug_support=yes
+    if test "$enable_debug" = "no"; then
+        CFLAGS="-g2 $CFLAGS"
+    fi
     DIRECT_BUILD_DEBUGS=1
 else
+    CFLAGS="-O3 -g0 $CFLAGS"
     DIRECT_BUILD_DEBUGS=0
 fi
 AM_CONDITIONAL(ENABLE_DEBUGS, test "$enable_debug_support" = "yes")
