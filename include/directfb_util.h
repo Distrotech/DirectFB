@@ -448,6 +448,7 @@ bool dfb_rectangle_intersect                 ( DFBRectangle       *rectangle,
 void dfb_rectangle_union                     ( DFBRectangle       *rect1,
                                                const DFBRectangle *rect2 );
 
+void dfb_sort_triangle                       ( DFBTriangle        *tri );
 
 /**********************************************************************************************************************/
 /**********************************************************************************************************************/

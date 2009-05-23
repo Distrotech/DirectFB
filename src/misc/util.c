@@ -35,7 +35,7 @@
 #include <direct/util.h>
 
 
-D_DEBUG_DOMAIN( DFB_Updates, "DirectFB/Updates", "DirectFB Updates" );
+D_LOG_DOMAIN( DFB_Updates, "DirectFB/Updates", "DirectFB Updates" );
 
 /**********************************************************************************************************************/
 
@@ -188,8 +188,9 @@ dfb_rectangle_intersect_by_region( DFBRectangle    *rectangle,
      return true;
 }
 
-bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
-                              const DFBRectangle *clip )
+bool
+dfb_rectangle_intersect( DFBRectangle       *rectangle,
+                         const DFBRectangle *clip )
 {
      DFBRegion region = { clip->x, clip->y,
                           clip->x + clip->w - 1, clip->y + clip->h - 1 };
@@ -223,8 +224,9 @@ bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
      return true;
 }
 
-void dfb_rectangle_union ( DFBRectangle       *rect1,
-                           const DFBRectangle *rect2 )
+void
+dfb_rectangle_union ( DFBRectangle       *rect1,
+                      const DFBRectangle *rect2 )
 {
      if (!rect2->w || !rect2->h)
           return;
@@ -249,6 +251,27 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
      else {
           rect1->y = rect2->y;
           rect1->h = rect2->h;
+     }
+}
+
+/**********************************************************************************************************************/
+
+void
+dfb_sort_triangle( DFBTriangle *tri )
+{
+     if (tri->y1 > tri->y2) {
+          D_UTIL_SWAP( tri->x1, tri->x2 );
+          D_UTIL_SWAP( tri->y1, tri->y2 );
+     }
+
+     if (tri->y2 > tri->y3) {
+          D_UTIL_SWAP( tri->x2, tri->x3 );
+          D_UTIL_SWAP( tri->y2, tri->y3 );
+     }
+
+     if (tri->y1 > tri->y2) {
+          D_UTIL_SWAP( tri->x1, tri->x2 );
+          D_UTIL_SWAP( tri->y1, tri->y2 );
      }
 }
 
