@@ -74,9 +74,9 @@
 #define D_ARRAY_SIZE(array)        ((int)(sizeof(array) / sizeof((array)[0])))
 
 
-#define D_UTIL_SWAP(a,b)                                    \
-     do {                                                   \
-          const typeof(a) x = (a); (a) = (b); (b) = x;      \
+#define D_UTIL_SWAP(a,b)                                                   \
+     do {                                                                  \
+          const typeof(a) __swap_x = (a); (a) = (b); (b) = __swap_x;       \
      } while (0)
 
 
