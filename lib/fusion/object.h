@@ -29,19 +29,22 @@
 #ifndef __FUSION__OBJECT_H__
 #define __FUSION__OBJECT_H__
 
-#include <fusion/types.h>
+
+#include <direct/debug.h>
+#include <direct/list.h>
 
 #include <fusion/lock.h>
-#include <direct/list.h>
-#include <fusion/ref.h>
 #include <fusion/reactor.h>
-#include <direct/debug.h>
+#include <fusion/ref.h>
+
+
+D_LOG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Object Methods" );
+
+/**********************************************************************************************************************/
 
 typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie, void *ctx );
 
 typedef bool (*FusionPropIterator)( char *key, void *value, void *ctx);
-
-
 
 
 typedef unsigned long FusionObjectID;
@@ -70,11 +73,32 @@ struct __Fusion_FusionObject {
      FusionHash        *properties;
 };
 
+struct __Fusion_FusionObjectPool {
+     int                     magic;
+
+     FusionWorldShared      *shared;
+
+     FusionSkirmish          lock;
+     DirectLink             *objects;
+     FusionObjectID          id_pool;
+
+     char                   *name;
+     int                     object_size;
+     int                     message_size;
+
+     FusionObjectDestructor  destructor;
+     void                   *ctx;
+
+     FusionCall              call;
+};
+
+/**********************************************************************************************************************/
 
 typedef bool (*FusionObjectCallback)( FusionObjectPool *pool,
                                       FusionObject     *object,
                                       void             *ctx );
 
+/**********************************************************************************************************************/
 
 FusionObjectPool *fusion_object_pool_create ( const char             *name,
                                               int                     object_size,
@@ -91,6 +115,7 @@ DirectResult      fusion_object_pool_enum   ( FusionObjectPool       *pool,
                                               FusionObjectCallback    callback,
                                               void                   *ctx );
 
+/**********************************************************************************************************************/
 
 FusionObject     *fusion_object_create  ( FusionObjectPool  *pool,
                                           const FusionWorld *world );
@@ -106,17 +131,21 @@ DirectResult      fusion_object_activate( FusionObject      *object );
 
 DirectResult      fusion_object_destroy ( FusionObject      *object );
 
+/**********************************************************************************************************************/
+
 DirectResult      fusion_object_set_property( FusionObject      *object ,
-                        const char *key, void *value, void **old_value);
+                                              const char *key, void *value, void **old_value);
 
-DirectResult       fusion_object_set_int_property( FusionObject  *object ,
-                        const char *key,int value);
+DirectResult      fusion_object_set_int_property( FusionObject  *object ,
+                                                  const char *key,int value);
 
-DirectResult       fusion_object_set_string_property( FusionObject  *object ,
-                        const char *key,char *value);
+DirectResult      fusion_object_set_string_property( FusionObject  *object ,
+                                                     const char *key,char *value);
 
-void *fusion_object_get_property( FusionObject *object ,const char *key);
-void fusion_object_remove_property( FusionObject *object ,const char *key,void **ret_val);
+void             *fusion_object_get_property( FusionObject *object ,const char *key);
+void              fusion_object_remove_property( FusionObject *object ,const char *key,void **ret_val);
+
+/**********************************************************************************************************************/
 
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
                                                                                \
@@ -197,6 +226,10 @@ prefix##_dispatch_channel( type               *object,                         \
 static inline DirectResult                                                     \
 prefix##_ref( type *object )                                                   \
 {                                                                              \
+     D_DEBUG_AT( Fusion_Object, "%s( %p [%lu], ref 0x%08x )\n",                \
+                 __FUNCTION__, object, ((FusionObject*)object)->id,            \
+                 ((FusionObject*)object)->ref.multi.id );                      \
+                                                                               \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_ref_up( &((FusionObject*)object)->ref, false );             \
 }                                                                              \
@@ -204,6 +237,10 @@ prefix##_ref( type *object )                                                   \
 static inline DirectResult                                                     \
 prefix##_unref( type *object )                                                 \
 {                                                                              \
+     D_DEBUG_AT( Fusion_Object, "%s( %p [%lu], ref 0x%08x )\n",                \
+                 __FUNCTION__, object, ((FusionObject*)object)->id,            \
+                 ((FusionObject*)object)->ref.multi.id );                      \
+                                                                               \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_ref_down( &((FusionObject*)object)->ref, false );           \
 }                                                                              \
@@ -223,13 +260,17 @@ prefix##_link( type **link,                                                    \
                                                                                \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
                                                                                \
+     D_DEBUG_AT( Fusion_Object, "%s( %p [%lu], ref 0x%08x )\n",                \
+                 __FUNCTION__, object, ((FusionObject*)object)->id,            \
+                 ((FusionObject*)object)->ref.multi.id );                      \
+                                                                               \
      ret = fusion_ref_up( &((FusionObject*)object)->ref, true );               \
      if (ret)                                                                  \
           return ret;                                                          \
                                                                                \
      *link = object;                                                           \
                                                                                \
-     return DR_OK;                                                            \
+     return DR_OK;                                                             \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
@@ -238,6 +279,10 @@ prefix##_unlink( type **link )                                                 \
      type *object = *link;                                                     \
                                                                                \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
+                                                                               \
+     D_DEBUG_AT( Fusion_Object, "%s( %p [%lu], ref 0x%08x )\n",                \
+                 __FUNCTION__, object, ((FusionObject*)object)->id,            \
+                 ((FusionObject*)object)->ref.multi.id );                      \
                                                                                \
      *link = NULL;                                                             \
                                                                                \
@@ -262,6 +307,10 @@ prefix##_globalize( type *object )                                             \
                                                                                \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
                                                                                \
+     D_DEBUG_AT( Fusion_Object, "%s( %p [%lu], ref 0x%08x )\n",                \
+                 __FUNCTION__, object, ((FusionObject*)object)->id,            \
+                 ((FusionObject*)object)->ref.multi.id );                      \
+                                                                               \
      ret = fusion_ref_up( &((FusionObject*)object)->ref, true );               \
      if (ret)                                                                  \
           return ret;                                                          \
@@ -273,7 +322,7 @@ prefix##_globalize( type *object )                                             \
      return ret;                                                               \
 }
 
-FUSION_OBJECT_METHODS( void, fusion_object )
+FUSION_OBJECT_METHODS( FusionObject, fusion_object )
 
 #endif
 

@@ -28,10 +28,6 @@
 
 #include <config.h>
 
-#include <sys/param.h>
-
-#include <pthread.h>
-
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
@@ -43,25 +39,10 @@
 
 #include "fusion_internal.h"
 
-D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
 
-struct __Fusion_FusionObjectPool {
-     int                     magic;
+D_LOG_DOMAIN( Fusion_Obj, "Fusion/Object", "Fusion Objects and Pools" );
 
-     FusionWorldShared      *shared;
-
-     FusionSkirmish          lock;
-     DirectLink             *objects;
-     FusionObjectID          id_pool;
-
-     char                   *name;
-     int                     object_size;
-     int                     message_size;
-     FusionObjectDestructor  destructor;
-     void                   *ctx;
-
-     FusionCall              call;
-};
+/**********************************************************************************************************************/
 
 static FusionCallHandlerResult
 object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, unsigned int serial, int *ret_val )
@@ -69,7 +50,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
      FusionObject     *object;
      FusionObjectPool *pool = ctx;
 
-     D_DEBUG_AT( Fusion_Object, "%s( %d, %d, %p, %p, %u, %p )\n",
+     D_DEBUG_AT( Fusion_Obj, "%s( %d, %d, %p, %p, %u, %p )\n",
                  __FUNCTION__, caller, call_arg, call_ptr, ctx, serial, ret_val );
 
 #if FUSION_BUILD_KERNEL
@@ -114,8 +95,8 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
                     return FCHR_RETURN;
           }
 
-          D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> dead object %p [%ld]\n", object, object->id );
+          D_DEBUG_AT( Fusion_Obj, "== %s ==\n", pool->name );
+          D_DEBUG_AT( Fusion_Obj, "  -> dead object %p [%ld]\n", object, object->id );
 
           if (object->state == FOS_INIT) {
                D_BUG( "== %s == incomplete object: %d (%p)", pool->name, call_arg, object );
@@ -136,12 +117,12 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
           fusion_skirmish_dismiss( &pool->lock );
 
 
-          D_DEBUG_AT( Fusion_Object, "  -> calling destructor...\n" );
+          D_DEBUG_AT( Fusion_Obj, "  -> calling destructor...\n" );
 
           /* Call the destructor. */
           pool->destructor( object, false, pool->ctx );
 
-          D_DEBUG_AT( Fusion_Object, "  -> destructor done.\n" );
+          D_DEBUG_AT( Fusion_Obj, "  -> destructor done.\n" );
 
           return FCHR_RETURN;
      }
@@ -153,6 +134,8 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx, u
 
      return FCHR_RETURN;
 }
+
+/**********************************************************************************************************************/
 
 FusionObjectPool *
 fusion_object_pool_create( const char             *name,
@@ -218,16 +201,16 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
      D_MAGIC_ASSERT( shared, FusionWorldShared );
      D_ASSERT( shared == pool->shared );
 
-     D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-     D_DEBUG_AT( Fusion_Object, "  -> destroying pool...\n" );
+     D_DEBUG_AT( Fusion_Obj, "== %s ==\n", pool->name );
+     D_DEBUG_AT( Fusion_Obj, "  -> destroying pool...\n" );
 
-     D_DEBUG_AT( Fusion_Object, "  -> syncing...\n" );
+     D_DEBUG_AT( Fusion_Obj, "  -> syncing...\n" );
 
      /* Wait for processing of pending messages. */
      if (pool->objects)
           fusion_sync( world );
 
-     D_DEBUG_AT( Fusion_Object, "  -> locking...\n" );
+     D_DEBUG_AT( Fusion_Obj, "  -> locking...\n" );
 
      /* Lock the pool. */
      ret = fusion_skirmish_prevail( &pool->lock );
@@ -246,8 +229,8 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
 
           fusion_ref_stat( &object->ref, &refs );
 
-          D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> zombie %p [%ld], refs %d\n", object, object->id, refs );
+          D_DEBUG_AT( Fusion_Obj, "== %s ==\n", pool->name );
+          D_DEBUG_AT( Fusion_Obj, "  -> zombie %p [%ld], refs %d\n", object, object->id, refs );
 
           /* Set "deinitializing" state. */
           object->state = FOS_DEINIT;
@@ -256,12 +239,12 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
           //direct_list_remove( &pool->objects, &object->link );
           //object->pool = NULL;
 
-          D_DEBUG_AT( Fusion_Object, "  -> calling destructor...\n" );
+          D_DEBUG_AT( Fusion_Obj, "  -> calling destructor...\n" );
 
           /* Call the destructor. */
           pool->destructor( object, refs > 0, pool->ctx );
 
-          D_DEBUG_AT( Fusion_Object, "  -> destructor done.\n" );
+          D_DEBUG_AT( Fusion_Obj, "  -> destructor done.\n" );
 
           D_ASSERT( ! direct_list_contains_element_EXPENSIVE( pool->objects, (DirectLink*) object ) );
      }
@@ -271,7 +254,7 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
      /* Destroy the pool lock. */
      fusion_skirmish_destroy( &pool->lock );
 
-     D_DEBUG_AT( Fusion_Object, "  -> pool destroyed (%s)\n", pool->name );
+     D_DEBUG_AT( Fusion_Obj, "  -> pool destroyed (%s)\n", pool->name );
 
      D_MAGIC_CLEAR( pool );
 
@@ -308,6 +291,8 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
 
      return DR_OK;
 }
+
+/**********************************************************************************************************************/
 
 FusionObject *
 fusion_object_create( FusionObjectPool  *pool,
@@ -378,12 +363,12 @@ fusion_object_create( FusionObjectPool  *pool,
      /* Add the object to the pool. */
      direct_list_prepend( &pool->objects, &object->link );
 
-     D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
+     D_DEBUG_AT( Fusion_Obj, "== %s ==\n", pool->name );
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG_AT( Fusion_Object, "  -> added %p with ref [0x%x]\n", object, object->ref.multi.id );
+     D_DEBUG_AT( Fusion_Obj, "  -> added %p with ref [0x%x]\n", object, object->ref.multi.id );
 #else
-     D_DEBUG_AT( Fusion_Object, "  -> added %p\n", object );
+     D_DEBUG_AT( Fusion_Obj, "  -> added %p\n", object );
 #endif
 
      D_MAGIC_SET( object, FusionObject );
@@ -582,7 +567,7 @@ fusion_object_set_int_property( FusionObject *object,
 }
 
 /*
- * Helper function for char* values use if the string 
+ * Helper function for char* values use if the string
  * is not in shared memory
  * Assumes that the old value was a string and frees it.
  */
@@ -621,7 +606,7 @@ fusion_object_get_property( FusionObject *object, const char *key )
      return fusion_hash_lookup( object->properties, key );
 }
 
-void 
+void
 fusion_object_remove_property( FusionObject  *object,
                                const char    *key,
                                void         **old_value)
