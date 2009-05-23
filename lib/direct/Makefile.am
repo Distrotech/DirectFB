@@ -80,7 +80,8 @@ include_HEADERS = \
 	tree.h				\
 	types.h				\
 	utf8.h				\
-	util.h
+	util.h				\
+	uuid.h
 
 
 lib_LTLIBRARIES = libdirect.la
@@ -113,8 +114,8 @@ libdirect_la_SOURCES = \
 	tree.c			\
 	thread.c		\
 	utf8.c			\
-	util.c
-
+	util.c			\
+	uuid.c
 
 libdirect_la_LIBADD = \
 	os/linux/glibc/libdirect_os_linux_glibc.la
