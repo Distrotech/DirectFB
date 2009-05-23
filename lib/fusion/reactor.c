@@ -27,17 +27,6 @@
 */
 
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <signal.h>
-
-#include <sys/param.h>
-
-#include <pthread.h>
-
-#include <fusion/build.h>
 
 #include <direct/debug.h>
 #include <direct/list.h>
@@ -47,7 +36,6 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
-#include <fusion/types.h>
 #include <fusion/lock.h>
 #include <fusion/shmalloc.h>
 #include <fusion/reactor.h>
@@ -55,9 +43,9 @@
 #include "fusion_internal.h"
 
 
-#if FUSION_BUILD_MULTI
+D_LOG_DOMAIN( Fusion_Reactor, "Fusion/Reactor", "Fusion's Reactor" );
 
-D_DEBUG_DOMAIN( Fusion_Reactor, "Fusion/Reactor", "Fusion's Reactor" );
+#if FUSION_BUILD_MULTI
 
 struct __Fusion_FusionReactor {
      int                magic;
@@ -71,7 +59,7 @@ struct __Fusion_FusionReactor {
      FusionSkirmish    *globals_lock;
 
      FusionWorldShared *shared;
-     
+
 #if !FUSION_BUILD_KERNEL
      DirectLink        *listeners;  /* list of attached listeners */
      FusionSkirmish     listeners_lock;
@@ -129,7 +117,7 @@ fusion_reactor_new( int                msg_size,
      FusionReactor     *reactor;
      FusionWorldShared *shared;
 
-     D_ASSERT( msg_size > 0 );
+     D_ASSUME( msg_size > 0 );
      D_ASSERT( name != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
 
@@ -158,7 +146,7 @@ fusion_reactor_new( int                msg_size,
 
      /* set the static message size, should we make dynamic? (TODO?) */
      reactor->msg_size = msg_size;
-     
+
      /* Set default lock for global reactions. */
      reactor->globals_lock = &shared->reactor_globals;
 
@@ -399,7 +387,8 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
-     D_ASSERT( msg_data != NULL );
+     D_ASSERT( msg_data != NULL || msg_size == 0 );
+     D_ASSUME( msg_size > 0 );
 
      D_DEBUG_AT( Fusion_Reactor,
                  "fusion_reactor_dispatch( %p [%d], msg_data %p, self %s, globals %p)\n",
@@ -413,7 +402,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                D_ERROR( "Fusion/Reactor: global reactions exist but no "
                         "globals have been passed to dispatch()\n" );
      }
-     
+
      /* Handle local reactions. */
      if (self && reactor->direct) {
           _fusion_reactor_process_message( _fusion_world(reactor->shared), reactor->id, channel, msg_data );
@@ -599,9 +588,9 @@ _fusion_reactor_process_message( FusionWorld *world,
 
 typedef struct {
      DirectLink    link;
-     
+
      unsigned int  refs;
-     
+
      FusionID      fusion_id;
      int           channel;
 } __Listener;
@@ -631,16 +620,16 @@ fusion_reactor_new( int                msg_size,
           D_OOSHM();
           return NULL;
      }
-     
+
      /* Generate the reactor id */
-     reactor->id = ++shared->reactor_ids; 
+     reactor->id = ++shared->reactor_ids;
 
      /* Set the static message size, should we make dynamic? (TODO?) */
      reactor->msg_size = msg_size;
-     
+
      /* Set default lock for global reactions. */
      reactor->globals_lock = &shared->reactor_globals;
-     
+
      fusion_skirmish_init( &reactor->listeners_lock, "Reactor Listeners", world );
 
      D_DEBUG_AT( Fusion_Reactor, "  -> new reactor %p [%d] with lock %p [%d]\n",
@@ -671,9 +660,9 @@ fusion_reactor_destroy( FusionReactor *reactor )
 
      if (reactor->destroyed)
           return DR_DESTROYED;
-          
+
      fusion_skirmish_destroy( &reactor->listeners_lock );
-          
+
      reactor->destroyed = true;
 
      return DR_OK;
@@ -728,10 +717,10 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
      D_DEBUG_AT( Fusion_Reactor,
                  "fusion_reactor_attach( %p [%d], func %p, ctx %p, reaction %p )\n",
                  reactor, reactor->id, func, ctx, reaction );
-                 
+
      if (reactor->destroyed)
           return DR_DESTROYED;
-                 
+
      shared = reactor->shared;
 
      link = D_CALLOC( 1, sizeof(NodeLink) );
@@ -743,18 +732,18 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
           D_FREE( link );
           return DR_FUSION;
      }
-     
+
      fusion_id = _fusion_id( shared );
-     
+
      fusion_skirmish_prevail( &reactor->listeners_lock );
-     
+
      direct_list_foreach (listener, reactor->listeners) {
           if (listener->fusion_id == fusion_id && listener->channel == channel) {
                listener->refs++;
                break;
           }
      }
-     
+
      if (!listener) {
           listener = SHCALLOC( shared->main_pool, 1, sizeof(__Listener) );
           if (!listener) {
@@ -764,14 +753,14 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
                D_FREE( link );
                return DR_NOSHAREDMEMORY;
           }
-          
+
           listener->refs      = 1;
           listener->fusion_id = fusion_id;
           listener->channel   = channel;
-         
+
           direct_list_append( &reactor->listeners, &listener->link );
      }
-     
+
      fusion_skirmish_dismiss( &reactor->listeners_lock );
 
      /* fill out callback information */
@@ -822,10 +811,10 @@ fusion_reactor_detach( FusionReactor *reactor,
      D_DEBUG_AT( Fusion_Reactor,
                  "fusion_reactor_detach( %p [%d], reaction %p ) <- func %p, ctx %p\n",
                  reactor, reactor->id, reaction, reaction->func, reaction->ctx );
-     
+
      if (reactor->destroyed)
           return DR_DESTROYED;
-                          
+
      shared = reactor->shared;
 
      node = lock_node( reactor->id, false, true, reactor, NULL );
@@ -848,9 +837,9 @@ fusion_reactor_detach( FusionReactor *reactor,
           link->reaction = NULL;
 
           remove_node_link( node, link );
-          
+
           fusion_skirmish_prevail( &reactor->listeners_lock );
-          
+
           direct_list_foreach (listener, reactor->listeners) {
                if (listener->fusion_id == fusion_id && listener->channel == link->channel) {
                     if (--listener->refs == 0) {
@@ -860,9 +849,9 @@ fusion_reactor_detach( FusionReactor *reactor,
                     break;
                }
           }
-           
+
           fusion_skirmish_dismiss( &reactor->listeners_lock );
-          
+
           if (!listener)
                D_ERROR( "Fusion/Reactor: Couldn't detach listener!\n" );
      }
@@ -881,7 +870,7 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                                  const ReactionFunc *globals )
 {
      FusionWorld           *world;
-     __Listener            *listener, *temp; 
+     __Listener            *listener, *temp;
      FusionRef             *ref = NULL;
      FusionReactorMessage  *msg;
      struct sockaddr_un     addr;
@@ -889,7 +878,8 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
-     D_ASSERT( msg_data != NULL );
+     D_ASSERT( msg_data != NULL || msg_size == 0 );
+     D_ASSUME( msg_size > 0 );
 
      D_DEBUG_AT( Fusion_Reactor,
                  "fusion_reactor_dispatch( %p [%d], msg_data %p, self %s, globals %p)\n",
@@ -910,9 +900,9 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
           if (!ref)
                return D_OOSHM();
 
-          fusion_ref_init( ref, "Dispatch Ref", world ); 
+          fusion_ref_init( ref, "Dispatch Ref", world );
           fusion_ref_up( ref, true );
-          fusion_ref_watch( ref, reactor->call, 0 ); 
+          fusion_ref_watch( ref, reactor->call, 0 );
      }
 
      /* Handle global reactions first. */
@@ -923,56 +913,56 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                D_ERROR( "Fusion/Reactor: global reactions exist but no "
                         "globals have been passed to dispatch()\n" );
      }
-     
+
      /* Handle local reactions. */
      if (self && reactor->direct) {
           _fusion_reactor_process_message( _fusion_world(reactor->shared), reactor->id, channel, msg_data );
           self = false;
      }
-     
+
      msg = alloca( sizeof(FusionReactorMessage) + msg_size );
-     
+
      msg->type    = FMT_REACTOR;
      msg->id      = reactor->id;
      msg->channel = channel;
      msg->ref     = ref;
-     
+
      memcpy( (void*)msg + sizeof(FusionReactorMessage), msg_data, msg_size );
 
      addr.sun_family = AF_UNIX;
-     len = snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                     "/tmp/.fusion-%d/", fusion_world_index( world ) );
-     
+     len = direct_snprintf( addr.sun_path, sizeof(addr.sun_path),
+                            "/tmp/.fusion-%d/", fusion_world_index( world ) );
+
      fusion_skirmish_prevail( &reactor->listeners_lock );
-     
+
      direct_list_foreach_safe (listener, temp, reactor->listeners) {
           if (listener->channel == channel) {
                DirectResult ret;
-               
+
                if (!self && listener->fusion_id == world->fusion_id)
                     continue;
 
                if (ref)
                     fusion_ref_up( ref, true );
 
-               snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", listener->fusion_id );
+               direct_snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%lx", listener->fusion_id );
 
                D_DEBUG_AT( Fusion_Reactor, " -> sending to '%s'\n", addr.sun_path );
-               
+
                ret = _fusion_send_message( world->fusion_fd, msg, sizeof(FusionReactorMessage)+msg_size, &addr );
                if (ret == DR_FUSION) {
                     D_DEBUG_AT( Fusion_Reactor, " -> removing dead listener %lu\n", listener->fusion_id );
-                    
+
                     if (ref)
                          fusion_ref_down( ref, true );
-                    
-                    direct_list_remove( &reactor->listeners, &listener->link ); 
-                    
+
+                    direct_list_remove( &reactor->listeners, &listener->link );
+
                     SHFREE( reactor->shared->main_pool, listener );
                }
           }
      }
-     
+
      fusion_skirmish_dismiss( &reactor->listeners_lock );
 
      if (ref) {
@@ -999,7 +989,7 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
      D_DEBUG_AT( Fusion_Reactor,
                  "fusion_reactor_set_dispatch_callback( %p [%d], call %p [%d], ptr %p)\n",
                  reactor, reactor->id, call, call->call_id, call_ptr );
-                 
+
      if (reactor->destroyed)
           return DR_DESTROYED;
 
@@ -1065,12 +1055,12 @@ _fusion_reactor_process_message( FusionWorld *world,
           if (reaction->func( msg_data, reaction->ctx ) == RS_REMOVE) {
                FusionReactor *reactor = node->reactor;
                __Listener    *listener;
-               
+
                D_DEBUG_AT( Fusion_Reactor, "    -> removing %p, func %p, ctx %p\n",
                            reaction, reaction->func, reaction->ctx );
-               
+
                fusion_skirmish_prevail( &reactor->listeners_lock );
-               
+
                direct_list_foreach (listener, reactor->listeners) {
                     if (listener->fusion_id == world->fusion_id && listener->channel == channel) {
                          if (--listener->refs == 0) {
@@ -1080,7 +1070,7 @@ _fusion_reactor_process_message( FusionWorld *world,
                          break;
                     }
                }
-               
+
                fusion_skirmish_dismiss( &reactor->listeners_lock );
           }
      }
@@ -1258,6 +1248,8 @@ fusion_reactor_dispatch( FusionReactor      *reactor,
 {
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
+     D_ASSERT( msg_data != NULL || reactor->msg_size == 0 );
+
      return fusion_reactor_dispatch_channel( reactor, 0, msg_data, reactor->msg_size, self, globals );
 }
 
@@ -1270,6 +1262,9 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
 {
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
+     D_ASSERT( msg_data != NULL || msg_size == 0 );
+     D_ASSUME( msg_size > 0 );
+
      return fusion_reactor_dispatch_channel( reactor, 0, msg_data, msg_size, self, globals );
 }
 
@@ -1277,9 +1272,9 @@ DirectResult
 fusion_reactor_direct( FusionReactor *reactor, bool direct )
 {
      D_MAGIC_ASSERT( reactor, FusionReactor );
-     
+
      reactor->direct = direct;
-     
+
      return DR_OK;
 }
 
@@ -1294,7 +1289,7 @@ _fusion_reactor_free_all( FusionWorld *world )
      D_DEBUG_AT( Fusion_Reactor, "_fusion_reactor_free_all() <- nodes %p\n", world->reactor_nodes );
 
 
-     pthread_mutex_lock( &world->reactor_nodes_lock );
+     direct_mutex_lock( &world->reactor_nodes_lock );
 
      direct_list_foreach_safe (node, node_temp, world->reactor_nodes) {
           NodeLink *link, *link_temp;
@@ -1321,7 +1316,7 @@ _fusion_reactor_free_all( FusionWorld *world )
 
      world->reactor_nodes = NULL;
 
-     pthread_mutex_unlock( &world->reactor_nodes_lock );
+     direct_mutex_unlock( &world->reactor_nodes_lock );
 }
 
 static void
@@ -1423,7 +1418,7 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
      }
 
 
-     pthread_mutex_lock( &world->reactor_nodes_lock );
+     direct_mutex_lock( &world->reactor_nodes_lock );
 
      direct_list_foreach_safe (node, n, world->reactor_nodes) {
           D_MAGIC_ASSERT( node, ReactorNode );
@@ -1441,7 +1436,7 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
 
                          if (!link->reaction) {
                               D_DEBUG_AT( Fusion_Reactor, "    -> cleaning up %p\n", link );
-                         
+
                               remove_node_link( node, link );
                          }
                          else
@@ -1475,7 +1470,7 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
                     direct_list_move_to_front( &world->reactor_nodes, &node->link );
                }
 
-               pthread_mutex_unlock( &world->reactor_nodes_lock );
+               direct_mutex_unlock( &world->reactor_nodes_lock );
 
                return node;
           }
@@ -1514,7 +1509,7 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
                return NULL;
           }
 
-          //direct_util_recursive_pthread_mutex_init( &node->lock );
+          //direct_recursive_mutex_init( &node->lock );
           pthread_rwlock_init( &node->lock, NULL );
 
 
@@ -1530,12 +1525,12 @@ lock_node( int reactor_id, bool add_it, bool wlock, FusionReactor *reactor, Fusi
 
           direct_list_prepend( &world->reactor_nodes, &node->link );
 
-          pthread_mutex_unlock( &world->reactor_nodes_lock );
+          direct_mutex_unlock( &world->reactor_nodes_lock );
 
           return node;
      }
 
-     pthread_mutex_unlock( &world->reactor_nodes_lock );
+     direct_mutex_unlock( &world->reactor_nodes_lock );
 
      return NULL;
 }
@@ -1564,10 +1559,12 @@ unlock_node( ReactorNode *node )
  */
 struct __Fusion_FusionReactor {
      DirectLink       *reactions; /* reactor listeners attached to node  */
-     pthread_mutex_t   reactions_lock;
+     DirectMutex   reactions_lock;
 
      DirectLink       *globals; /* global reactions attached to node  */
-     pthread_mutex_t   globals_lock;
+     DirectMutex   globals_lock;
+
+     char             *name;
 
      bool              destroyed;
 };
@@ -1588,14 +1585,20 @@ fusion_reactor_new( int                msg_size,
 {
      FusionReactor *reactor;
 
-     D_ASSERT( msg_size > 0 );
+     D_DEBUG_AT( Fusion_Reactor, "%s( %d, '%s', %p )\n", __FUNCTION__, msg_size, name, world );
+
+     D_ASSUME( msg_size > 0 );
 
      reactor = D_CALLOC( 1, sizeof(FusionReactor) );
      if (!reactor)
           return NULL;
 
-     direct_util_recursive_pthread_mutex_init( &reactor->reactions_lock );
-     direct_util_recursive_pthread_mutex_init( &reactor->globals_lock );
+     reactor->name = D_STRDUP( name );
+
+     direct_recursive_mutex_init( &reactor->reactions_lock );
+     direct_recursive_mutex_init( &reactor->globals_lock );
+
+     D_DEBUG_AT( Fusion_Reactor, "  -> %p\n", reactor );
 
      return reactor;
 }
@@ -1605,6 +1608,9 @@ fusion_reactor_set_lock( FusionReactor  *reactor,
                          FusionSkirmish *lock )
 {
      D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s', %p )\n", __FUNCTION__, reactor, reactor->name, lock );
+
      D_ASSERT( lock != NULL );
 
 //     D_UNIMPLEMENTED();
@@ -1617,6 +1623,9 @@ fusion_reactor_set_lock_only( FusionReactor  *reactor,
                               FusionSkirmish *lock )
 {
      D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s', %p )\n", __FUNCTION__, reactor, reactor->name, lock );
+
      D_ASSERT( lock != NULL );
 
      return DR_UNIMPLEMENTED;
@@ -1629,17 +1638,22 @@ fusion_reactor_attach (FusionReactor *reactor,
                        Reaction      *reaction)
 {
      D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s', %p(%p), %p )\n", __FUNCTION__, reactor, reactor->name, func, ctx, reaction );
+
      D_ASSERT( func != NULL );
      D_ASSERT( reaction != NULL );
+     D_ASSERT( reaction->node_link == NULL );
 
-     reaction->func = func;
-     reaction->ctx  = ctx;
+     direct_mutex_lock( &reactor->reactions_lock );
 
-     pthread_mutex_lock( &reactor->reactions_lock );
+     reaction->func      = func;
+     reaction->ctx       = ctx;
+     reaction->node_link = reaction;
 
      direct_list_prepend( &reactor->reactions, &reaction->link );
 
-     pthread_mutex_unlock( &reactor->reactions_lock );
+     direct_mutex_unlock( &reactor->reactions_lock );
 
      return DR_OK;
 }
@@ -1649,13 +1663,19 @@ fusion_reactor_detach (FusionReactor *reactor,
                        Reaction      *reaction)
 {
      D_ASSERT( reactor != NULL );
-     D_ASSERT( reaction != NULL );
 
-     pthread_mutex_lock( &reactor->reactions_lock );
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s', %p )\n", __FUNCTION__, reactor, reactor->name, reaction );
+
+     D_ASSERT( reaction != NULL );
+     D_ASSERT( reaction->node_link == reaction );
+
+     direct_mutex_lock( &reactor->reactions_lock );
+
+     reaction->node_link = NULL;
 
      direct_list_remove( &reactor->reactions, &reaction->link );
 
-     pthread_mutex_unlock( &reactor->reactions_lock );
+     direct_mutex_unlock( &reactor->reactions_lock );
 
      return DR_OK;
 }
@@ -1667,17 +1687,20 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
                               GlobalReaction *reaction)
 {
      D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s' )\n", __FUNCTION__, reactor, reactor->name );
+
      D_ASSERT( index >= 0 );
      D_ASSERT( reaction != NULL );
 
      reaction->index = index;
      reaction->ctx   = ctx;
 
-     pthread_mutex_lock( &reactor->globals_lock );
+     direct_mutex_lock( &reactor->globals_lock );
 
      direct_list_prepend( &reactor->globals, &reaction->link );
 
-     pthread_mutex_unlock( &reactor->globals_lock );
+     direct_mutex_unlock( &reactor->globals_lock );
 
      return DR_OK;
 }
@@ -1687,13 +1710,16 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
                               GlobalReaction *reaction)
 {
      D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s' )\n", __FUNCTION__, reactor, reactor->name );
+
      D_ASSERT( reaction != NULL );
 
-     pthread_mutex_lock( &reactor->globals_lock );
+     direct_mutex_lock( &reactor->globals_lock );
 
      direct_list_remove( &reactor->globals, &reaction->link );
 
-     pthread_mutex_unlock( &reactor->globals_lock );
+     direct_mutex_unlock( &reactor->globals_lock );
 
      return DR_OK;
 }
@@ -1705,6 +1731,10 @@ fusion_reactor_attach_channel( FusionReactor *reactor,
                                void          *ctx,
                                Reaction      *reaction )
 {
+     D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s' )\n", __FUNCTION__, reactor, reactor->name );
+
      D_UNIMPLEMENTED();
 
      return DR_UNIMPLEMENTED;
@@ -1718,6 +1748,13 @@ fusion_reactor_dispatch_channel( FusionReactor      *reactor,
                                  bool                self,
                                  const ReactionFunc *globals )
 {
+     D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s' )\n", __FUNCTION__, reactor, reactor->name );
+
+     D_ASSERT( msg_data != NULL || msg_size == 0 );
+     D_ASSUME( msg_size > 0 );
+
      D_UNIMPLEMENTED();
 
      return DR_UNIMPLEMENTED;
@@ -1728,6 +1765,10 @@ fusion_reactor_set_dispatch_callback( FusionReactor  *reactor,
                                       FusionCall     *call,
                                       void           *call_ptr )
 {
+     D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s' )\n", __FUNCTION__, reactor, reactor->name );
+
      D_UNIMPLEMENTED();
 
      return DR_UNIMPLEMENTED;
@@ -1737,9 +1778,16 @@ DirectResult
 fusion_reactor_set_name( FusionReactor *reactor,
                          const char    *name )
 {
-     D_UNIMPLEMENTED();
+     D_ASSERT( reactor != NULL );
 
-     return DR_UNIMPLEMENTED;
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s', '%s' )\n", __FUNCTION__, reactor, reactor->name, name );
+
+     if (reactor->name)
+          D_FREE( reactor->name );
+
+     reactor->name = D_STRDUP( name );
+
+     return DR_OK;
 }
 
 DirectResult
@@ -1748,9 +1796,14 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
                          bool                self,
                          const ReactionFunc *globals)
 {
-     DirectLink *l;
+     DirectLink *next;
+     Reaction   *reaction;
 
      D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s', %p, %sself, %p )\n", __FUNCTION__,
+                 reactor, reactor->name, msg_data, self ? "" : "not ", globals );
+
      D_ASSERT( msg_data != NULL );
 
      if (reactor->globals) {
@@ -1764,30 +1817,26 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
      if (!self)
           return DR_OK;
 
-     pthread_mutex_lock( &reactor->reactions_lock );
+     direct_mutex_lock( &reactor->reactions_lock );
 
-     l = reactor->reactions;
-     while (l) {
-          DirectLink *next     = l->next;
-          Reaction   *reaction = (Reaction*) l;
+     direct_list_foreach_safe (reaction, next, reactor->reactions) {
+          D_ASSERT( reaction->node_link == reaction );
 
           switch (reaction->func( msg_data, reaction->ctx )) {
                case RS_REMOVE:
-                    direct_list_remove( &reactor->reactions, l );
+                    direct_list_remove( &reactor->reactions, &reaction->link );
                     break;
 
                case RS_DROP:
-                    pthread_mutex_unlock( &reactor->reactions_lock );
+                    direct_mutex_unlock( &reactor->reactions_lock );
                     return DR_OK;
 
                default:
                     break;
           }
-
-          l = next;
      }
 
-     pthread_mutex_unlock( &reactor->reactions_lock );
+     direct_mutex_unlock( &reactor->reactions_lock );
 
      return DR_OK;
 }
@@ -1796,7 +1845,9 @@ DirectResult
 fusion_reactor_direct( FusionReactor *reactor, bool direct )
 {
      D_ASSERT( reactor != NULL );
-     
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s', %s )\n", __FUNCTION__, reactor, reactor->name, direct ? "true" : "false" );
+
      return DR_OK;
 }
 
@@ -1804,6 +1855,8 @@ DirectResult
 fusion_reactor_destroy (FusionReactor *reactor)
 {
      D_ASSERT( reactor != NULL );
+
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s' )\n", __FUNCTION__, reactor, reactor->name );
 
      D_ASSUME( !reactor->destroyed );
 
@@ -1817,12 +1870,17 @@ fusion_reactor_free (FusionReactor *reactor)
 {
      D_ASSERT( reactor != NULL );
 
+     D_DEBUG_AT( Fusion_Reactor, "%s( %p '%s' )\n", __FUNCTION__, reactor, reactor->name );
+
+     D_ASSUME( reactor->reactions == NULL );
+
 //     D_ASSUME( reactor->destroyed );
 
      reactor->reactions = NULL;
 
-     pthread_mutex_destroy( &reactor->reactions_lock );
+     direct_mutex_deinit( &reactor->reactions_lock );
 
+     D_FREE( reactor->name );
      D_FREE( reactor );
 
      return DR_OK;
@@ -1849,7 +1907,7 @@ process_globals( FusionReactor      *reactor,
      if (max_index < 0)
           return;
 
-     pthread_mutex_lock( &reactor->globals_lock );
+     direct_mutex_lock( &reactor->globals_lock );
 
      direct_list_foreach_safe (global, n, reactor->globals) {
           if (global->index < 0 || global->index > max_index) {
@@ -1861,7 +1919,7 @@ process_globals( FusionReactor      *reactor,
           }
      }
 
-     pthread_mutex_unlock( &reactor->globals_lock );
+     direct_mutex_unlock( &reactor->globals_lock );
 }
 
 #endif
