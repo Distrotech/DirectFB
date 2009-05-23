@@ -30,9 +30,7 @@
 #define __CORE__COREDEFS_H__
 
 
-#ifdef PIC
-#define DFB_DYNAMIC_LINKING
-#endif
+#define DFB_DYNAMIC_LINKING        DIRECT_BUILD_DYNLOAD
 
 #define MAX_INPUTDEVICES          16
 #define MAX_LAYERS                16
