@@ -29,7 +29,7 @@
 #ifndef __DIRECT__SIGNALS_H__
 #define __DIRECT__SIGNALS_H__
 
-#include <direct/types.h>
+#include <direct/os/signals.h>
 
 
 typedef enum {

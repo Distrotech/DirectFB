@@ -52,16 +52,10 @@
 #include <fusion/ref.h>
 
 
-#if DIRECT_BUILD_DEBUGS
-#define MSG(x...)                       \
-do {                                    \
-     direct_debug( x ); \
-} while (0)
-#else
-#define MSG(x...)                       \
-do {                                    \
-} while (0)
-#endif
+D_LOG_DOMAIN( Tests_Reactor, "Tests/Reactor", "Tests - Reactor" );
+
+
+#define MSG(x...)   D_LOG( Tests_Reactor, VERBOSE, x )
 
 
 typedef struct {

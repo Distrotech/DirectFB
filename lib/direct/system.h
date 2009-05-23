@@ -29,12 +29,17 @@
 #ifndef __DIRECT__SYSTEM_H__
 #define __DIRECT__SYSTEM_H__
 
-#include <sys/types.h>
+#include <direct/os/system.h>
 
-pid_t direct_gettid( void );
-long  direct_pagesize( void );
 
-unsigned long direct_page_align( unsigned long value );
+DirectResult direct_futex_wait      ( int *uaddr, int val );
+DirectResult direct_futex_wait_timed( int *uaddr, int val, int ms );
+
+DirectResult direct_futex_wake      ( int *uaddr, int num );
+
+// Temporarily for testing
+extern unsigned int __Direct_Futex_Wait_Count;
+extern unsigned int __Direct_Futex_Wake_Count;
 
 #endif
 

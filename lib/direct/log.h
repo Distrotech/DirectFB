@@ -29,16 +29,11 @@
 #ifndef __DIRECT__LOG_H__
 #define __DIRECT__LOG_H__
 
-#include <direct/types.h>
+#include <direct/os/log.h>
+
 #include <direct/messages.h>
 
-
-typedef enum {
-     DLT_STDERR,    /* Simply print out log on stderr. */
-     DLT_FILE,      /* Write log into a file. */
-     DLT_UDP        /* Send out log via UDP. */
-} DirectLogType;
-
+/**********************************************************************************************************************/
 
 /*
  * Creates a logging facility.
@@ -80,6 +75,19 @@ void         direct_log_lock       ( DirectLog        *log );
  * Unlocks a logging facility.
  */
 void         direct_log_unlock     ( DirectLog        *log );
+
+/*
+ * Set a buffer to be used for the log data.
+ */
+DirectResult direct_log_set_buffer ( DirectLog        *log,
+                                     char             *buffer,
+                                     size_t            bytes );
+
+/*
+ * Flush the log data and optionally synchronize with the output.
+ */
+DirectResult direct_log_flush      ( DirectLog        *log,
+                                     bool              sync );
 
 /*
  * Returns the default log.

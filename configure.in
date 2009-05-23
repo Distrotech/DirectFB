@@ -221,12 +221,14 @@ have_cygwin=no
 have_kos=no
 need_libc_r=no
 need_libdl=yes
+need_librt=no
 want_ppcasm=yes
 want_armasm=yes
 
 case "$target_or_host" in
   *-linux*)
     have_linux=yes
+    need_librt=yes
     ;;
 
   *-cygwin)
@@ -316,6 +318,7 @@ if test "$have_kos" = "no"; then
   fi
 fi
 
+
 AC_CHECK_DECLS(PTHREAD_MUTEX_RECURSIVE,,
   AC_MSG_WARN([
 *** PTHREAD_MUTEX_RECURSIVE is not defined! Dead locks might occur!]), [
@@ -332,6 +335,18 @@ AC_SUBST(THREADFLAGS)
 AC_SUBST(THREADLIB)
 
 CPPFLAGS="$THREADFLAGS $CPPFLAGS"
+
+
+dnl RT Library
+RTLIB=""
+if test "$need_librt" = "yes"; then
+  AC_CHECK_LIB(rt, clock_gettime, ,
+    AC_MSG_ERROR([
+*** DirectFB requires librt.]))
+  RTLIB="-lrt"
+fi
+
+AC_SUBST(RTLIB)
 
 
 dnl Dynamic Linker
@@ -385,7 +400,7 @@ AC_ARG_ENABLE(debug,
   [  --enable-debug            enable debugging [[default=no]]],,
   enable_debug=no)
 if test "$enable_debug" = "yes"; then
-    CFLAGS="$CFLAGS -g3 -fno-inline -Wno-inline"
+    CFLAGS="$CFLAGS -O0 -g3 -fno-inline -Wno-inline"
     DIRECT_BUILD_DEBUG=1
 else
     DIRECT_BUILD_DEBUG=0
@@ -461,6 +476,34 @@ AC_SUBST(DIRECT_BUILD_NETWORK)
 AC_CHECK_HEADER(stdbool.h, DIRECT_BUILD_STDBOOL=1, DIRECT_BUILD_STDBOOL=0)
 
 AC_SUBST(DIRECT_BUILD_STDBOOL)
+
+
+AC_ARG_ENABLE(dynload,
+  [  --enable-dynload          enable dynload support [[default=yes]]],,
+  enable_dynload=yes)
+if test "$enable_dynload" = "no"; then
+    DIRECT_BUILD_DYNLOAD=0
+else
+    DIRECT_BUILD_DYNLOAD=1
+fi
+
+AC_SUBST(DIRECT_BUILD_DYNLOAD)
+
+
+AC_ARG_ENABLE(multicore,
+  [  --enable-multicore          enable multicore support [[default=yes]]],,
+  enable_multicore=yes)
+if test "$enable_multicore" = "no"; then
+    DIRECT_BUILD_MULTICORE=0
+else
+    DIRECT_BUILD_MULTICORE=1
+fi
+
+AC_SUBST(DIRECT_BUILD_MULTICORE)
+
+
+DIRECT_BUILD_OSTYPE=DIRECT_OS_LINUX_GNU_LIBC  
+AC_SUBST(DIRECT_BUILD_OSTYPE)
 
 
 linux_fusion="N/A"
@@ -1560,6 +1603,8 @@ lib/Makefile
 lib/direct/Makefile
 lib/direct/build.h
 lib/direct/direct.pc
+lib/direct/os/Makefile
+lib/direct/os/linux/glibc/Makefile
 
 lib/fusion/Makefile
 lib/fusion/build.h
@@ -1682,8 +1727,9 @@ Build options:
   LDFLAGS                   $LDFLAGS
   LIBS                      $LIBS
   DYNLIB                    $DYNLIB
+  RTLIB                     $RTLIB
   THREADFLAGS               $THREADFLAGS
-  THREADLIBS                $THREADLIBS
+  THREADLIB                 $THREADLIB
 
 Misc options:
   Multi Application Core    $enable_multi

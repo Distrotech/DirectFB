@@ -40,22 +40,18 @@
 #include <direct/messages.h>
 #include <direct/modules.h>
 
-#ifdef PIC
-#define DYNAMIC_LINKING
-#endif
-
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
 #include <dlfcn.h>
 #endif
 
-D_DEBUG_DOMAIN( Direct_Modules, "Direct/Modules", "Module loading and registration" );
+D_LOG_DOMAIN( Direct_Modules, "Direct/Modules", "Module loading and registration" );
 
-/******************************************************************************/
-
-#ifdef DYNAMIC_LINKING
+/**********************************************************************************************************************/
 
 static DirectModuleEntry *lookup_by_name( const DirectModuleDir *directory,
                                           const char            *name );
+
+#if DIRECT_BUILD_DYNLOAD
 
 static DirectModuleEntry *lookup_by_file( const DirectModuleDir *directory,
                                           const char            *file );
@@ -66,7 +62,7 @@ static void  unload_module( DirectModuleEntry *module );
 
 #endif
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 static int
 suppress_module (const char *name)
@@ -88,13 +84,39 @@ suppress_module (const char *name)
      return 0;
 }
 
+static void
+free_module_entry( DirectModuleEntry *entry )
+{
+     D_DEBUG_AT( Direct_Modules, "Freeing '%s'...\n", entry->name );
+
+     D_ASSUME( entry->refs == 0 );
+
+     D_MAGIC_ASSERT( entry, DirectModuleEntry );
+
+     if (entry->file)
+          D_FREE( entry->file );
+
+     D_FREE( entry->name );
+
+     D_MAGIC_CLEAR( entry );
+
+     D_FREE( entry );
+
+     D_DEBUG_AT( Direct_Modules, "...freed.\n" );
+}
+
+/**********************************************************************************************************************/
+
+static DirectModuleDir *loading_dir;
+
 void
 direct_modules_register( DirectModuleDir *directory,
                          unsigned int     abi_version,
                          const char      *name,
                          const void      *funcs )
 {
-     DirectModuleEntry *entry;
+     DirectModuleEntry *entry = NULL;
+     DirectModuleEntry *multi = NULL;
 
      D_ASSERT( directory != NULL );
      D_ASSERT( name != NULL );
@@ -102,24 +124,19 @@ direct_modules_register( DirectModuleDir *directory,
 
      D_DEBUG_AT( Direct_Modules, "Registering '%s' ('%s')...\n", name, directory->path );
 
-#ifdef DYNAMIC_LINKING
-     if ((entry = lookup_by_name( directory, name )) != NULL) {
+     if (loading_dir) {
+          entry = loading_dir->loading;
           D_MAGIC_ASSERT( entry, DirectModuleEntry );
 
-          entry->loaded = true;
-          entry->funcs  = funcs;
+          if (loading_dir != directory) {
+               D_DEBUG_AT( Direct_Modules, "...loads with '%s' ('%s')!\n", entry->file, entry->directory->path );
 
-          return;
+               multi = entry;
+               entry = NULL;
+          }
      }
-#endif
 
-     if (directory->loading) {
-          entry = directory->loading;
-          D_MAGIC_ASSERT( entry, DirectModuleEntry );
-
-          directory->loading = NULL;
-     }
-     else {
+     if (!entry) {
           entry = D_CALLOC( 1, sizeof(DirectModuleEntry) );
           if (!entry) {
                D_OOM();
@@ -133,6 +150,14 @@ direct_modules_register( DirectModuleDir *directory,
      entry->loaded    = true;
      entry->name      = D_STRDUP( name );
      entry->funcs     = funcs;
+
+     if (multi) {
+          entry->dynamic = true;
+          entry->file    = D_STRDUP( multi->file );
+#if DIRECT_BUILD_DYNLOAD
+          entry->handle  = dlopen( multi->file, RTLD_NOW );
+#endif
+     }
 
      entry->disabled  = suppress_module( name );
 
@@ -157,7 +182,6 @@ direct_modules_unregister( DirectModuleDir *directory,
 
      D_DEBUG_AT( Direct_Modules, "Unregistering '%s' ('%s')...\n", name, directory->path );
 
-#ifdef DYNAMIC_LINKING
      entry = lookup_by_name( directory, name );
      if (!entry) {
           D_ERROR( "Direct/Modules: Unregister failed, could not find '%s' module!\n", name );
@@ -166,22 +190,22 @@ direct_modules_unregister( DirectModuleDir *directory,
 
      D_MAGIC_ASSERT( entry, DirectModuleEntry );
 
-     D_FREE( entry->name );
-
      direct_list_remove( &directory->entries, &entry->link );
 
-     D_MAGIC_CLEAR( entry );
+     D_DEBUG_AT( Direct_Modules, "...unregistered, %d refs left.\n", entry->refs );
 
-     D_FREE( entry );
-#endif
+     D_ASSUME( !entry->refs );
 
-     D_DEBUG_AT( Direct_Modules, "...unregistered.\n" );
+     if (entry->dynamic && !entry->refs)
+          free_module_entry( entry );
 }
+
+/**********************************************************************************************************************/
 
 int
 direct_modules_explore_directory( DirectModuleDir *directory )
 {
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
      DIR           *dir;
      struct dirent *entry = NULL;
      struct dirent  tmp;
@@ -235,12 +259,14 @@ direct_modules_explore_directory( DirectModuleDir *directory )
           module->directory = directory;
           module->dynamic   = true;
           module->file      = D_STRDUP( entry->d_name );
+
           if (!module->file) {
                D_MAGIC_CLEAR( module );
                D_FREE( module );
                continue;
           }
 
+          loading_dir        = directory;
           directory->loading = module;
 
           if ((handle = open_module( module )) != NULL) {
@@ -294,6 +320,7 @@ direct_modules_explore_directory( DirectModuleDir *directory )
                direct_list_prepend( &directory->entries, &module->link );
           }
 
+          loading_dir        = NULL;
           directory->loading = NULL;
      }
 
@@ -308,17 +335,23 @@ direct_modules_explore_directory( DirectModuleDir *directory )
 const void *
 direct_module_ref( DirectModuleEntry *module )
 {
+     D_ASSERT( module != NULL );
+
+     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->name, module->refs );
+
      D_MAGIC_ASSERT( module, DirectModuleEntry );
 
      if (module->disabled)
           return NULL;
 
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
      if (!module->loaded && !load_module( module ))
           return NULL;
 #endif
 
      module->refs++;
+
+     D_ASSERT( module->funcs != NULL );
 
      return module->funcs;
 }
@@ -326,21 +359,23 @@ direct_module_ref( DirectModuleEntry *module )
 void
 direct_module_unref( DirectModuleEntry *module )
 {
+     D_ASSERT( module != NULL );
+
+     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->name, module->refs );
+
      D_MAGIC_ASSERT( module, DirectModuleEntry );
      D_ASSERT( module->refs > 0 );
 
      if (--module->refs)
           return;
 
-#ifdef DYNAMIC_LINKING
+#if DIRECT_BUILD_DYNLOAD
      if (module->dynamic)
           unload_module( module );
 #endif
 }
 
 /******************************************************************************/
-
-#ifdef DYNAMIC_LINKING
 
 static DirectModuleEntry *
 lookup_by_name( const DirectModuleDir *directory,
@@ -366,6 +401,7 @@ lookup_by_name( const DirectModuleDir *directory,
      return NULL;
 }
 
+#if DIRECT_BUILD_DYNLOAD
 static DirectModuleEntry *
 lookup_by_file( const DirectModuleDir *directory,
                 const char            *file )
@@ -393,6 +429,10 @@ lookup_by_file( const DirectModuleDir *directory,
 static bool
 load_module( DirectModuleEntry *module )
 {
+     D_ASSERT( module != NULL );
+
+     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->file, module->refs );
+
      D_MAGIC_ASSERT( module, DirectModuleEntry );
      D_ASSERT( module->dynamic == true );
      D_ASSERT( module->file != NULL );
@@ -401,6 +441,8 @@ load_module( DirectModuleEntry *module )
 
      module->handle = open_module( module );
 
+     D_MAGIC_ASSERT( module, DirectModuleEntry );
+
      return module->loaded;
 }
 
@@ -408,6 +450,10 @@ static void
 unload_module( DirectModuleEntry *module )
 {
      void *handle;
+
+     D_ASSERT( module != NULL );
+
+     D_DEBUG_AT( Direct_Modules, "%s( %p '%s', %d refs )\n", __FUNCTION__, module, module->file, module->refs );
 
      D_MAGIC_ASSERT( module, DirectModuleEntry );
      D_ASSERT( module->dynamic == true );
@@ -455,6 +501,8 @@ open_module( DirectModuleEntry *module )
      handle = dlopen( buf, RTLD_NOW );
      if (!handle)
           D_DLERROR( "Direct/Modules: Unable to dlopen `%s'!\n", buf );
+
+     D_MAGIC_ASSERT( module, DirectModuleEntry );
 
      return handle;
 }

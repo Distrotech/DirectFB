@@ -29,8 +29,6 @@
 #ifndef __DIRECT__MODULES_H__
 #define __DIRECT__MODULES_H__
 
-#include <pthread.h>
-
 #include <direct/types.h>
 #include <direct/list.h>
 #include <direct/util.h>
@@ -56,8 +54,6 @@ struct __D_DirectModuleEntry {
 };
 
 struct __D_DirectModuleDir {
-     pthread_mutex_t    lock;
-
      const char        *path;
      unsigned int       abi_version;
 
@@ -71,7 +67,6 @@ struct __D_DirectModuleDir {
 
 #define DEFINE_MODULE_DIRECTORY(d,p,n)                 \
      DirectModuleDir d = {                             \
-          .lock        = PTHREAD_MUTEX_INITIALIZER,    \
           .path        = p,                            \
           .abi_version = n,                            \
           .entries     = NULL,                         \

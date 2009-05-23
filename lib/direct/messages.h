@@ -29,34 +29,12 @@
 #ifndef __DIRECT__MESSAGES_H__
 #define __DIRECT__MESSAGES_H__
 
-#include <direct/build.h>
 #include <direct/types.h>
 
 
-#if __GNUC__ >= 3
-#define D_FORMAT_PRINTF(n)         __attribute__((__format__ (__printf__, n, n+1)))
-#else
-#define D_FORMAT_PRINTF(n)
-#endif
-
-typedef enum {
-     DMT_NONE           = 0x00000000, /* No message type. */
-
-     DMT_BANNER         = 0x00000001, /* Startup banner. */
-     DMT_INFO           = 0x00000002, /* Info messages. */
-     DMT_WARNING        = 0x00000004, /* Warnings. */
-     DMT_ERROR          = 0x00000008, /* Error messages: regular, with DFBResult, bugs,
-                                         system call errors, dlopen errors */
-     DMT_UNIMPLEMENTED  = 0x00000010, /* Messages notifying unimplemented functionality. */
-     DMT_ONCE           = 0x00000020, /* One-shot messages .*/
-
-     DMT_ALL            = 0x0000003f  /* All types. */
-} DirectMessageType;
-
 #if DIRECT_BUILD_TEXT
 
-#include <errno.h>
-
+#include <direct/compiler.h>
 #include <direct/conf.h>
 
 
@@ -103,9 +81,15 @@ void direct_messages_warn         ( const char *func,
                                    direct_messages_error( x );                                 \
                          } while (0)
 
+#define D_ERROR_AT(d,x...)    do {                                                                            \
+                                   if (!(direct_config->quiet & DMT_ERROR))                                   \
+                                        direct_log_domain_log( &(d), DIRECT_LOG_ERROR,                        \
+                                                               __PRETTY_FUNCTION__, __FILE__, __LINE__, x );  \
+                              } while (0)
+
 #define D_DERROR(r,x...) do {                                                                  \
                               if (!(direct_config->quiet & DMT_ERROR))                         \
-                                   direct_messages_derror( r, x );                             \
+                                   direct_messages_derror( (DirectResult) r, x );              \
                          } while (0)
 
 #define D_PERROR(x...)   do {                                                                  \

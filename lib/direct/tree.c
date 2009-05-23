@@ -30,10 +30,11 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-
 #include <direct/mem.h>
 #include <direct/tree.h>
+
+
+/* FIXME FIXME */
 
 
 static DirectNode *tree_node_new         ( DirectTree *tree,

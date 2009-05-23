@@ -29,9 +29,6 @@
 #ifndef __DIRECT__STREAM_H__
 #define __DIRECT__STREAM_H__
 
-#include <stdio.h>
-#include <sys/time.h>
-
 #include <direct/types.h>
 
 /*

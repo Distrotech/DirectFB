@@ -81,6 +81,8 @@ main( int argc, char *argv[] )
                return show_usage(argv[0]);
      }
 
+     direct_config->debugmem = true;
+
      /* Initialize logging. */
      ret = direct_log_create( log_type, log_param, &log );
      if (ret)
@@ -100,19 +102,16 @@ main( int argc, char *argv[] )
      direct_initialize();
 
 
-     D_INFO( "Direct/Test: Application stopping...\n" );
-
-     /* Shutdown libdirect. */
-     direct_shutdown();
-
-
-     D_INFO( "Direct/Test: You should see a leak message with debug-mem turned on...\n" );
-
      /* Shutdown logging. */
      direct_log_destroy( log );
 
-     direct_config->debug = true;
-     direct_print_memleaks();
+
+     D_INFO( "Direct/Test: Application stopping...\n" );
+
+     D_INFO( "Direct/Test: You should see a leak message with debug-mem turned on...\n" );
+
+     /* Shutdown libdirect. */
+     direct_shutdown();
 
      return 0;
 }

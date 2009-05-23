@@ -45,6 +45,7 @@
      struct _##IFACE {                            \
           void          *priv;                    \
           int            magic;                   \
+          int            refs;                    \
                                                   \
           DirectResult (*AddRef)( IFACE *thiz );  \
           DirectResult (*Release)( IFACE *thiz ); \
@@ -79,6 +80,7 @@ typedef struct {
      const char * (*GetType)(void);
      const char * (*GetImplementation)(void);
      DirectResult (*Allocate)( void **interface );
+     DirectResult (*Deallocate)( void *interface );
      
      DirectInterfaceGenericProbeFunc     Probe;
      DirectInterfaceGenericConstructFunc Construct;

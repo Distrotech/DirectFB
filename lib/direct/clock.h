@@ -29,15 +29,23 @@
 #ifndef __DIRECT__CLOCK_H__
 #define __DIRECT__CLOCK_H__
 
-#include <sys/time.h>
+#include <direct/os/clock.h>
+
+/**********************************************************************************************************************/
+
+long long direct_clock_get_abs_micros( void );
+long long direct_clock_get_abs_millis( void );
 
 long long direct_clock_get_micros( void );
 long long direct_clock_get_millis( void );
 
-void      direct_clock_set_start( const struct timeval *start );
 
-long long direct_clock_get_abs_micros( void );
-long long direct_clock_get_abs_millis( void );
+#ifndef DIRECT_DISABLE_DEPRECATED
+
+// @deprecated
+void direct_clock_set_start( const struct timeval *start );
+
+#endif
 
 #endif
 

@@ -29,8 +29,7 @@
 #ifndef __DIRECT__MEMCPY_H__
 #define __DIRECT__MEMCPY_H__
 
-#include <stdlib.h>
-#include <string.h>
+#include <direct/types.h>
 
 
 void direct_find_best_memcpy( void );
