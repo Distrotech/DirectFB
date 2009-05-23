@@ -29,8 +29,6 @@
 #ifndef __FUSION__SHM__SHM_INTERNAL_H__
 #define __FUSION__SHM__SHM_INTERNAL_H__
 
-#include <limits.h>
-
 #include <direct/list.h>
 
 #include <fusion/build.h>
@@ -179,8 +177,8 @@ struct list {
 };
 
 
-#define SHMEMDESC_FUNC_NAME_LENGTH 48
-#define SHMEMDESC_FILE_NAME_LENGTH 24
+#define SHMEMDESC_FUNC_NAME_LENGTH 32
+#define SHMEMDESC_FILE_NAME_LENGTH 48
 
 /* Used for debugging. */
 typedef struct {

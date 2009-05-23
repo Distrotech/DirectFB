@@ -27,17 +27,12 @@
 */
 
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
 
 #include <direct/build.h>
 #include <direct/debug.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#include <fusion/build.h>
 #include <fusion/shmalloc.h>
 
 #include <fusion/fusion_internal.h>
@@ -50,7 +45,7 @@
 
 #if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
 
-D_DEBUG_DOMAIN( Fusion_SHM, "Fusion/SHM", "Fusion Shared Memory" );
+D_LOG_DOMAIN( Fusion_SHM, "Fusion/SHM", "Fusion Shared Memory" );
 
 void
 fusion_dbg_print_memleaks( FusionSHMPoolShared *pool )
@@ -94,8 +89,8 @@ fill_shmem_desc( SHMemDesc *desc, int bytes, const char *func, const char *file,
      desc->mem   = desc + 1;
      desc->bytes = bytes;
 
-     snprintf( desc->func, SHMEMDESC_FUNC_NAME_LENGTH, func );
-     snprintf( desc->file, SHMEMDESC_FILE_NAME_LENGTH, file );
+     direct_snputs( desc->func, func, SHMEMDESC_FUNC_NAME_LENGTH );
+     direct_snputs( desc->file, file, SHMEMDESC_FILE_NAME_LENGTH );
 
      desc->line = line;
      desc->fid  = fusion_id;
@@ -533,9 +528,9 @@ fusion_dbg_shmalloc( FusionSHMPoolShared *pool,
      D_ASSERT( __size > 0 );
 
      if (pool->debug)
-          return direct_malloc( file, line, func, __size );
+          return direct_dbg_malloc( file, line, func, __size );
 
-     return malloc( __size );
+     return direct_malloc( __size );
 }
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
@@ -549,9 +544,9 @@ fusion_dbg_shcalloc( FusionSHMPoolShared *pool,
      D_ASSERT( __size > 0 );
 
      if (pool->debug)
-          return direct_calloc( file, line, func, __nmemb, __size );
+          return direct_dbg_calloc( file, line, func, __nmemb, __size );
 
-     return calloc( __nmemb, __size );
+     return direct_calloc( __nmemb, __size );
 }
 
 /* Re-allocate the previously allocated block
@@ -565,9 +560,9 @@ fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
      D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
 
      if (pool->debug)
-          return direct_realloc( file, line, func, what, __ptr, __size );
+          return direct_dbg_realloc( file, line, func, what, __ptr, __size );
 
-     return realloc( __ptr, __size );
+     return direct_realloc( __ptr, __size );
 }
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
@@ -580,9 +575,9 @@ fusion_dbg_shfree( FusionSHMPoolShared *pool,
      D_ASSERT( __ptr != NULL );
 
      if (pool->debug)
-          direct_free( file, line, func, what, __ptr );
+          direct_dbg_free( file, line, func, what, __ptr );
      else
-          free( __ptr );
+          direct_free( __ptr );
 }
 
 /* Duplicate string in shared memory. */
@@ -595,9 +590,9 @@ fusion_dbg_shstrdup( FusionSHMPoolShared *pool,
      D_ASSERT( string != NULL );
 
      if (pool->debug)
-          return direct_strdup( file, line, func, string );
+          return direct_dbg_strdup( file, line, func, string );
 
-     return strdup( string );
+     return direct_strdup( string );
 }
 
 #endif
@@ -615,7 +610,7 @@ fusion_shmalloc (FusionSHMPoolShared *pool,
      if (pool->debug)
           D_WARN( "Fusion/SHMMalloc: Pool runs in debug mode, but access from pure-release is attempted!\n" );
 
-     return malloc( __size );
+     return direct_malloc( __size );
 }
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
@@ -630,7 +625,7 @@ fusion_shcalloc (FusionSHMPoolShared *pool,
      if (pool->debug)
           D_WARN( "Fusion/SHMMalloc: Pool runs in debug mode, but access from pure-release is attempted!\n" );
 
-     return calloc( __nmemb, __size );
+     return direct_calloc( __nmemb, __size );
 }
 
 /* Re-allocate the previously allocated block
@@ -644,7 +639,7 @@ fusion_shrealloc (FusionSHMPoolShared *pool,
      if (pool->debug)
           D_WARN( "Fusion/SHMMalloc: Pool runs in debug mode, but access from pure-release is attempted!\n" );
 
-     return realloc( __ptr, __size );
+     return direct_realloc( __ptr, __size );
 }
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
@@ -658,7 +653,7 @@ fusion_shfree (FusionSHMPoolShared *pool,
      if (pool->debug)
           D_WARN( "Fusion/SHMMalloc: Pool runs in debug mode, but access from pure-release is attempted!\n" );
 
-     free( __ptr );
+     direct_free( __ptr );
 }
 
 /* Duplicate string in shared memory. */
@@ -672,7 +667,7 @@ fusion_shstrdup (FusionSHMPoolShared *pool,
      if (pool->debug)
           D_WARN( "Fusion/SHMMalloc: Pool runs in debug mode, but access from pure-release is attempted!\n" );
 
-     return strdup( string );
+     return direct_strdup( string );
 }
 
 #endif

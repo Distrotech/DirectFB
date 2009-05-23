@@ -73,7 +73,7 @@ Cambridge, MA 02139, USA.
 #include <fusion/shm/shm_internal.h>
 
 
-D_DEBUG_DOMAIN( Fusion_SHMHeap, "Fusion/SHMHeap", "Fusion Shared Memory Heap" );
+D_LOG_DOMAIN( Fusion_SHMHeap, "Fusion/SHMHeap", "Fusion Shared Memory Heap" );
 
 /**********************************************************************************************************************/
 

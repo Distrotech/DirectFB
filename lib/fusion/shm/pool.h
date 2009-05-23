@@ -65,5 +65,9 @@ DirectResult fusion_shm_pool_deallocate( FusionSHMPoolShared  *pool,
                                          void                 *data,
                                          bool                  lock );
 
+DirectResult fusion_shm_pool_contains  ( FusionSHMPoolShared  *pool,
+                                         void                 *data,
+                                         unsigned int          size );
+
 #endif
 

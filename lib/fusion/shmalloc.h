@@ -36,6 +36,8 @@
 #include <direct/build.h>
 #include <fusion/build.h>
 
+#include <direct/debug.h>
+
 #include <fusion/types.h>
 #include <fusion/shm/pool.h>
 
@@ -99,21 +101,21 @@ char *fusion_shstrdup (FusionSHMPoolShared *pool, const char *string);
 #endif
 
 
-#define SHMALLOC(pool,bytes)        fusion_dbg_shmalloc( pool, __FILE__, __LINE__, __FUNCTION__, bytes )
-#define SHCALLOC(pool,count,bytes)  fusion_dbg_shcalloc( pool, __FILE__, __LINE__, __FUNCTION__, count, bytes )
+#define SHMALLOC(pool,bytes)        ({ D_ASSERT( (bytes) > 0 ); fusion_dbg_shmalloc( pool, __FILE__, __LINE__, __FUNCTION__, bytes ); })
+#define SHCALLOC(pool,count,bytes)  ({ D_ASSERT( (bytes) > 0 ); D_ASSERT( (count) > 0 ); fusion_dbg_shcalloc( pool, __FILE__, __LINE__, __FUNCTION__, count, bytes ); })
 #define SHREALLOC(pool,mem,bytes)   fusion_dbg_shrealloc( pool, __FILE__, __LINE__, __FUNCTION__, #mem, mem, bytes )
-#define SHFREE(pool,mem)            fusion_dbg_shfree( pool, __FILE__, __LINE__, __FUNCTION__, #mem,mem )
-#define SHSTRDUP(pool,string)       fusion_dbg_shstrdup( pool, __FILE__, __LINE__, __FUNCTION__, string )
+#define SHFREE(pool,mem)            ({ D_ASSERT( (mem) != NULL ); fusion_dbg_shfree( pool, __FILE__, __LINE__, __FUNCTION__, #mem,mem ); })
+#define SHSTRDUP(pool,string)       ({ D_ASSERT( (string) != NULL ); fusion_dbg_shstrdup( pool, __FILE__, __LINE__, __FUNCTION__, string ); })
 
 
 #else
 
 
-#define SHMALLOC   fusion_shmalloc
-#define SHCALLOC   fusion_shcalloc
-#define SHREALLOC  fusion_shrealloc
-#define SHFREE     fusion_shfree
-#define SHSTRDUP   fusion_shstrdup
+#define SHMALLOC(pool,bytes)        ({ D_ASSERT( (bytes) > 0 ); fusion_shmalloc( pool, bytes ); })
+#define SHCALLOC(pool,count,bytes)  ({ D_ASSERT( (bytes) > 0 ); D_ASSERT( (count) > 0 ); fusion_shcalloc( pool, count, bytes ); })
+#define SHREALLOC(pool,mem,bytes)   fusion_shrealloc( pool, mem, bytes )
+#define SHFREE(pool,mem)            ({ D_ASSERT( (mem) != NULL ); fusion_shfree( pool, mem ); })
+#define SHSTRDUP(pool,string)       ({ D_ASSERT( (string) != NULL ); fusion_shstrdup( pool, string ); })
 
 
 #endif

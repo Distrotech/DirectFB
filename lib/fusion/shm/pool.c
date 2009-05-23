@@ -29,12 +29,14 @@
 #include <config.h>
 
 #include <unistd.h>
+#include <stdio.h>
 #include <sys/mman.h>
 
 #include <direct/debug.h>
 #include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/print.h>
 
 #include <fusion/shmalloc.h>
 #include <fusion/fusion_internal.h>
@@ -43,7 +45,7 @@
 #include <fusion/shm/shm_internal.h>
 
 
-D_DEBUG_DOMAIN( Fusion_SHMPool, "Fusion/SHMPool", "Fusion Shared Memory Pool" );
+D_LOG_DOMAIN( Fusion_SHMPool, "Fusion/SHMPool", "Fusion Shared Memory Pool" );
 
 /**********************************************************************************************************************/
 
@@ -399,6 +401,33 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
      return DR_OK;
 }
 
+DirectResult
+fusion_shm_pool_contains( FusionSHMPoolShared  *pool,
+                          void                 *data,
+                          unsigned int          size )
+{
+     DirectResult ret = DR_OK;
+
+     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p + %u )\n", __FUNCTION__, pool, data, size );
+
+     D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
+
+     D_ASSERT( data != NULL );
+
+     ret = fusion_skirmish_prevail( &pool->lock );
+     if (ret)
+          return ret;
+
+     __shmalloc_brk( pool->heap, 0 );
+
+     if (data < pool->addr_base  ||  data + size > pool->addr_base + pool->heap->size )
+          ret = DR_INVAREA;
+
+     fusion_skirmish_dismiss( &pool->lock );
+
+     return DR_OK;
+}
+
 /**********************************************************************************************************************/
 
 #if FUSION_BUILD_KERNEL
@@ -454,7 +483,7 @@ init_pool( FusionSHM           *shm,
      info.type = FT_SHMPOOL;
      info.id   = pool_new.pool_id;
 
-     snprintf( info.name, sizeof(info.name), "%s", name );
+     direct_snprintf( info.name, sizeof(info.name), "%s", name );
 
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
@@ -481,7 +510,7 @@ init_pool( FusionSHM           *shm,
 
 
      /* Generate filename. */
-     snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
+     direct_snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
                fusion_world_index( shm->world ), pool_new.pool_id );
 
      /* Initialize the heap. */
@@ -571,7 +600,7 @@ join_pool( FusionSHM           *shm,
 
 
      /* Generate filename. */
-     snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
+     direct_snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
                fusion_world_index( shm->world ), shared->pool_id );
 
      /* Join the heap. */
@@ -738,7 +767,7 @@ init_pool( FusionSHM           *shm,
           return DR_NOSHAREDMEMORY;
 
      /* Generate filename. */
-     snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
+     direct_snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
                fusion_world_index( world ), pool_id );
 
      /* Initialize the heap. */
@@ -804,7 +833,7 @@ join_pool( FusionSHM           *shm,
      D_MAGIC_ASSERT( world, FusionWorld );
 
      /* Generate filename. */
-     snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
+     direct_snprintf( buf, sizeof(buf), "%s/fusion.%d.%d", shm->shared->tmpfs,
                fusion_world_index( shm->world ), shared->pool_id );
 
      /* Join the heap. */

@@ -30,6 +30,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include <sys/param.h>
 #include <sys/types.h>
@@ -40,6 +41,7 @@
 #include <direct/list.h>
 #include <direct/signals.h>
 #include <direct/messages.h>
+#include <direct/print.h>
 #include <direct/util.h>
 
 #include <fusion/conf.h>
@@ -127,11 +129,11 @@ fusion_shm_init( FusionWorld *world )
           memset( shared, 0, sizeof(FusionSHMShared) );
 
           if (fusion_config->tmpfs) {
-               snprintf( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN, fusion_config->tmpfs );
+               direct_snprintf( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN, fusion_config->tmpfs );
           }
           else if (!find_tmpfs( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN )) {
                D_ERROR( "Fusion/SHM: Could not find tmpfs mount point, falling back to /dev/shm!\n" );
-               snprintf( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN, "/dev/shm" );
+               direct_snprintf( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN, "/dev/shm" );
           }
 
           shared->world = world->shared;

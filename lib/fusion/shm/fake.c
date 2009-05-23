@@ -154,9 +154,35 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
 }
 
 DirectResult
+fusion_shm_pool_contains( FusionSHMPoolShared  *pool,
+                          void                 *data,
+                          unsigned int          size )
+{
+     return DR_OK;
+}
+
+DirectResult
+fusion_shm_init( FusionWorld *world )
+{
+     return DR_OK;
+}
+
+DirectResult
+fusion_shm_deinit( FusionWorld *world )
+{
+     return DR_OK;
+}
+
+DirectResult
 fusion_shm_enum_pools( FusionWorld           *world,
                        FusionSHMPoolCallback  callback,
                        void                  *ctx )
+{
+     return DR_OK;
+}
+
+DirectResult
+fusion_shm_attach_unattached( FusionWorld *world )
 {
      return DR_OK;
 }
