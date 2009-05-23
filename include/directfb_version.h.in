@@ -1,5 +1,5 @@
 /*
-   (c) Copyright 2001-2007  The DirectFB Organization (directfb.org)
+   (c) Copyright 2001-2009  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
    All rights reserved.
@@ -34,5 +34,12 @@
 #define DIRECTFB_MICRO_VERSION  (@DIRECTFB_MICRO_VERSION@)
 #define DIRECTFB_BINARY_AGE     (@DIRECTFB_BINARY_AGE@)
 #define DIRECTFB_INTERFACE_AGE  (@DIRECTFB_INTERFACE_AGE@)
+
+#define DIRECTFB_VERSION_CODE( _major, _minor, _micro )                                               \
+   (((_major) << 16) | ((_minor) << 8) | (_micro))
+
+#define DIRECTFB_VERSION_CHECK( _major, _minor, _micro )                                              \
+   (DIRECTFB_VERSION_CODE( _major, _minor, _micro ) <=                                                \
+    DIRECTFB_VERSION_CODE( DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION ))
 
 #endif /* __DIRECTFB_VERSION_H__ */
