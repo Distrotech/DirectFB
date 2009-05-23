@@ -1,7 +1,7 @@
 /*
    GLIB - Library of useful routines for C programming
    Copyright (C) 1995-1997  Peter Mattis, Spencer Kimball and Josh MacDonald
- 
+
    (c) Copyright 2001-2008  The world wide DirectFB Open Source Community (directfb.org)
    (c) Copyright 2000-2004  Convergence (integrated media) GmbH
 
@@ -13,17 +13,17 @@
               Ville Syrjälä <syrjala@sci.fi>,
               Claudio Ciccani <klan@users.sf.net> and
               Michael Emmel <mike.emmel@gmail.com>.
- 
+
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
    version 2 of the License, or (at your option) any later version.
- 
+
    This library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Lesser General Public License for more details.
- 
+
    You should have received a copy of the GNU Lesser General Public
    License along with this library; if not, write to the
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
@@ -34,13 +34,10 @@
  * Modified by the GLib Team and others 1997-2000.  See the AUTHORS
  * file for a list of people on the GLib Team.  See the ChangeLog
  * files for a list of changes.  These files are distributed with
- * GLib at ftp://ftp.gtk.org/pub/gtk/. 
+ * GLib at ftp://ftp.gtk.org/pub/gtk/.
  */
 
 #include <config.h>
-
-#include <stdlib.h>
-#include <string.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
@@ -51,7 +48,7 @@
 #include <fusion/hash.h>
 
 
-D_DEBUG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
+D_LOG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
 
 
 
@@ -119,12 +116,12 @@ spaced_primes_closest (unsigned int num)
 
 /**
  * fusion_hash_create_local:
- * @key_type: Type of hash key the hash is optimized for strings ints and pointers 
- * @value_type: Type of hash data optimized for strings ints and pointers 
- * @size: Inital size of the hash table 
+ * @key_type: Type of hash key the hash is optimized for strings ints and pointers
+ * @value_type: Type of hash data optimized for strings ints and pointers
+ * @size: Inital size of the hash table
  * @ret_hash:the new hash table
  * Creates a new #FusionHash that uses local memory
- * 
+ *
  * Return value: a new #FusionHash.
  **/
 DirectResult
@@ -138,12 +135,12 @@ fusion_hash_create_local (FusionHashType key_type, FusionHashType value_type,
 
 /**
  * fusion_hash_create:
- * @key_type: Type of hash key the hash is optimized for strings ints and pointers 
- * @value_type: Type of hash data optimized for strings ints and pointers 
- * @size: Inital size of the hash table 
+ * @key_type: Type of hash key the hash is optimized for strings ints and pointers
+ * @value_type: Type of hash data optimized for strings ints and pointers
+ * @size: Inital size of the hash table
  * @ret_hash:the new hash table
  * Creates a new #FusionHash with a reference count of 1.
- * 
+ *
  * Return value: a new #FusionHash.
  **/
 DirectResult
@@ -152,7 +149,7 @@ fusion_hash_create (FusionSHMPoolShared *pool,
                     FusionHashType value_type,
                     int  size, FusionHash **ret_hash )
 {
-     return fusion_hash_create_internal(false,pool,key_type,value_type,
+     return fusion_hash_create_internal(!pool,pool,key_type,value_type,
                                         size,ret_hash );
 }
 
@@ -211,7 +208,8 @@ fusion_hash_destroy( FusionHash *hash )
 {
      int i;
      FusionHashNode *node, *next;
-     D_MAGIC_ASSERT( hash, FusionHash );
+
+     FUSION_HASH_ASSERT( hash );
 
      for (i = 0; i < hash->size; i++) {
           for (node = hash->nodes[i]; node; node = next) {
@@ -233,7 +231,7 @@ fusion_hash_destroy( FusionHash *hash )
 void
 fusion_hash_set_autofree( FusionHash *hash, bool free_keys, bool free_values )
 {
-     D_MAGIC_ASSERT( hash, FusionHash );
+     FUSION_HASH_ASSERT( hash );
 
      hash->free_keys   = free_keys;
      hash->free_values = free_values;
@@ -243,20 +241,23 @@ fusion_hash_set_autofree( FusionHash *hash, bool free_keys, bool free_values )
  * fusion_hash_lookup:
  * @hash: a #FusionHash.
  * @key: the key to look up.
- * 
+ *
  * Looks up a key in a #FusionHash. Note that this function cannot
  * distinguish between a key that is not present and one which is present
  * and has the value %NULL. If you need this distinction, use
  * hash_lookup_extended().
- * 
+ *
  * Return value: the associated value, or %NULL if the key is not found.
  **/
 void *
 fusion_hash_lookup (FusionHash *hash, const void * key)
 {
      FusionHashNode *node;
-     D_MAGIC_ASSERT( hash, FusionHash );
+
+     FUSION_HASH_ASSERT( hash );
+
      node = *fusion_hash_lookup_node (hash, key);
+
      return node ? node->value : NULL;
 }
 
@@ -265,24 +266,28 @@ fusion_hash_lookup (FusionHash *hash, const void * key)
  * @hash: a #FusionHash.
  * @key: a key to insert.
  * @value: the value to associate with the key.
- * 
+ *
  * Inserts a new key and value into a #FusionHash.
- * If the key already exists in the #FusionHash DR_BUG is returned 
+ * If the key already exists in the #FusionHash DR_BUG is returned
  * If you think a key may exist you should call fusion_hash_replace
  * Generally this is only used on a new FusionHash
  **/
 DirectResult
 fusion_hash_insert( FusionHash *hash,
-                    void       *key,
+                    const void *key,
                     void       *value )
 {
      FusionHashNode **node;
-     D_MAGIC_ASSERT( hash, FusionHash );
+
+     FUSION_HASH_ASSERT( hash );
 
      node = fusion_hash_lookup_node (hash, key);
 
      if (*node) {
-          D_BUG( "key already exists" );
+          if (hash->key_type == FUSION_HASH_UUID) {
+               D_BUG( "key already exists " D_UUID_FORMAT, D_UUID_VALS((const DirectUUID*)key) );
+
+          }
           return DR_BUG;
      }
      else {
@@ -307,35 +312,36 @@ fusion_hash_insert( FusionHash *hash,
  * @hash: a #FusionHash.
  * @key: a key to insert.
  * @value: the value to associate with the key.
- * 
- * Inserts a new key and value into a #FusionHash similar to 
- * hash_insert(). The difference is that if the key already exists 
- * in the #FusionHash, it gets replaced by the new key. 
+ *
+ * Inserts a new key and value into a #FusionHash similar to
+ * hash_insert(). The difference is that if the key already exists
+ * in the #FusionHash, it gets replaced by the new key.
  * If you supplied a  oldkey pointer or oldkey value they are returned
  * otherwise free is called the key if table type is not type HASH_INT
  * and free is called on the old value if not supplied
  **/
 DirectResult
 fusion_hash_replace (FusionHash *hash,
-                     void *   key, 
+                     void *   key,
                      void *   value,
                      void **old_key,
                      void **old_value)
 {
      FusionHashNode **node;
-     D_MAGIC_ASSERT( hash, FusionHash );
+
+     FUSION_HASH_ASSERT( hash );
 
      node = fusion_hash_lookup_node (hash, key);
 
      if (*node) {
           if ( old_key)
-               *old_key = (*node)->key;
+               *old_key = (void*)(*node)->key;
           else if ( hash->key_type != HASH_INT ) {
                if (hash->free_keys) {
                     if (hash->local)
-                         D_FREE((*node)->key);
+                         D_FREE((void*)(*node)->key);
                     else
-                         SHFREE(hash->pool, (*node)->key );
+                         SHFREE(hash->pool, (void*)(*node)->key );
                }
           }
 
@@ -344,9 +350,9 @@ fusion_hash_replace (FusionHash *hash,
           else if ( hash->value_type != HASH_INT ) {
                if (hash->free_values) {
                     if (hash->local)
-                         D_FREE((*node)->value);
+                         D_FREE((void*)(*node)->value);
                     else
-                         SHFREE(hash->pool, (*node)->value );
+                         SHFREE(hash->pool, (void*)(*node)->value );
                }
           }
      }
@@ -371,18 +377,18 @@ fusion_hash_replace (FusionHash *hash,
  * fusion_hash_remove:
  * @hash: a #FusionHash.
  * @key: the key to remove.
- * @old_key: returned old_key 
- * @old_value: returned old_value 
+ * @old_key: returned old_key
+ * @old_value: returned old_value
  * Removes a key and its associated value from a #FusionHash.
  *
  * If the #FusionHash was created using hash_new_full(), the
  * key and value are freed using the supplied destroy functions, otherwise
- * you have to make sure that any dynamically allocated values are freed 
+ * you have to make sure that any dynamically allocated values are freed
  * yourself.
  * If you supplied a  oldkey pointer or oldkey value they are returned
  * otherwise free is called the key if table type is not type HASH_INT
  * and free is called on the old value if not supplied
- * 
+ *
  **/
 DirectResult
 fusion_hash_remove (FusionHash    *hash,
@@ -391,7 +397,8 @@ fusion_hash_remove (FusionHash    *hash,
                     void **old_value)
 {
      FusionHashNode **node, *dest;
-     D_MAGIC_ASSERT( hash, FusionHash );
+
+     FUSION_HASH_ASSERT( hash );
 
      node = fusion_hash_lookup_node (hash, key);
      if (*node) {
@@ -409,7 +416,7 @@ fusion_hash_remove (FusionHash    *hash,
  * @hash: a #FusionHash.
  * @func: the function to call for each key/value pair.
  * @user_data: user data to pass to the function.
- * 
+ *
  * Calls the given function for each of the key/value pairs in the
  * #FusionHash.  The function is passed the key and value of each
  * pair, and the given @user_data parameter.  The hash table may not
@@ -426,13 +433,13 @@ fusion_hash_iterate( FusionHash             *hash,
      FusionHashNode *node;
      FusionHashNode *next;
 
-     D_MAGIC_ASSERT( hash, FusionHash );
+     FUSION_HASH_ASSERT( hash );
 
      for (i = 0; i < hash->size; i++) {
           for (node = hash->nodes[i]; node; node = next) {
                next = node->next;
 
-               if ( func(hash, node->key, node->value, ctx))
+               if ( func(hash, (void*)node->key, node->value, ctx))
                     return;
           }
      }
@@ -441,15 +448,16 @@ fusion_hash_iterate( FusionHash             *hash,
 /**
  * hash_size:
  * @hash: a #FusionHash.
- * 
+ *
  * Returns the number of elements contained in the #FusionHash.
- * 
+ *
  * Return value: the number of key/value pairs in the #FusionHash.
  **/
 unsigned int
 fusion_hash_size (FusionHash *hash)
 {
-     D_MAGIC_ASSERT( hash, FusionHash );
+     FUSION_HASH_ASSERT( hash );
+
      return hash->nnodes;
 }
 
@@ -461,13 +469,82 @@ fusion_hash_size (FusionHash *hash)
  */
 bool fusion_hash_should_resize ( FusionHash    *hash)
 {
-     D_MAGIC_ASSERT( hash, FusionHash );
+     FUSION_HASH_ASSERT( hash );
+
      if ((hash->size >= 3 * hash->nnodes &&
           hash->size > FUSION_HASH_MIN_SIZE) ||
          (3 * hash->size <= hash->nnodes &&
           hash->size < FUSION_HASH_MAX_SIZE))
           return true;
      return false;
+}
+
+FusionHashNode**
+fusion_hash_lookup_node (FusionHash *hash,
+                         const void *   key)
+{
+     FusionHashNode **node;
+
+     D_DEBUG_AT( Fusion_Hash, "%s( %p, %p )\n", __FUNCTION__, hash, key );
+
+     FUSION_HASH_ASSERT( hash );
+     D_ASSERT( key != NULL );
+
+     /*TODO We could also optimize pointer hashing*/
+     if (hash->key_type == HASH_STRING ) {
+          unsigned int h;
+          const signed char *p = (const signed char *)key;
+          HASH_STR(h,p)
+          node = &hash->nodes[h % hash->size];
+     }
+     else if (hash->key_type == FUSION_HASH_UUID ) {
+          unsigned long h;
+          const DirectUUID *u = key;
+          h = D_UUID_HASH( u );
+          node = &hash->nodes[h % hash->size];
+
+          D_DEBUG_AT( Fusion_Hash, "  -> node %p\n", node );
+     }
+     else
+          node = &hash->nodes[((unsigned long)key) % hash->size];
+
+     /* Hash table lookup needs to be fast.
+      *  We therefore remove the extra conditional of testing
+      *  whether to call the key_equal_func or not from
+      *  the inner loop.
+      */
+     if (hash->key_type == HASH_STRING ) {
+          while (*node && strcmp((const char *)(*node)->key,(const char*)key))
+               node = &(*node)->next;
+     }
+     else
+     if (hash->key_type == FUSION_HASH_UUID ) {
+          D_ASSERT( node != NULL );
+
+          if (*node) {
+               D_ASSERT( (*node)->key != NULL );
+
+          }
+
+          while (*node && !D_UUID_EQUAL((const DirectUUID *)(*node)->key,(const DirectUUID*)key)) {
+               node = &(*node)->next;
+
+               D_DEBUG_AT( Fusion_Hash, "  -> next %p\n", node );
+
+               D_ASSERT( node != NULL );
+
+               if (*node) {
+                    D_ASSERT( (*node)->key != NULL );
+
+               }
+          }
+     }
+     else
+          while (*node && (*node)->key != key)
+               node = &(*node)->next;
+
+     return node;
+
 }
 
 /* Hash Functions
@@ -482,7 +559,8 @@ fusion_hash_resize (FusionHash *hash)
      unsigned int hash_val;
      int new_size;
      int i;
-     D_MAGIC_ASSERT( hash, FusionHash );
+
+     FUSION_HASH_ASSERT( hash );
 
      new_size = spaced_primes_closest (hash->nnodes);
      if (new_size > FUSION_HASH_MAX_SIZE )
@@ -505,6 +583,13 @@ fusion_hash_resize (FusionHash *hash)
                     unsigned int h;
                     const signed char *p = node->key;
                     HASH_STR(h, p)
+                    hash_val = h % new_size;
+               }
+               else
+               if (hash->key_type == FUSION_HASH_UUID ) {
+                    unsigned long h;
+                    const DirectUUID *u = node->key;
+                    h = D_UUID_HASH( u );
                     hash_val = h % new_size;
                }
                else
@@ -531,13 +616,13 @@ fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
           return;
 
      if ( old_key)
-          *old_key = node->key;
+          *old_key = (void*)node->key;
      else if ( hash->key_type != HASH_INT ) {
           if (hash->free_keys) {
                if ( hash->local)
-                    D_FREE(node->key );
+                    D_FREE((void*)node->key );
                else
-                    SHFREE(hash->pool,node->key );
+                    SHFREE(hash->pool,(void*)node->key );
           }
      }
 
@@ -546,9 +631,9 @@ fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
      else if ( hash->value_type != HASH_INT ) {
           if (hash->free_values) {
                if ( hash->local)
-                    D_FREE(node->value );
+                    D_FREE((void*)node->value );
                else
-                    SHFREE(hash->pool,node->value );
+                    SHFREE(hash->pool,(void*)node->value );
           }
      }
 
