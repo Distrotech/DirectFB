@@ -95,7 +95,7 @@ typedef enum {
      DR_OK,              /* No error occured */
 
 
-     DR__RESULT_BASE = D_RESULT_TYPE_CODE_BASE( 'D','R','_','0' ),
+     DR__RESULT_BASE = D_RESULT_TYPE_CODE_BASE( 'D','R','_', '1' ),
 
      DR_FAILURE,         /* A general or unknown error occured */
      DR_INIT,            /* A general initialization error occured */
@@ -140,6 +140,9 @@ typedef enum {
 
 
 typedef struct {
+     int            magic;
+     int            refs;
+
      unsigned int   base;
 
      const char   **result_strings;
@@ -149,8 +152,8 @@ typedef struct {
 
 const char  *DirectResultString( DirectResult result );
 
-DirectResult DirectResultTypeRegister  ( const DirectResultType *type );
-DirectResult DirectResultTypeUnregister( const DirectResultType *type );
+DirectResult DirectResultTypeRegister  ( DirectResultType *type );
+DirectResult DirectResultTypeUnregister( DirectResultType *type );
 
 
 /*
@@ -180,7 +183,7 @@ DirectResult DirectResultTypeUnregister( const DirectResultType *type );
  */
 #define DIRECT_RESULT_TYPE( Type, PREFIX )                                                     \
                                                                                                \
-static const DirectResultType Type ## __type = {                                               \
+static DirectResultType Type ## __type = {                                                     \
      .base               = PREFIX ## __RESULT_BASE,                                            \
      .result_strings     = Type ## __strings,                                                  \
      .result_count       = sizeof(Type ## __strings) / sizeof(char*),                          \
