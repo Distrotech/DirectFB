@@ -120,9 +120,9 @@
           );                                                                    \
      } while (0)
 
-/* 
+/*
  * FIFO Push
- *  
+ *
  *   *iptr = *fptr
  *   *fptr =  iptr
  */
@@ -146,12 +146,12 @@
           );                                                                    \
      } while (0)
 
-/* 
+/*
  * FIFO Pop
- *  
+ *
  *    iptr = *fptr
  *   *fptr = *iptr  <- if iptr != NULL
- *  
+ *
  *   return iptr
  */
 #define D_SYNC_POP_SINGLE( fptr )                                               \
@@ -182,171 +182,6 @@
 
 #endif
 
-#if defined(ARCH_ARM) && !defined(ARCH_IWMMXT)
-
-static inline int _D__atomic_cmpxchg(volatile int *ptr, int old, int new)
-{
-	unsigned long oldval, res;
-
-	do {
-		__asm__ __volatile__("@ atomic_cmpxchg\n"
-		"ldrex	%1, [%2]\n"
-		"mov	%0, #0\n"
-		"teq	%1, %3\n"
-		"strexeq %0, %4, [%2]\n"
-		    : "=&r" (res), "=&r" (oldval)
-		    : "r" (ptr), "Ir" (old), "r" (new)
-		    : "cc");
-	} while (res);
-
-	return oldval;
-}
-
-#define D_SYNC_BOOL_COMPARE_AND_SWAP( ptr, old_value, new_value )                    \
-     (_D__atomic_cmpxchg( (void*) ptr, (int) old_value, (int) new_value ) == (int) old_value)
-/*     ({                                                                              \
-          typeof(*(ptr)) __temp = 0;                                                 \
-          typeof(*(ptr)) __result;                                                   \
-                                                                                     \
-          do {                                                                       \
-                __asm__ __volatile__(                                                \
-                     "@ atomic_cmpxchg\n"                                            \
-                     "ldrex  %1, [%2]\n"                                             \
-                     "mov    %0, #0\n"                                               \
-                     "teq    %1, %3\n"                                               \
-                     "strexeq %0, %4, [%2]\n"                                        \
-                     : "=&r" (__result), "=&r" (__temp)                              \
-                     : "r" (ptr), "Ir" (old_value), "r" (new_value)                  \
-                     : "cc"                                                          \
-                );                                                                   \
-          } while (__result);                                                        \
-                                                                                     \
-          __result == (old_value);                                                   \
-     })
-*/
-#define D_SYNC_FETCH_AND_CLEAR( ptr )                                                \
-     ({                                                                              \
-          volatile typeof((ptr)) __ptr = (ptr);                                                     \
-          typeof(*(ptr)) __temp;                                                     \
-                                                                                     \
-          do {                                                                       \
-               __temp = (*__ptr);                                                      \
-          } while (!D_SYNC_BOOL_COMPARE_AND_SWAP( __ptr, __temp, 0 ));                 \
-                                                                                     \
-          __temp;                                                                    \
-     })
-
-static inline int _D__atomic_add_return(int i, volatile int *v)
-{
-	unsigned long tmp;
-	int result;
-
-	__asm__ __volatile__("@ atomic_add_return\n"
-"1:	ldrex	%0, [%2]\n"
-"	add	%0, %0, %3\n"
-"	strex	%1, %0, [%2]\n"
-"	teq	%1, #0\n"
-"	bne	1b"
-	: "=&r" (result), "=&r" (tmp)
-	: "r" (v), "Ir" (i)
-	: "cc");
-
-	return result;
-}
-
-#define D_SYNC_ADD_AND_FETCH( ptr, value )                                           \
-     (_D__atomic_add_return( (int) (value), (void*) (ptr) ))
-/*
-#define D_SYNC_ADD_AND_FETCH( ptr, value )                                           \
-     ({                                                                              \
-          volatile typeof((ptr)) __ptr = (ptr);                                                     \
-          typeof(*(ptr)) __temp;                                                     \
-                                                                                     \
-          do {                                                                       \
-               __temp = (*__ptr);                                                      \
-          } while (!D_SYNC_BOOL_COMPARE_AND_SWAP( __ptr, __temp, __temp + value ));    \
-                                                                                     \
-          __temp + value;                                                            \
-     })
-*/
-
-#endif
-
-#if defined(ARCH_MIPS)
-
-static inline int _direct__atomic_cmpxchg(volatile int *ptr, int old, int new)
-{
-	u32 retval;
-
-        __asm__ __volatile__(
-              "	.set	push					\n"
-              "	.set	noat					\n"
-              "	.set	mips3					\n"
-              "1:	ll	%0, %2			# __cmpxchg_u32	\n"
-              "	bne	%0, %z3, 2f				\n"
-              "	.set	mips0					\n"
-              "	move	$1, %z4					\n"
-              "	.set	mips3					\n"
-              "	sc	$1, %1					\n"
-              "	beqz	$1, 1b					\n"
-#ifdef CONFIG_SMP
-              "	sync						\n"
-#endif
-              "2:							\n"
-              "	.set	pop					\n"
-              : "=&r" (retval), "=R" (*ptr)
-              : "R" (*ptr), "Jr" (old), "Jr" (new)
-              : "memory");
-
-	return retval;
-}
-
-#define D_SYNC_BOOL_COMPARE_AND_SWAP( ptr, old_value, new_value )                    \
-     (_direct__atomic_cmpxchg( (void*) ptr, (int) old_value, (int) new_value ) == (int) old_value)
-/*     ({                                                                              \
-          typeof(*(ptr)) __temp = 0;                                                 \
-          typeof(*(ptr)) __result;                                                   \
-                                                                                     \
-          do {                                                                       \
-                __asm__ __volatile__(                                                \
-                     "@ atomic_cmpxchg\n"                                            \
-                     "ldrex  %1, [%2]\n"                                             \
-                     "mov    %0, #0\n"                                               \
-                     "teq    %1, %3\n"                                               \
-                     "strexeq %0, %4, [%2]\n"                                        \
-                     : "=&r" (__result), "=&r" (__temp)                              \
-                     : "r" (ptr), "Ir" (old_value), "r" (new_value)                  \
-                     : "cc"                                                          \
-                );                                                                   \
-          } while (__result);                                                        \
-                                                                                     \
-          __result == (old_value);                                                   \
-     })
-*/
-#define D_SYNC_FETCH_AND_CLEAR( ptr )                                                \
-     ({                                                                              \
-          typeof(*(ptr)) __temp;                                                     \
-                                                                                     \
-          do {                                                                       \
-               __temp = (*ptr);                                                      \
-          } while (!D_SYNC_BOOL_COMPARE_AND_SWAP( ptr, __temp, 0 ));                 \
-                                                                                     \
-          __temp;                                                                    \
-     })
-
-#define D_SYNC_ADD_AND_FETCH( ptr, value )                                           \
-     ({                                                                              \
-          typeof(*(ptr)) __temp;                                                     \
-                                                                                     \
-          do {                                                                       \
-               __temp = (*ptr);                                                      \
-          } while (!D_SYNC_BOOL_COMPARE_AND_SWAP( ptr, __temp, __temp + value ));    \
-                                                                                     \
-          __temp + value;                                                            \
-     })
- 
-
-#endif
 
 
 
@@ -375,9 +210,9 @@ static inline int _direct__atomic_cmpxchg(volatile int *ptr, int old, int new)
 #endif
 
 
-/* 
+/*
  * FIFO Push
- *  
+ *
  *   *iptr = *fptr
  *   *fptr =  iptr
  */
@@ -416,12 +251,12 @@ static inline int _direct__atomic_cmpxchg(volatile int *ptr, int old, int new)
 #endif
 
 
-/* 
+/*
  * FIFO Pop
- *  
+ *
  *    iptr = *fptr
  *   *fptr = *iptr
- *  
+ *
  *   return iptr
  */
 
