@@ -98,7 +98,7 @@ print_usage( const char *prg )
      fprintf (stderr, "\n");
 
      fprintf (stderr, "\n");
-     fprintf (stderr, "Usage: %s [options]\n", prg);
+     fprintf (stderr, "Usage: %s [options] <filename>\n", prg);
      fprintf (stderr, "\n");
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "  -h, --help                        Show this help message\n");
@@ -181,7 +181,7 @@ main( int argc, char *argv[] )
      /* Check if we got an URL. */
      if (!url)
           return print_usage( argv[0] );
-          
+
      /* Create super interface. */
      ret = DirectFBCreate( &dfb );
      if (ret) {
@@ -205,7 +205,7 @@ main( int argc, char *argv[] )
 
      if (source_format != DSPF_UNKNOWN)
           desc.pixelformat = source_format;
-     
+
      D_INFO( "DFBTest/Blit: Source is %dx%d using %s\n",
              desc.width, desc.height, dfb_pixelformat_name(desc.pixelformat) );
 
@@ -215,7 +215,7 @@ main( int argc, char *argv[] )
           D_DERROR( ret, "DFBTest/Blit: IDirectFB::CreateSurface() failed!\n" );
           goto out;
      }
-     
+
      ret = provider->RenderTo( provider, source, NULL );
      if (ret) {
           D_DERROR( ret, "DFBTest/Blit: IDirectFBImageProvider::RenderTo() failed!\n" );
