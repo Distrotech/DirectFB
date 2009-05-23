@@ -1,4 +1,5 @@
 dfbtest_blit
+dfbtest_lock
 dfbtest_reinit
 dfbtest_scale
 dfbtest_window

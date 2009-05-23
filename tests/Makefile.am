@@ -11,6 +11,7 @@ INCLUDES = \
 
 noinst_PROGRAMS = \
 	dfbtest_blit	\
+	dfbtest_lock	\
 	dfbtest_reinit	\
 	dfbtest_scale	\
 	dfbtest_window	\
@@ -27,6 +28,9 @@ libdirect = $(top_builddir)/lib/direct/libdirect.la
 
 dfbtest_blit_SOURCES = dfbtest_blit.c
 dfbtest_blit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
+
+dfbtest_lock_SOURCES = dfbtest_lock.c
+dfbtest_lock_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
 
 dfbtest_reinit_SOURCES = dfbtest_reinit.c
 dfbtest_reinit_LDADD   = $(libdirectfb) $(libfusion) $(libdirect)
