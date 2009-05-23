@@ -37,10 +37,10 @@
 #include <fusion/vector.h>
 
 
-static inline bool ensure_capacity( FusionVector *vector )
+static inline bool
+ensure_capacity( FusionVector *vector )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
-     D_ASSERT( vector->capacity > 0 );
+     FUSION_VECTOR_ASSERT( vector );
 
      if (!vector->elements) {
           if (vector->pool)
@@ -98,8 +98,7 @@ fusion_vector_init( FusionVector        *vector,
 void
 fusion_vector_destroy( FusionVector *vector )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
-     D_ASSERT( vector->count == 0 || vector->elements != NULL );
+     FUSION_VECTOR_ASSERT( vector );
 
      if (vector->elements) {
           if (vector->pool)
@@ -117,7 +116,7 @@ DirectResult
 fusion_vector_add( FusionVector *vector,
                    void         *element )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( element != NULL );
 
      /* Make sure there's a free entry left. */
@@ -135,7 +134,7 @@ fusion_vector_insert( FusionVector *vector,
                       void         *element,
                       int           index )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( element != NULL );
      D_ASSERT( index >= 0 );
      D_ASSERT( index <= vector->count );
@@ -165,7 +164,7 @@ fusion_vector_move( FusionVector *vector,
 {
      void *element;
 
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( from >= 0 );
      D_ASSERT( from < vector->count );
      D_ASSERT( to >= 0 );
@@ -201,7 +200,7 @@ DirectResult
 fusion_vector_remove( FusionVector *vector,
                       int           index )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( index >= 0 );
      D_ASSERT( index < vector->count );
 
@@ -219,11 +218,28 @@ fusion_vector_remove( FusionVector *vector,
 DirectResult
 fusion_vector_remove_last( FusionVector *vector )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( vector->count > 0 );
 
      /* Decrease the element counter. */
      vector->count--;
+
+     return DR_OK;
+}
+
+DirectResult
+fusion_vector_remove_with( FusionVector *vector,
+                           void         *element )
+{
+     int index;
+
+     FUSION_VECTOR_ASSERT( vector );
+
+     index = fusion_vector_index_of( vector, element );
+     if (index < 0)
+          return DR_ITEMNOTFOUND;
+
+     fusion_vector_remove( vector, index );
 
      return DR_OK;
 }

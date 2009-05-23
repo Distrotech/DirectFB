@@ -29,8 +29,6 @@
 #ifndef __FUSION__VECTOR_H__
 #define __FUSION__VECTOR_H__
 
-#include <limits.h>
-
 #include <fusion/types.h>
 
 #include <direct/debug.h>
@@ -45,6 +43,23 @@ typedef struct {
 
      FusionSHMPoolShared *pool;
 } FusionVector;
+
+
+#if D_DEBUG_ENABLED
+#define FUSION_VECTOR_ASSERT( vector )                                          \
+     do {                                                                       \
+          D_MAGIC_ASSERT( vector, FusionVector );                               \
+          D_ASSERT( (vector)->count >= 0 );                                     \
+          D_ASSERT( (vector)->count <= (vector)->capacity );                    \
+          D_ASSERT( (vector)->capacity > 0 );                                   \
+          D_ASSERT( (vector)->elements != NULL || (vector)->count == 0 );       \
+     } while (0)
+#else
+#define FUSION_VECTOR_ASSERT( vector )                                          \
+     do {                                                                       \
+     } while (0)
+#endif
+
 
 void         fusion_vector_init       ( FusionVector        *vector,
                                         int                  capacity,
@@ -68,11 +83,14 @@ DirectResult fusion_vector_remove     ( FusionVector        *vector,
 
 DirectResult fusion_vector_remove_last( FusionVector        *vector );
 
+DirectResult fusion_vector_remove_with( FusionVector        *vector,
+                                        void                *element );
+
 
 static inline bool
 fusion_vector_has_elements( const FusionVector *vector )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
 
      return vector->count > 0;
 }
@@ -80,7 +98,7 @@ fusion_vector_has_elements( const FusionVector *vector )
 static inline bool
 fusion_vector_is_empty( const FusionVector *vector )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
 
      return vector->count == 0;
 }
@@ -88,7 +106,7 @@ fusion_vector_is_empty( const FusionVector *vector )
 static inline int
 fusion_vector_size( const FusionVector *vector )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
 
      return vector->count;
 }
@@ -96,7 +114,7 @@ fusion_vector_size( const FusionVector *vector )
 static inline void *
 fusion_vector_at( const FusionVector *vector, int index )
 {
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( index >= 0 );
      D_ASSERT( index < vector->count );
 
@@ -110,7 +128,7 @@ fusion_vector_contains( const FusionVector *vector, const void *element )
      int           count;
      void * const *elements;
 
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( element != NULL );
 
      count    = vector->count;
@@ -127,19 +145,14 @@ fusion_vector_contains( const FusionVector *vector, const void *element )
 static inline int
 fusion_vector_index_of( const FusionVector *vector, const void *element )
 {
-     int           i;
-     int           count;
-     void * const *elements;
+     int i;
 
-     D_MAGIC_ASSERT( vector, FusionVector );
+     FUSION_VECTOR_ASSERT( vector );
      D_ASSERT( element != NULL );
 
-     count    = vector->count;
-     elements = vector->elements;
-
      /* Start with more recently added elements. */
-     for (i=count-1; i>=0; i--)
-          if (elements[i] == element)
+     for (i=vector->count-1; i>=0; i--)
+          if (vector->elements[i] == element)
                return i;
 
      /*
@@ -150,15 +163,18 @@ fusion_vector_index_of( const FusionVector *vector, const void *element )
 }
 
 
-#define fusion_vector_foreach(element, index, vector)                         \
-     for ((index) = 0;                                                        \
-          (index) < (vector).count && (element = (vector).elements[index]);   \
+#define fusion_vector_foreach(element, index, vector)                                               \
+     for ((index) = 0;                                                                              \
+          (index) < (vector).count && (element = (typeof(element))(vector).elements[index]);        \
           (index)++)
 
-#define fusion_vector_foreach_reverse(element, index, vector)                 \
-     for ((index) = (vector).count - 1;                                       \
-          (index) >= 0 && (element = (vector).elements[index]);               \
+#define fusion_vector_foreach_reverse(element, index, vector)                                       \
+     for ((index) = (vector).count - 1;                                                             \
+          (index) >= 0 && (element = (typeof(element))(vector).elements[index]);                    \
           (index)--)
+
+#define fusion_vector_foreach_remove(element, vector)                                               \
+     while ((vector).count > 0 && (element = (typeof(element))(vector).elements[--(vector).count]))
 
 #endif
 
