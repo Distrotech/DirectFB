@@ -29,11 +29,6 @@
 #ifndef __FUSION__FUSION_INTERNAL_H__
 #define __FUSION__FUSION_INTERNAL_H__
 
-#include <sys/types.h>
-#include <sys/param.h>
-
-#include <string.h>
-
 #include <direct/list.h>
 
 #include <fusion/build.h>
@@ -59,7 +54,7 @@
 
 struct __Fusion_FusionWorldShared {
      int                  magic;
-     
+
      int                  refs;     /* Increased by the master on fork(). */
 
      int                  world_index;
@@ -76,18 +71,20 @@ struct __Fusion_FusionWorldShared {
      FusionSHMShared      shm;
 
      FusionSHMPoolShared *main_pool;
-     
+
+#if FUSION_BUILD_MULTI && !FUSION_BUILD_KERNEL
      DirectLink          *fusionees;   /* Connected fusionees. */
      FusionSkirmish       fusionees_lock;
-    
+
      unsigned int         call_ids;    /* Generates call ids. */
      unsigned int         lock_ids;    /* Generates locks ids. */
      unsigned int         ref_ids;     /* Generates refs ids. */
      unsigned int         reactor_ids; /* Generates reactors ids. */
      unsigned int         pool_ids;    /* Generates pools ids. */
 
-     void                *pool_base;   /* SHM pool allocation base. */ 
+     void                *pool_base;   /* SHM pool allocation base. */
      void                *pool_max;    /* SHM pool max address. */
+#endif
 };
 
 struct __Fusion_FusionWorld {
@@ -107,13 +104,13 @@ struct __Fusion_FusionWorld {
       * List of reactors with at least one local reaction attached.
       */
      DirectLink          *reactor_nodes;
-     pthread_mutex_t      reactor_nodes_lock;
+     DirectMutex          reactor_nodes_lock;
 
      FusionSHM            shm;
 
      FusionForkAction     fork_action;
      FusionForkCallback   fork_callback;
-     
+
      void                *fusionee;
 };
 
@@ -154,7 +151,7 @@ void _fusion_shmpool_process( FusionWorld          *world,
 #else
 /*
  * form fusion.c
- */ 
+ */
 void _fusion_add_local( FusionWorld *world,
                         FusionRef   *ref,
                         int          add );
@@ -164,12 +161,12 @@ void _fusion_check_locals( FusionWorld *world,
 
 void _fusion_remove_all_locals( FusionWorld     *world,
                                 const FusionRef *ref );
-                               
-DirectResult _fusion_send_message( int                  fd, 
-                                   const void          *msg, 
+
+DirectResult _fusion_send_message( int                  fd,
+                                   const void          *msg,
                                    size_t               msg_size,
-                                   struct sockaddr_un  *addr );                                   
-DirectResult _fusion_recv_message( int                  fd, 
+                                   struct sockaddr_un  *addr );
+DirectResult _fusion_recv_message( int                  fd,
                                    void                *msg,
                                    size_t               msg_size,
                                    struct sockaddr_un  *addr );
@@ -178,7 +175,7 @@ DirectResult _fusion_recv_message( int                  fd,
  * from ref.c
  */
 DirectResult _fusion_ref_change( FusionRef *ref, int add, bool global );
-                                   
+
 #endif /* FUSION_BUILD_KERNEL */
 #endif /* FUSION_BUILD_MULTI */
 

@@ -29,7 +29,7 @@
 #ifndef __FUSION__FUSION_H__
 #define __FUSION__FUSION_H__
 
-#include <sys/types.h>
+#include <direct/types.h>
 
 #include <fusion/types.h>
 
@@ -79,10 +79,10 @@ DirectResult fusion_stop_dispatcher( FusionWorld *world,
  */
 void fusion_world_set_fork_action( FusionWorld      *world,
                                    FusionForkAction  action );
-                                   
+
 /*
  * Gets the current fork() action.
- */ 
+ */
 FusionForkAction fusion_world_get_fork_action( FusionWorld *world );
 
 /*
