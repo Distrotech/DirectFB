@@ -29,11 +29,10 @@
 #ifndef __FUSION__REF_H__
 #define __FUSION__REF_H__
 
-#include <pthread.h>
-
 #include <fusion/types.h>
 #include <fusion/call.h>
 #include <fusion/lock.h>
+
 
 typedef union {
      /* multi app */
@@ -45,23 +44,24 @@ typedef union {
           struct {
                int                 local;
                int                 global;
-               FusionSkirmish      lock; 
-          
+               FusionSkirmish      lock;
+
                FusionCall         *call;
                int                 call_arg;
           } builtin;
      } multi;
-     
+
      /* single app */
      struct {
           int                      refs;
-          pthread_cond_t           cond;
-          pthread_mutex_t          lock;
+          DirectWaitQueue           cond;
+          DirectMutex          lock;
           bool                     destroyed;
           int                      locked;
 
           FusionCall              *call;
           int                      call_arg;
+          void                    *call_ptr;
      } single;
 } FusionRef;
 
@@ -90,7 +90,7 @@ DirectResult fusion_ref_down         (FusionRef *ref, bool global);
  * This value is not reliable, because no locking will be performed
  * and the value may change after or even while returning it.
  */
-DirectResult fusion_ref_stat         (FusionRef *ref, int *refs);
+DirectResult fusion_ref_stat         (const FusionRef *ref, int *refs);
 
 /*
  * Wait for zero and lock.
