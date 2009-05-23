@@ -172,7 +172,7 @@ fusion_call_execute (FusionCall          *call,
                *ret_val = execute.ret_val;
      }
 
-     D_MAGIC_SET( call, FusionCall );
+     D_MAGIC_ASSERT( call, FusionCall );
 
      return DR_OK;
 }
