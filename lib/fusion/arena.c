@@ -27,20 +27,12 @@
 */
 
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-
-#include <sys/param.h>
-#include <sys/types.h>
-
-#include <pthread.h>
 
 #include <direct/debug.h>
 #include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/print.h>
 
 #include <fusion/build.h>
 #include <fusion/types.h>
@@ -56,7 +48,7 @@
 
 #if FUSION_BUILD_MULTI
 
-D_DEBUG_DOMAIN( Fusion_Arena, "Fusion/Arena", "Fusion Arena" );
+D_LOG_DOMAIN( Fusion_Arena, "Fusion/Arena", "Fusion Arena" );
 
 struct __Fusion_FusionArena {
      DirectLink         link;
@@ -117,7 +109,7 @@ fusion_arena_enter (FusionWorld     *world,
 
      /* Check if we are the first. */
      if (fusion_ref_zero_trylock( &arena->ref ) == DR_OK) {
-          D_DEBUG ("Fusion/Arena: entering arena '%s' (establishing)\n", name);
+          D_LOG( Fusion_Arena, VERBOSE, "Entering arena '%s' (establishing)\n", name );
 
           /* Call 'initialize' later. */
           func = initialize;
@@ -126,7 +118,7 @@ fusion_arena_enter (FusionWorld     *world,
           fusion_ref_unlock( &arena->ref );
      }
      else {
-          D_DEBUG ("Fusion/Arena: entering arena '%s' (joining)\n", name);
+          D_LOG( Fusion_Arena, VERBOSE, "Entering arena '%s' (joining)\n", name );
 
           fusion_shm_attach_unattached( world );
 
@@ -360,7 +352,7 @@ create_arena( FusionWorld *world,
 
      arena->shared = shared;
 
-     snprintf( buf, sizeof(buf), "Arena '%s'", name );
+     direct_snprintf( buf, sizeof(buf), "Arena '%s'", name );
 
      /* Initialize lock and reference counter. */
      ret = fusion_skirmish_init( &arena->lock, buf, world );
