@@ -44,6 +44,7 @@ typedef FusionCallHandlerResult (*FusionCallHandler) (int           caller,   /*
                                                       int          *ret_val );
 
 typedef struct {
+     int                magic;
      FusionWorldShared *shared;
      int                call_id;
      FusionID           fusion_id;
@@ -69,6 +70,12 @@ DirectResult fusion_call_return ( FusionCall          *call,
 
 DirectResult fusion_call_destroy( FusionCall          *call );
 
+
+/*
+ * Change the name of the call (debug).
+ */
+DirectResult fusion_call_set_name( FusionCall     *call,
+                                   const char     *name );
 
 #endif
 

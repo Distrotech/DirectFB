@@ -27,10 +27,6 @@
 */
 
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
 
 #include <fusion/build.h>
 
@@ -44,7 +40,7 @@
 #include "fusion_internal.h"
 
 
-D_DEBUG_DOMAIN( Fusion_Call, "Fusion/Call", "Fusion Call" );
+D_LOG_DOMAIN( Fusion_Call, "Fusion/Call", "Fusion Call" );
 
 
 #if FUSION_BUILD_MULTI
@@ -99,6 +95,8 @@ fusion_call_init (FusionCall        *call,
 
      D_DEBUG_AT( Fusion_Call, "  -> call id %d\n", call->call_id );
 
+     D_MAGIC_SET( call, FusionCall );
+
      return DR_OK;
 }
 
@@ -111,16 +109,26 @@ fusion_call_execute (FusionCall          *call,
 {
      D_DEBUG_AT( Fusion_Call, "%s( %p, 0x%x, %d, %p )\n", __FUNCTION__, call, flags, call_arg, call_ptr );
 
-     D_ASSERT( call != NULL );
+     D_MAGIC_ASSERT( call, FusionCall );
 
-     if (!call->handler)
+     if (!call->handler) {
+          D_DEBUG_AT( Fusion_Call, "  -> DESTROYED!\n" );
           return DR_DESTROYED;
+     }
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     D_DEBUG_AT( Fusion_Call, "  -> call_id %d, callee %lu\n", call->call_id, call->fusion_id );
+
+     if (call->fusion_id == _fusion_id( call->shared ))
+          D_DEBUG_AT( Fusion_Call, "  -> call_handler %s (ctx %p)\n", direct_trace_lookup_symbol_at( call->handler ), call->ctx );
+     else
+          D_DEBUG_AT( Fusion_Call, "  -> call_handler %p (ctx %p)\n", call->handler, call->ctx );
+
 
      if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int                     ret;
           FusionCallHandlerResult result;
+
+          D_DEBUG_AT( Fusion_Call, "  -> calling directly...\n" );
 
           result = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx, 0, &ret );
 
@@ -141,12 +149,16 @@ fusion_call_execute (FusionCall          *call,
           while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE, &execute )) {
                switch (errno) {
                     case EINTR:
+                         D_DEBUG_AT( Fusion_Call, "  -> interrupted system call (FUSION_CALL_EXECUTE)!\n" );
                          continue;
+
                     case EINVAL:
 //                         D_ERROR ("Fusion/Call: invalid call\n");
                          return DR_INVARG;
+
                     case EIDRM:
                          return DR_DESTROYED;
+
                     default:
                          break;
                }
@@ -160,6 +172,8 @@ fusion_call_execute (FusionCall          *call,
                *ret_val = execute.ret_val;
      }
 
+     D_MAGIC_SET( call, FusionCall );
+
      return DR_OK;
 }
 
@@ -172,9 +186,11 @@ fusion_call_return( FusionCall   *call,
 
      D_DEBUG_AT( Fusion_Call, "%s( %p, %u, %d )\n", __FUNCTION__, call, serial, val );
 
-     D_ASSERT( call != NULL );
+     D_MAGIC_ASSERT( call, FusionCall );
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     D_DEBUG_AT( Fusion_Call, "  -> call_id %d, callee %lu\n", call->call_id, call->fusion_id );
+     D_DEBUG_AT( Fusion_Call, "  -> call_handler %s (ctx %p)\n", direct_trace_lookup_symbol_at( call->handler ), call->ctx );
+
 
      D_ASSUME( serial != 0 );
      if (!serial)
@@ -187,13 +203,17 @@ fusion_call_return( FusionCall   *call,
      while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_RETURN, &call_ret)) {
           switch (errno) {
                case EINTR:
+                    D_DEBUG_AT( Fusion_Call, "  -> interrupted system call (FUSION_CALL_RETURN)!\n" );
                     continue;
+
                case EIDRM:
                     D_WARN( "caller withdrawn (signal?)" );
                     return DR_NOCONTEXT;
+
                case EINVAL:
                     D_ERROR( "Fusion/Call: invalid call\n" );
                     return DR_DESTROYED;
+
                default:
                     break;
           }
@@ -211,18 +231,27 @@ fusion_call_destroy (FusionCall *call)
 {
      D_DEBUG_AT( Fusion_Call, "%s( %p )\n", __FUNCTION__, call );
 
-     D_ASSERT( call != NULL );
+     D_MAGIC_ASSERT( call, FusionCall );
      D_ASSERT( call->handler != NULL );
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call->handler ) );
+     D_DEBUG_AT( Fusion_Call, "  -> call_id %d, callee %lu\n", call->call_id, call->fusion_id );
+
+     if (call->fusion_id == _fusion_id( call->shared ))
+          D_DEBUG_AT( Fusion_Call, "  -> call_handler %s (ctx %p)\n", direct_trace_lookup_symbol_at( call->handler ), call->ctx );
+     else
+          D_DEBUG_AT( Fusion_Call, "  -> call_handler %p (ctx %p)\n", call->handler, call->ctx );
+
 
      while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_DESTROY, &call->call_id)) {
           switch (errno) {
                case EINTR:
+                    D_DEBUG_AT( Fusion_Call, "  -> interrupted system call (FUSION_CALL_DESTROY)!\n" );
                     continue;
+
                case EINVAL:
                     D_ERROR ("Fusion/Call: invalid call\n");
                     return DR_DESTROYED;
+
                default:
                     break;
           }
@@ -234,6 +263,47 @@ fusion_call_destroy (FusionCall *call)
 
      call->handler = NULL;
 
+     D_MAGIC_CLEAR( call );
+
+     return DR_OK;
+}
+
+/*
+ * Change the name of the call (debug).
+ */
+DirectResult
+fusion_call_set_name( FusionCall *call,
+                      const char *name )
+{
+     FusionEntryInfo info;
+
+     D_DEBUG_AT( Fusion_Call, "%s( %p, '%s' )\n", __FUNCTION__, call, name );
+
+     D_MAGIC_ASSERT( call, FusionCall );
+     D_ASSERT( name != NULL );
+
+     /* Initialize call info. */
+     info.type = FT_CALL;
+     info.id   = call->call_id;
+
+     /* Put call name into info. */
+     direct_snputs( info.name, name, sizeof(info.name) );
+
+     /* Set the call info. */
+     while (ioctl( _fusion_fd( call->shared ), FUSION_ENTRY_SET_INFO, &info )) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+
+               case EINVAL:
+                    D_ERROR( "Fusion/Call: invalid call\n" );
+                    return DR_IDNOTFOUND;
+          }
+
+//          D_PERROR( "FUSION_ENTRY_SET_INFO( call 0x%08x, '%s' )\n", call->call_id, name );
+          return DR_FUSION;
+     }
+
      return DR_OK;
 }
 
@@ -244,16 +314,19 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
      FusionCallReturn        call_ret;
      FusionCallHandlerResult result;
 
-     D_DEBUG_AT( Fusion_Call, "%s()\n", __FUNCTION__ );
+     D_DEBUG_AT( Fusion_Call, "%s( %p, %d, %p )\n", __FUNCTION__, world, call_id, msg );
 
      D_MAGIC_ASSERT( world, FusionWorld );
      D_ASSERT( msg != NULL );
+
+     D_DEBUG_AT( Fusion_Call, "  -> caller %lu, call_arg %d, call_ptr %p, serial %u\n", (FusionID) msg->caller, msg->call_arg, msg->call_ptr, msg->serial );
 
      call_handler = msg->handler;
 
      D_ASSERT( call_handler != NULL );
 
-     D_DEBUG_AT( Fusion_Call, "  -> %s\n", direct_trace_lookup_symbol_at( call_handler ) );
+     D_DEBUG_AT( Fusion_Call, "  -> call_handler %s (ctx %p)\n", direct_trace_lookup_symbol_at( call_handler ), msg->ctx );
+
 
      call_ret.val = 0;
 
@@ -261,6 +334,8 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
 
      switch (result) {
           case FCHR_RETURN:
+               D_DEBUG_AT( Fusion_Call, "  =-> RETURN (val %d) <- call_id %d, serial %u\n", call_ret.val, call_id, msg->serial );
+
                if (msg->serial) {
                     call_ret.serial  = msg->serial;
                     call_ret.call_id = call_id;
@@ -268,13 +343,17 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
                     while (ioctl (world->fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
                          switch (errno) {
                               case EINTR:
+                                   D_DEBUG_AT( Fusion_Call, "  -> interrupted system call (inline FUSION_CALL_RETURN)!\n" );
                                    continue;
+
                               case EIDRM:
                                    D_WARN( "caller withdrawn (signal?)" );
                                    return;
+
                               case EINVAL:
                                    D_ERROR( "Fusion/Call: invalid call\n" );
                                    return;
+
                               default:
                                    D_PERROR( "FUSION_CALL_RETURN" );
                                    return;
@@ -284,6 +363,7 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
                break;
 
           case FCHR_RETAIN:
+               D_DEBUG_AT( Fusion_Call, "  =-> RETAIN! <- call_id %d, serial %u\n", call_id, msg->serial );
                break;
 
           default:
@@ -336,7 +416,7 @@ fusion_call_execute (FusionCall          *call,
      FusionWorld        *world;
      FusionCallMessage   msg;
      struct sockaddr_un  addr;
-     
+
      D_ASSERT( call != NULL );
 
      if (!call->handler)
@@ -353,30 +433,30 @@ fusion_call_execute (FusionCall          *call,
 
           if (ret_val)
                *ret_val = ret;
-               
+
           return DR_OK;
      }
-     
+
      world = _fusion_world( call->shared );
-     
-     msg.type     = FMT_CALL;  
+
+     msg.type     = FMT_CALL;
      msg.caller   = world->fusion_id;
      msg.call_id  = call->call_id;
      msg.call_arg = call_arg;
-     msg.call_ptr = call_ptr; 
+     msg.call_ptr = call_ptr;
      msg.handler  = call->handler;
      msg.ctx      = call->ctx;
      msg.flags    = flags;
-     
+
      if (flags & FCEF_ONEWAY) {
           /* Invalidate serial. */
           msg.serial = -1;
-          
+
           /* Send message. */
           addr.sun_family = AF_UNIX;
-          snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                    "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
-         
+          direct_snprintf( addr.sun_path, sizeof(addr.sun_path),
+                           "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
+
           ret = _fusion_send_message( world->fusion_fd, &msg, sizeof(msg), &addr );
      }
      else {
@@ -392,14 +472,14 @@ fusion_call_execute (FusionCall          *call,
 
           /* Set close-on-exec flag. */
           fcntl( fd, F_SETFD, FD_CLOEXEC );
-          
+
           addr.sun_family = AF_UNIX;
-          len = snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                          "/tmp/.fusion-%d/call.%x.", fusion_world_index( world ), call->call_id ); 
-          
+          len = direct_snprintf( addr.sun_path, sizeof(addr.sun_path),
+                                 "/tmp/.fusion-%d/call.%x.", fusion_world_index( world ), call->call_id );
+
           /* Generate call serial (socket address is based on it). */
           for (msg.serial = 0; msg.serial <= 0xffffff; msg.serial++) {
-               snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%x", msg.serial );
+               direct_snprintf( addr.sun_path+len, sizeof(addr.sun_path)-len, "%x", msg.serial );
                err = bind( fd, (struct sockaddr*)&addr, sizeof(addr) );
                if (err == 0) {
                     chmod( addr.sun_path, 0660 );
@@ -409,7 +489,7 @@ fusion_call_execute (FusionCall          *call,
                     break;
                }
           }
-          
+
           if (err < 0) {
                D_PERROR( "Fusion/Call: Error binding local socket!\n" );
                close( fd );
@@ -417,9 +497,9 @@ fusion_call_execute (FusionCall          *call,
           }
 
           /* Send message. */
-          snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                    "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
-          
+          direct_snprintf( addr.sun_path, sizeof(addr.sun_path),
+                           "/tmp/.fusion-%d/%lx", call->shared->world_index, call->fusion_id );
+
           ret = _fusion_send_message( fd, &msg, sizeof(msg), &addr );
           if (ret == DR_OK) {
                FusionCallReturn callret;
@@ -428,9 +508,9 @@ fusion_call_execute (FusionCall          *call,
                if (ret == DR_OK) {
                     if (ret_val)
                          *ret_val = callret.val;
-               } 
+               }
           }
-          
+
           len = sizeof(addr);
           if (getsockname( fd, (struct sockaddr*)&addr, &len ) == 0)
                unlink( addr.sun_path );
@@ -447,16 +527,16 @@ fusion_call_return( FusionCall   *call,
 {
      struct sockaddr_un addr;
      FusionCallReturn   callret;
-     
+
      D_ASSERT( call != NULL );
 
      addr.sun_family = AF_UNIX;
-     snprintf( addr.sun_path, sizeof(addr.sun_path), 
-               "/tmp/.fusion-%d/call.%x.%x", call->shared->world_index, call->call_id, serial );
-               
+     direct_snprintf( addr.sun_path, sizeof(addr.sun_path),
+                      "/tmp/.fusion-%d/call.%x.%x", call->shared->world_index, call->call_id, serial );
+
      callret.type = FMT_CALLRET;
      callret.val  = val;
-               
+
      return _fusion_send_message( _fusion_fd( call->shared ), &callret, sizeof(callret), &addr );
 }
 
@@ -495,9 +575,9 @@ _fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *msg )
                     struct sockaddr_un addr;
 
                     addr.sun_family = AF_UNIX;
-                    snprintf( addr.sun_path, sizeof(addr.sun_path), 
-                              "/tmp/.fusion-%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
-               
+                    direct_snprintf( addr.sun_path, sizeof(addr.sun_path),
+                                     "/tmp/.fusion-%d/call.%x.%x", fusion_world_index( world ), call_id, msg->serial );
+
                     if (_fusion_send_message( world->fusion_fd, &callret, sizeof(callret), &addr ))
                          D_ERROR( "Fusion/Call: Couldn't send call return (serial: 0x%08x)!\n", msg->serial );
                }
