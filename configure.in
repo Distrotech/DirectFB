@@ -162,18 +162,6 @@ CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
 
 DFB_INTERNAL_CFLAGS="-D_GNU_SOURCE $DFB_INTERNAL_CFLAGS"
 
-AC_ARG_ENABLE(extra-warnings,
-  [  --enable-extra-warnings   enable extra warnings [[default=no]]],,
-  enable_extra_warnings=no)
-if test "$enable_extra_warnings" = "yes"; then
-  CFLAGS="-W -Wno-sign-compare -Wno-unused-parameter -Wundef -Wcast-qual -Wcast-align -Waggregate-return -Wmissing-declarations -Winline $CFLAGS"
-fi
-
-# FIXME
-#if test "$GCC" = "yes"; then
-#  CFLAGS="-Wall -Wno-strict-aliasing $CFLAGS"
-#fi
-
 
 #
 # check target architecture
@@ -1583,7 +1571,17 @@ AC_SUBST(INCLUDEDIR)
 AC_SUBST(INTERNALINCLUDEDIR)
 AS_AC_EXPAND(SYSCONFDIR, $sysconfdir)
 
-CFLAGS="$CFLAGS -Werror-implicit-function-declaration"
+
+AC_ARG_ENABLE(extra-warnings,
+  [  --enable-extra-warnings   enable extra warnings [[default=no]]],,
+  enable_extra_warnings=no)
+if test "$enable_extra_warnings" = "yes"; then
+  CFLAGS="-W -Wno-sign-compare -Wno-unused-parameter -Wundef -Wcast-qual -Wcast-align -Waggregate-return -Wmissing-declarations -Winline $CFLAGS"
+fi
+
+if test "$GCC" = "yes"; then
+  CFLAGS="-Wall -Wstrict-prototypes -Wmissing-prototypes -Wno-strict-aliasing -Werror-implicit-function-declaration $CFLAGS"
+fi
 
 
 AC_OUTPUT([
