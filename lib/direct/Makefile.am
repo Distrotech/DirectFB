@@ -93,6 +93,7 @@ libdirect_la_SOURCES = \
 	conf.c			\
 	debug.c			\
 	direct.c		\
+	direct_result.c		\
 	fifo.c			\
 	hash.c			\
 	interface.c		\
@@ -124,6 +125,20 @@ libdirect_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
 	-release $(LT_RELEASE)					\
 	$(DFB_LDFLAGS)
+
+
+MKRESULT = $(top_srcdir)/tools/mkresult.sh
+
+direct_result.c: $(srcdir)/result.h $(MKRESULT)
+	@echo '#include <config.h>'    		> $@
+	@echo                                   >> $@
+	@echo '#include <direct/types.h>'    	>> $@
+	@echo                                   >> $@
+	@echo                                   >> $@
+
+	@$(MKRESULT) DirectResult DR $< 	>> $@
+
+	@echo                                   >> $@
 
 
 #
