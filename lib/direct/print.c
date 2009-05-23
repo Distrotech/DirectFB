@@ -434,7 +434,7 @@ direct_vsnprintf( char       *buffer,
 
 
 #if DIRECT_BUILD_OSTYPE == DIRECT_OS_LINUX_GNU_LIBC
-//     return vsnprintf( buffer, bytes, format, args );
+     return vsnprintf( buffer, bytes, format, args );
 #endif
 
      /* Reject out-of-range values early.  Large positive sizes are
