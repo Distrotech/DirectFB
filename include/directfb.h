@@ -253,6 +253,18 @@ typedef struct {
 } DFBRegion;
 
 /*
+ * A rectangle specified by two points.
+ *
+ * The defined rectangle includes the top left but not the bottom right endpoint.
+ */
+typedef struct {
+     int            x1;  /* X coordinate of top-left point (inclusive) */
+     int            y1;  /* Y coordinate of top-left point (inclusive) */
+     int            x2;  /* X coordinate of lower-right point (exclusive) */
+     int            y2;  /* Y coordinate of lower-right point (exclusive) */
+} DFBBox;
+
+/*
  * Insets specify a distance from each edge of a rectangle.
  *
  * Positive values always mean 'outside'.
