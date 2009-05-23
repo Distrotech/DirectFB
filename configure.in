@@ -1623,6 +1623,7 @@ rules/Makefile
 
 src/Makefile
 src/core/Makefile
+src/dfbdump/Makefile
 src/display/Makefile
 src/gfx/Makefile
 src/gfx/generic/Makefile
