@@ -29,7 +29,7 @@
 #ifndef __FUSION__PROPERTY_H__
 #define __FUSION__PROPERTY_H__
 
-#include <pthread.h>
+#include <direct/thread.h>
 
 #include <fusion/types.h>
 
@@ -56,8 +56,8 @@ typedef union {
      
      /* single app */
      struct {
-          pthread_mutex_t          lock;
-          pthread_cond_t           cond;
+          DirectMutex               lock;
+          DirectWaitQueue           cond;
           FusionPropertyState      state;
      } single;
 } FusionProperty;

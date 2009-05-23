@@ -27,22 +27,11 @@
 */
 
 #include <config.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <errno.h>
-#include <signal.h>
-
-#include <sys/param.h>
-#include <sys/types.h>
-
-#include <fusion/build.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
-#include <fusion/types.h>
 #include <fusion/property.h>
 
 #include "fusion_internal.h"
@@ -401,7 +390,6 @@ fusion_property_destroy (FusionProperty *property)
 
 #else /* FUSION_BUILD_MULTI */
 
-#include <pthread.h>
 
 /*
  * Initializes the property
@@ -411,8 +399,8 @@ fusion_property_init (FusionProperty *property, const FusionWorld *world)
 {
      D_ASSERT( property != NULL );
 
-     direct_util_recursive_pthread_mutex_init (&property->single.lock);
-     pthread_cond_init (&property->single.cond, NULL);
+     direct_recursive_mutex_init( &property->single.lock );
+     direct_waitqueue_init( &property->single.cond );
 
      property->single.state = FUSION_PROPERTY_AVAILABLE;
 
@@ -429,11 +417,11 @@ fusion_property_lease (FusionProperty *property)
 
      D_ASSERT( property != NULL );
 
-     pthread_mutex_lock (&property->single.lock);
+     direct_mutex_lock (&property->single.lock);
 
      /* Wait as long as the property is leased by another party. */
      while (property->single.state == FUSION_PROPERTY_LEASED)
-          pthread_cond_wait (&property->single.cond, &property->single.lock);
+          direct_waitqueue_wait (&property->single.cond, &property->single.lock);
 
      /* Fail if purchased by another party, otherwise succeed. */
      if (property->single.state == FUSION_PROPERTY_PURCHASED)
@@ -441,7 +429,7 @@ fusion_property_lease (FusionProperty *property)
      else
           property->single.state = FUSION_PROPERTY_LEASED;
 
-     pthread_mutex_unlock (&property->single.lock);
+     direct_mutex_unlock (&property->single.lock);
 
      return ret;
 }
@@ -456,11 +444,11 @@ fusion_property_purchase (FusionProperty *property)
 
      D_ASSERT( property != NULL );
 
-     pthread_mutex_lock (&property->single.lock);
+     direct_mutex_lock (&property->single.lock);
 
      /* Wait as long as the property is leased by another party. */
      while (property->single.state == FUSION_PROPERTY_LEASED)
-          pthread_cond_wait (&property->single.cond, &property->single.lock);
+          direct_waitqueue_wait (&property->single.cond, &property->single.lock);
 
      /* Fail if purchased by another party, otherwise succeed. */
      if (property->single.state == FUSION_PROPERTY_PURCHASED)
@@ -469,10 +457,10 @@ fusion_property_purchase (FusionProperty *property)
           property->single.state = FUSION_PROPERTY_PURCHASED;
 
           /* Wake up any other waiting party. */
-          pthread_cond_broadcast (&property->single.cond);
+          direct_waitqueue_broadcast (&property->single.cond);
      }
 
-     pthread_mutex_unlock (&property->single.lock);
+     direct_mutex_unlock (&property->single.lock);
 
      return ret;
 }
@@ -485,7 +473,7 @@ fusion_property_cede (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
 
-     pthread_mutex_lock (&property->single.lock);
+     direct_mutex_lock (&property->single.lock);
 
      /* Simple error checking, maybe we should also check the owner. */
      D_ASSERT( property->single.state != FUSION_PROPERTY_AVAILABLE );
@@ -494,9 +482,9 @@ fusion_property_cede (FusionProperty *property)
      property->single.state = FUSION_PROPERTY_AVAILABLE;
 
      /* Wake up one waiting party if there are any. */
-     pthread_cond_signal (&property->single.cond);
+     direct_waitqueue_signal (&property->single.cond);
 
-     pthread_mutex_unlock (&property->single.lock);
+     direct_mutex_unlock (&property->single.lock);
 
      return DR_OK;
 }
@@ -520,8 +508,8 @@ fusion_property_destroy (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
 
-     pthread_cond_destroy (&property->single.cond);
-     pthread_mutex_destroy (&property->single.lock);
+     direct_waitqueue_deinit (&property->single.cond);
+     direct_mutex_deinit (&property->single.lock);
 
      return DR_OK;
 }
