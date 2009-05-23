@@ -4057,6 +4057,34 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           void                     *ptr,
           int                       pitch
      );
+
+
+   /** Buffer operations **/
+
+     /*
+      * Lock a rectangle of the surface for the access type specified.
+      *
+      * Returns a data pointer starting at the top left corner
+      * of the rectangle and the line pitch of it.<br>
+      * <br>
+      * <b>Note:</b> If the surface is double/triple buffered and
+      * the DSLF_WRITE flag is specified, the pointer is to the back
+      * buffer. In all other cases, the pointer is to the front buffer.
+      */
+     DFBResult (*LockRectangle) (
+          IDirectFBSurface         *thiz,
+          DFBSurfaceLockFlags       flags,
+          const DFBRectangle       *rect,
+          void                    **ret_ptr,
+          int                      *ret_pitch
+     );
+
+     /*
+      * Wait til all rendering via this interface is done.
+      */
+     DFBResult (*Finish) (
+          IDirectFBSurface         *thiz
+     );
 )
 
 
