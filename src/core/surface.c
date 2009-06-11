@@ -367,6 +367,9 @@ dfb_surface_flip( CoreSurface *surface, bool swap )
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     if (surface->num_buffers == 0)
+          return DFB_SUSPENDED;
+     
      FUSION_SKIRMISH_ASSERT( &surface->lock );
 
      back  = (surface->flips + CSBR_BACK)  % surface->num_buffers;
@@ -541,6 +544,9 @@ dfb_surface_lock_buffer( CoreSurface            *surface,
 
      D_MAGIC_ASSERT( surface, CoreSurface );
 
+     if (surface->num_buffers == 0)
+          return DFB_SUSPENDED;
+
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
 
@@ -587,6 +593,9 @@ dfb_surface_read_buffer( CoreSurface            *surface,
      D_ASSERT( pitch > 0 );
      DFB_RECTANGLE_ASSERT_IF( rect );
 
+     if (surface->num_buffers == 0)
+          return DFB_SUSPENDED;
+
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
 
@@ -615,6 +624,9 @@ dfb_surface_write_buffer( CoreSurface            *surface,
      D_ASSERT( pitch > 0 );
      DFB_RECTANGLE_ASSERT_IF( rect );
 
+     if (surface->num_buffers == 0)
+          return DFB_SUSPENDED;
+
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
 
@@ -640,6 +652,9 @@ dfb_surface_dump_buffer( CoreSurface           *surface,
      D_MAGIC_ASSERT( surface, CoreSurface );
      D_ASSERT( path != NULL );
      D_ASSERT( prefix != NULL );
+
+     if (surface->num_buffers == 0)
+          return DFB_SUSPENDED;
 
      if (fusion_skirmish_prevail( &surface->lock ))
           return DFB_FUSION;
