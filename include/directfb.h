@@ -5356,6 +5356,18 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           const DFBWindowGeometry       *geometry
      );
+
+   /** Association **/
+
+     /*
+      * Change the window association.
+      *
+      * If <b>window_id</b> is 0, the window will be dissociated.
+      */
+     DFBResult (*SetAssociation) (
+          IDirectFBWindow               *thiz,
+          DFBWindowID                    window_id
+     );
 )
 
 

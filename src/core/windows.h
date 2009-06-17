@@ -53,6 +53,7 @@ typedef enum {
 
      CWCF_OPTIONS       = 0x00000010,
      CWCF_EVENTS        = 0x00000020,
+     CWCF_ASSOCIATION   = 0x00000040,
 
      CWCF_COLOR_KEY     = 0x00000100,
      CWCF_OPAQUE        = 0x00000200,
@@ -63,7 +64,7 @@ typedef enum {
      CWCF_SRC_GEOMETRY  = 0x00010000,
      CWCF_DST_GEOMETRY  = 0x00020000,
 
-     CWCF_ALL           = 0x0003173F
+     CWCF_ALL           = 0x0003177F
 
 } CoreWindowConfigFlags;
 
@@ -83,6 +84,8 @@ struct __DFB_CoreWindowConfig {
 
      DFBWindowGeometry        src_geometry;   /* advanced source geometry */
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
+
+     DFBWindowID              association;
 };
 
 
