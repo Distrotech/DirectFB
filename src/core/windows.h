@@ -56,13 +56,15 @@ typedef enum {
 
      CWCF_COLOR_KEY     = 0x00000100,
      CWCF_OPAQUE        = 0x00000200,
+     CWCF_COLOR         = 0x00000400,
 
      CWCF_KEY_SELECTION = 0x00001000,
 
      CWCF_SRC_GEOMETRY  = 0x00010000,
      CWCF_DST_GEOMETRY  = 0x00020000,
 
-     CWCF_ALL           = 0x0003133F
+     CWCF_ALL           = 0x0003173F
+
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -71,6 +73,7 @@ struct __DFB_CoreWindowConfig {
      DFBWindowStackingClass   stacking;       /* level boundaries */
      DFBWindowOptions         options;        /* flags for appearance/behaviour */
      DFBWindowEventType       events;         /* mask of enabled events */
+     DFBColor                 color;          /* color for DWCAPS_COLOR */
      u32                      color_key;      /* transparent pixel */
      DFBRegion                opaque;         /* region of the window forced to be opaque */
 
@@ -201,6 +204,13 @@ dfb_window_putatop( CoreWindow *window,
 DFBResult
 dfb_window_putbelow( CoreWindow *window,
                      CoreWindow *upper );
+
+/*
+ * sets the source color key
+ */
+DFBResult
+dfb_window_set_color( CoreWindow *window,
+                      DFBColor    color );
 
 /*
  * sets the source color key

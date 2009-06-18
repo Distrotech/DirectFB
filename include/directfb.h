@@ -885,9 +885,14 @@ typedef enum {
                                            receives events */
      DWCAPS_NODECORATION = 0x00000008,  /* The window won't be decorated. */
 
+     DWCAPS_COLOR        = 0x00000020,  /* The window has no buffer;
+                                           it consumes no backing store.
+                                           It is filled with a constant color
+                                           and it receives events */
+
      DWCAPS_NOFOCUS      = 0x00000100,  /* Window will never get focus or receive key events, unless it grabs them. */
 
-     DWCAPS_ALL          = 0x0000010F   /* All of these. */
+     DWCAPS_ALL          = 0x0000012F   /* All of these. */
 } DFBWindowCapabilities;
 
 /*
@@ -4964,6 +4969,20 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*GetOptions) (
           IDirectFBWindow               *thiz,
           DFBWindowOptions              *ret_options
+     );
+
+     /*
+      * Set the window color.
+      *
+      * This is used in case you specified DWCAPS_COLOR.
+      * It specifies the window draw color.
+      */
+     DFBResult (*SetColor) (
+          IDirectFBWindow               *thiz,
+          u8                             r,
+          u8                             g,
+          u8                             b,
+          u8                             a
      );
 
      /*
