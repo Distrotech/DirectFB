@@ -99,6 +99,8 @@ struct __DFB_CoreWindow {
      DirectLink             *bound_windows;  /* list of bound windows */
 
      CoreWindow             *boundto;        /* window to which this window is bound */
+
+     unsigned long           resource_id;
 };
 
 typedef enum {

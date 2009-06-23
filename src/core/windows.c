@@ -364,6 +364,9 @@ dfb_window_create( CoreWindowStack             *stack,
      window->config             = config;
      window->config.association = (desc->flags & DWDESC_PARENT) ? desc->parent_id : 0;
 
+     if (desc->flags & DWDESC_RESOURCE_ID)
+          window->resource_id = desc->resource_id;
+
      ret = dfb_wm_preconfigure_window( stack, window );
      if(ret) {
           fusion_object_destroy( &window->object );
