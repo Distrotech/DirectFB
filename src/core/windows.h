@@ -64,8 +64,9 @@ typedef enum {
      CWCF_SRC_GEOMETRY  = 0x00010000,
      CWCF_DST_GEOMETRY  = 0x00020000,
 
-     CWCF_ALL           = 0x0003177F
+     CWCF_APPLICATION_ID= 0x00080000,
 
+     CWCF_ALL           = 0x000B177F
 } CoreWindowConfigFlags;
 
 struct __DFB_CoreWindowConfig {
@@ -86,6 +87,9 @@ struct __DFB_CoreWindowConfig {
      DFBWindowGeometry        dst_geometry;   /* advanced destination geometry */
 
      DFBWindowID              association;
+
+     unsigned long            application_id; /* this can be changed at runtime by the application.
+                                               * it's here so appman can get a callback on change. */
 };
 
 
