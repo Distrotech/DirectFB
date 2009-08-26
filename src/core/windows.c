@@ -1112,8 +1112,6 @@ dfb_window_set_color( CoreWindow *window,
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
 
-     D_MAGIC_ASSERT( window, CoreWindow );
-
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
