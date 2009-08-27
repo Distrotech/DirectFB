@@ -1,3 +1,44 @@
+1.2.9
+-----
+
+Several bugfixes that already flowed into the 1.4.x branch are now backported.
+The main reason for shipping 1.2.9 is support for the 1.4.x SaWMan branch;
+several API features that are required by SaWMan have been added.
+
+DirectFB 1.2.9 is required for SaWMan 1.4.2 and upwards.
+
+API changes
+- Add application_id to a window with IDirectFBWindow_Set/GetApplicationID
+- dynamic window association via IDirectFBWindow::SetAssociation()
+- add DWCAPS_COLOR to the window capabilities
+- allow the window config value "color" to colorize the window
+
+config
+- add missing include path for builddir != srcdir
+- fixed missing JPEG=yes setting when LIBJPEG is set manually
+- fix so trace will also print static funcs in stack dump
+
+drivers
+- fbdev: fixed RGB fields sizes in dfb_fbdev_set_gamma_ramp
+- fbdev: fix for BGR555
+- input: Implement driver_get_axis_info() in the linux-input driver
+
+core
+- consistently use doubles to calculate the inverse scale factors
+- fix timing problems with vt-switching
+- prevent deadlock when destroying context
+- don't touch the module entry after dlclose() to prevent segfault
+- fix for switching source from surface to surfaceless (video).
+- add support for the DESTINATION Porter/Duff rule
+
+gfx
+- Bugs in pixel format convertion fixed (primarily 16 bit formats)
+- converting to RGB32 sets alpha to ff
+- buffer unlocking fixes in error paths
+- jpeg: plug mem leak on file read error
+
+and several other bugfixes.
+
 1.2.8
 -----
 

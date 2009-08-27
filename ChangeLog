@@ -1,3 +1,325 @@
+commit e7f7189a085ca43c30e33596f41a597c1764b964
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Aug 27 15:17:42 2009 +0200
+
+    Makefile: remove armasm_memcpy files from EXTRA_DIST
+    undoes cherry-pick f838144c6ff9b430fada849e436e997ecf2bf924
+    armasm_memcpy was not in 1.2.x branch yet
+
+commit e0b9219b0b6b86a727a436520450b3ee8175d9c3
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jul 2 21:34:00 2009 +0200
+
+    [API] add application_id to a window
+    
+    Addition of:
+    IDirectFBWindow_SetApplicationID
+    IDirectFBWindow_GetApplicationID
+    These functions set and get a free-to-use application ID.
+    Any change, i.e. any call to the setter will inform the window manager.
+    Currently, only SaWMan implements this callback as a callback
+    to the SaWMan manager.
+
+commit d3e308e3ed206410ce32da57790c69a8047b0b87
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Jun 23 22:35:10 2009 +0200
+
+    [window] add resource ID also to window structure, if window has no surface
+
+commit a8ad614c1ebdd40e19386c90b97012156d828441
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Wed Jun 17 14:31:18 2009 +0200
+
+    [IDirectFBWindow] Dynamic window association via IDirectFBWindow::SetAssociation().
+    
+    This patch adds dynamic association of windows, as opposed to the static initialization
+    done via the window description.
+
+commit b5c3c2bbe32ecca3ab82264f29c1e6570c43943f
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jul 2 21:36:57 2009 +0200
+
+    [colorize windows] allow the window config value "color" to colorize the window
+    
+    If you do IDirectFBWindow::SetColor on a window without DSCAPS_COLOR:
+    a color with a non-nul alpha value will multiply the window content with this color.
+    
+    Only supported by SaWMan, currently.
+    For other WMs this call has no effect.
+
+commit 4648cf1c1399eefe02351e026cf31744b3679fa8
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 22 09:30:45 2009 +0200
+
+    Removed const qualifier from destination pointer
+    
+    The recently introduced IDirectFBSurface::Read method had a const
+    qualifier for the pointer to the destination memory. Removed this
+    qualifier as the method writes to this memory.
+
+commit 6592275550792539ffcbc76057b4eaa20e7859db
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed Aug 26 15:17:54 2009 +0200
+
+    [window] support for DWCAPS_COLOR fix
+    
+    fix for commit 15c90e1f81e425bf03eaaf7eb3066ed6b3c7fa56
+    to make it compile on the 1.2.x branch
+
+commit 15c90e1f81e425bf03eaaf7eb3066ed6b3c7fa56
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jun 18 12:16:33 2009 +0200
+
+    [window] support for DWCAPS_COLOR
+    
+    when you specifiy DWCAPS_COLOR, the window will have a solid color only.
+    A surface will not be created, so window->surface is 0.
+    The color can be specified with Window::SetColor(r,g,b,a).
+    This is always a "normal" color, NOT premultiplied,
+    so DSCAPS_PREMULTIPLIED has no effect here.
+    
+    Currently, this option is only supported by the SaWMan window manager.
+
+commit f8665f6d396b9c99530df136d23d6472f8ae28a2
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Aug 25 13:05:04 2009 +0200
+
+    fbdev: Fixed RGB fields sizes in dfb_fbdev_set_gamma_ramp.
+           thanks to Stanislav Bezzubtcev <stas@lvk.cs.msu.su>
+
+commit b231da614df57625e1544823f3c6e9cf598b204f
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Aug 25 13:02:54 2009 +0200
+
+    gfx: Bugs in pixel format convertion fixed.
+    
+    Formats ARGB1555 and RGB555 were incorretly converted to RGB16.
+    G component extended from 5 to 6 bit by coping of the last one.
+    Now low bit of G component is a copy of upper one.
+    
+    Format RGB16 was incorretly converted to RGB32, ARGB.
+    G component extended from 6 to 8 bit by coping 4,3 bits to 1,0.
+    Now 1,0 bits of G component are copies of 5,4.
+    
+    thanks to Stanislav Bezzubtcev <stas@lvk.cs.msu.su>
+
+commit 352f783b50393bfc422daa35bcb00f14b751ab00
+Author: André Draszik <andre.draszik@st.com>
+Date:   Sat Jul 25 13:41:50 2009 +0100
+
+    [rgb32] PIXEL_RGB32() sets alpha to ff now
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 68bf99d62fbf7e258459747534bfbdcfa69e42cc
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Jul 29 14:54:33 2009 +0100
+
+    [surface] add support for the DESTINATION Porter/Duff rule
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 0f65b40d25f22e25cda3ba95aef3d9e61e0edfab
+Author: André Draszik <andre.draszik@st.com>
+Date:   Wed Jul 22 02:06:49 2009 +0100
+
+    [software rasterizer] buffer unlocking fixes in error paths
+    
+    Signed-off-by: André Draszik <andre.draszik@st.com>
+
+commit 53e9842f21053e2dbdf03b4bf436332607af718d
+Author: Niels Roest <niels@directfb.org>
+Date:   Fri Jun 26 21:16:19 2009 +0200
+
+    [fbdev] fix for BGR555 in conjunction with fbdev systems
+
+commit cad5e9f5d60e11e6b86c21e5d6457c42b30d7b9b
+Author: Denis Oliver Kropp <dok@cyto.(none)>
+Date:   Fri Jun 12 23:37:58 2009 +0200
+
+    [configure] Fixed missing JPEG=yes setting in configure when LIBJPEG is set manually.
+    
+    LIBJPEG can be set to something like "-L/path -ljpeg" when running configure.
+
+commit 6bcb6f60a125ea2d02522e5c3d6ea89fc51d9513
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jun 11 17:51:31 2009 +0200
+
+    [trace] fix so trace will also print static funcs in stack dump
+
+commit 9cf5c890628ff6e97565bfe5fcd69858d890d929
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Jun 11 17:47:13 2009 +0200
+
+    [vt switching] timing problems when vt-switching.
+    doing graphic operations while DirectFB is suspended (due to vt-switching)
+    caused asserts and problems - fixed thanks to Jacques Luder.
+
+commit 01481ede69501979b3a3cc78c356c9eb07dae6f7
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon May 25 14:20:16 2009 +0200
+
+    [layer] Bug when switching source from surface to surfaceless (video).
+            The bug is caused by the destruction of the region surface before
+            the active buffer is unlocked (lock being held by layer).
+            Thanks to Sorin Otescu for the patch.
+
+commit 000c11c62830d426f77a40a18de52a78c8670e80
+Author: Niels Roest <niels@directfb.org>
+Date:   Mon May 25 14:09:09 2009 +0200
+
+    [build] fix for commit 5a941ac479883bef11bd9ada65b07fafafff2ad1
+            INCLUDES were in the wrong order. Thanks Andre.
+
+commit 5b9032ea89256ca959bfa709992499c2ade35e01
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Sat May 16 00:31:45 2009 +0300
+
+    layers: Prevent deadlock when destroying context
+    
+    A deadlock can happen between the input device shared reactor global
+    lock and the layer context lock if the layer context destruction and
+    input even processing happen at the same time since the code paths
+    acquire the locks in different order. Fix the problem by detaching the
+    input devices from the windowstack before taking the layer context lock
+    in the context destruction path. Nothing ever modifies the
+    windowstack's device list so AFAICS it should be safe to do this
+    without holding the layer context lock.
+    
+    This is a backtrace of the deadlock:
+    
+    Thread 13 (Thread 0x436a7950 (LWP 6158)):
+    0  0x00007f23b8125117 in ioctl () from /lib/libc.so.6
+    1  0x00007f23b95982ee in fusion_skirmish_prevail ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    2  0x00007f23b9846604 in dfb_layer_context_lock ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    3  0x00007f23b985690e in _dfb_windowstack_inputdevice_listener ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    4  0x00007f23b959a12c in fusion_reactor_dispatch_channel ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    5  0x00007f23b9843dff in dfb_input_dispatch ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    6  0x00007f23b5a4b1f6 in linux_input_EventThread ()
+       from /usr/local/lib/directfb-1.3-0/inputdrivers/libdirectfb_linux_input.so
+    7  0x00007f23b9387ec6 in direct_thread_main ()
+       from /usr/local/lib/libdirect-1.3.so.0
+    8  0x00007f23b904e087 in start_thread () from /lib/libpthread.so.0
+    9  0x00007f23b812bccd in clone () from /lib/libc.so.6
+    10 0x0000000000000000 in ?? ()
+    
+    Thread 18 (Thread 0x40832950 (LWP 6153)):
+    0  0x00007f23b8125117 in ioctl () from /lib/libc.so.6
+    1  0x00007f23b95982ee in fusion_skirmish_prevail ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    2  0x00007f23b959944a in fusion_reactor_detach_global ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    3  0x00007f23b98574cd in dfb_windowstack_destroy ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    4  0x00007f23b98476f8 in context_destructor ()
+       from /usr/local/lib/libdirectfb-1.3.so.0
+    5  0x00007f23b959900e in object_reference_watcher ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    6  0x00007f23b9595026 in _fusion_call_process ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    7  0x00007f23b9596d5a in fusion_dispatch_loop ()
+       from /usr/local/lib/libfusion-1.3.so.0
+    8  0x00007f23b9387ec6 in direct_thread_main ()
+       from /usr/local/lib/libdirect-1.3.so.0
+    9  0x00007f23b904e087 in start_thread () from /lib/libpthread.so.0
+    10 0x00007f23b812bccd in clone () from /lib/libc.so.6
+    11 0x0000000000000000 in ?? ()
+
+commit 84c166fd91fea899cf5ca43c73f3d77f677bb6ed
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu May 14 20:27:33 2009 +0200
+
+    [input] fix for shutdown crash reproducible with "splashy" boot screen
+
+commit 7ad4b4775f9931a4379ac68c95abba998743bf4d
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:46:31 2009 +0200
+
+    [jpeg] plug mem leak on file read error
+
+commit a204d81bfe578bd8aef4a2c9937c238dc12e00e4
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:45:58 2009 +0200
+
+    [matrox] add #ifdef to prevent wrong asm on non-X86 build
+
+commit 3dcb90e868fdd464d7eaa5f3cc4c20bd624eaeb5
+Author: Niels Roest <niels@directfb.org>
+Date:   Wed May 13 21:45:28 2009 +0200
+
+    [build] add missing include path for builddir != srcdir
+            reshuffle makefiles to make changes easier and shorter
+
+commit 53503673d1dfb0dbf6552e581ed87d42705a8386
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Tue May 12 14:41:56 2009 +0200
+
+    Consistently use doubles to calculate the inverse scale factors
+    
+    Use of floats here triggered a bug in the gcc 4.3 soft-float code. Since
+    we are already using 1.0/scale in some places, it seems OK to make this
+    consistent.
+
+commit 2244cd24fdaae2b1b95e9239cf89449dbce026be
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Tue May 5 22:07:20 2009 +0300
+
+    .surface: Fix back<->front swap
+    
+    Wrong back and front buffer indices were used when performing the
+    back<->front buffer swap which caused the the application render
+    into the wrong buffer.
+
+commit e4d56472f4c6c897d87f15e1622915793fd0a9dc
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 7 21:27:13 2009 +0200
+
+    input: no need to set min and max for the touchpad, it doesn't deliver
+           absolute events; check that minimum or maximum is != 0
+
+commit 309d2e70e76cc21c400d17cf53a1ecaf69aa68c7
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Thu May 7 11:34:52 2009 +0200
+
+    input: Implement driver_get_axis_info() in the linux-input driver
+
+commit f838144c6ff9b430fada849e436e997ecf2bf924
+Author: Sven Neumann <s.neumann@raumfeld.com>
+Date:   Fri May 1 09:49:18 2009 +0200
+
+    Makefile: include armasm_memcpy files in EXTRA_DIST
+    
+    Include the recently added optimized memcpy implementation for the ARM
+    platform in EXTRA_DIST so that the files end up in the release tarball.
+
+commit c383be626e0605b5cd9ec0ab12b6c8695ac69dde
+Author: Ville Syrjala <syrjala@sci.fi>
+Date:   Wed Apr 29 23:04:22 2009 +0300
+
+    modules: Don't touch the module entry after dlclose()
+    
+    When a module was unloaded with dlclose() the destructor function
+    (direct_modules_unregister() for the input drivers) was called. The
+    dtor freed the module entry but the code calling dlclose() proceeded to
+    fiddle with the already freed entry afterwards. Reorganize the code
+    slightly to avoid the problem and add a few comments to remind people
+    what may happen when dlclose() is called.
+    
+    The problem sometimes manifested itself as a segfault when loading the
+    modules. Suppressing all but the required input modules was an
+    effective workaround for the problem.
+
+commit 235ea6378558f26158e37ceeace474cd00a7d89d
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Mar 31 14:38:09 2009 +0200
+
+    [release] 1.2.8
+
 commit 66c7f10d2ee9bbeda6c08cfedb6d61a4588eddfc
 Author: Niels Roest <niels@directfb.org>
 Date:   Tue Mar 31 14:29:42 2009 +0200
