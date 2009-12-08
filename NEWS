@@ -1,3 +1,17 @@
+1.2.10
+------
+
+Some minor edits to align with SaWMan.
+
+The main reason is to make the SaWMan release easier, and not relying on
+too many macros in it - so we add a few enums and whatnots:
+
+DSFLIP_ONCE
+DWEF_REPEAT
+dfb_updates_deinit()
+
+This release does not break or extend the ABI.
+
 1.2.9
 -----
 

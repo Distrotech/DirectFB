@@ -1,3 +1,15 @@
+commit 76266326d6259bb9c00d726a9124d857b8dcaf94
+Author: Niels Roest <niels@directfb.org>
+Date:   Tue Dec 8 20:03:56 2009 +0100
+
+    API: changes to make 1.2.x DirectFB branch SaWMan 1.4.3 compatible
+
+commit df2d83515db77e3ed5f005d135c4383374730b83
+Author: Niels Roest <niels@directfb.org>
+Date:   Thu Aug 27 21:50:44 2009 +0200
+
+    release: DirectFB 1.2.9
+
 commit e7f7189a085ca43c30e33596f41a597c1764b964
 Author: Niels Roest <niels@directfb.org>
 Date:   Thu Aug 27 15:17:42 2009 +0200
