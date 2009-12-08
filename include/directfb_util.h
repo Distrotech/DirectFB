@@ -441,6 +441,14 @@ dfb_updates_reset( DFBUpdates *updates )
      updates->num_regions = 0;
 }
 
+static inline void
+dfb_updates_deinit( DFBUpdates *updates )
+{
+     D_MAGIC_ASSERT( updates, DFBUpdates );
+
+     D_MAGIC_CLEAR( updates );
+}
+
 #ifdef __cplusplus
 }
 #endif
