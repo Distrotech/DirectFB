@@ -48,11 +48,14 @@
 #include <core/core.h>
 #include <core/core_parts.h>
 #include <core/fonts.h>
+#include <core/graphics_state_internal.h>
 #include <core/layer_context.h>
 #include <core/layer_region.h>
+#include <core/layers_internal.h>
 #include <core/palette.h>
 #include <core/surface.h>
 #include <core/system.h>
+#include <core/windowstack.h>
 #include <core/windows.h>
 #include <core/windows_internal.h>
 
@@ -69,6 +72,10 @@
 
 #include <fusion/build.h>
 #include <fusion/conf.h>
+
+#include <voodoo/client.h>
+#include <voodoo/manager.h>
+#include <voodoo/server.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -1140,6 +1147,262 @@ dfb_core_join( CoreDFB *core )
 
 /******************************************************************************/
 
+static DirectResult
+CoreDFB_Dispatch_GetLayerContext( CoreDFB              *core,
+                                  VoodooManager        *manager,
+                                  VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     CoreDFBShared       *shared;
+     VoodooMessageParser  parser;
+     u32                  object_id;
+     FusionObject        *object;
+     VoodooInstanceID     instance;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, object_id );
+     VOODOO_PARSER_END( parser );
+
+     shared = core->shared;
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     D_ASSERT( core->shared->layer_context_pool != NULL );
+
+     ret = fusion_object_get( core->shared->layer_context_pool, object_id, &object );
+     if (ret)
+          return ret;
+
+     voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, object, CoreLayerContext_Dispatch, &instance );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, DR_OK, instance, VMBT_NONE );
+}
+
+static DirectResult
+CoreDFB_Dispatch_CreateGraphicsState( CoreDFB              *core,
+                                      VoodooManager        *manager,
+                                      VoodooRequestMessage *msg )
+{
+     DirectResult       ret;
+     VoodooInstanceID   instance;
+     CoreGraphicsState *state;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( %p )\n", __FUNCTION__, core );
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     state = D_CALLOC( 1, sizeof(CoreGraphicsState) );
+     if (!state)
+          return D_OOM();
+
+     state->core = core;
+
+     dfb_state_init( &state->state, core );
+
+     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, state, CoreGraphicsState_Dispatch, &instance );
+     if (ret)
+          return ret;
+
+     D_MAGIC_SET( state, CoreGraphicsState );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, DR_OK, instance, VMBT_NONE );
+}
+
+static DirectResult
+CoreDFB_Dispatch_CreateWindow( CoreDFB              *core,
+                               VoodooManager        *manager,
+                               VoodooRequestMessage *msg )
+{
+     DFBResult                   ret;
+     CoreWindow                 *window;
+     CoreWindowStack            *stack;
+     CoreLayer                  *layer;
+     VoodooMessageParser         parser;
+     u32                         object_id;
+     const DFBWindowDescription *desc;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( %p )\n", __FUNCTION__, core );
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, object_id );
+     VOODOO_PARSER_GET_DATA( parser, desc );
+     VOODOO_PARSER_END( parser );
+
+
+     CoreLayerContext *context;
+
+     fusion_object_get( core->shared->layer_context_pool, object_id, (FusionObject**) &context );
+
+     D_MAGIC_ASSERT( context, CoreLayerContext );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     if ((layer->shared->description.caps & DLCAPS_SURFACE) == 0)
+          return DFB_UNSUPPORTED;
+
+     D_ASSERT( context->stack != NULL );
+
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
+
+     if (dfb_layer_context_lock( context ))
+         return DFB_FUSION;
+
+     stack = context->stack;
+
+     if (!stack->cursor.set) {
+          ret = dfb_windowstack_cursor_enable( layer->core, stack, true );
+          if (ret) {
+               dfb_layer_context_unlock( context );
+               return ret;
+          }
+     }
+
+     ret = dfb_window_create( stack, desc, &window );
+     if (ret) {
+          dfb_layer_context_unlock( context );
+          return ret;
+     }
+
+     dfb_layer_context_unlock( context );
+
+     dfb_layer_context_unref( context );
+
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, DR_OK, window->object.id, VMBT_NONE );
+}
+
+static DFBResult
+CoreDFB_Dispatch_Window_SetConfig( CoreDFB              *core,
+                                   VoodooManager        *manager,
+                                   VoodooRequestMessage *msg )
+{
+     DFBResult               ret;
+     VoodooMessageParser     parser;
+     u32                     object_id;
+     const CoreWindowConfig *config;
+     CoreWindowConfigFlags   flags;
+     CoreWindow             *window;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( %p )\n", __FUNCTION__, core );
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, object_id );
+     VOODOO_PARSER_GET_DATA( parser, config );
+     VOODOO_PARSER_GET_INT( parser, flags );
+     VOODOO_PARSER_END( parser );
+
+     fusion_object_get( core->shared->window_pool, object_id, (FusionObject**) &window );
+
+     ret = dfb_window_set_config( window, config, flags );
+
+     dfb_window_unref( window );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, ret, VOODOO_INSTANCE_NONE, VMBT_NONE );
+}
+
+static DFBResult
+CoreDFB_Dispatch_Window_Repaint( CoreDFB              *core,
+                                 VoodooManager        *manager,
+                                 VoodooRequestMessage *msg )
+{
+     DFBResult            ret;
+     VoodooMessageParser  parser;
+     u32                  object_id;
+     const DFBRegion     *left;
+     const DFBRegion     *right;
+     DFBSurfaceFlipFlags  flags;
+     CoreWindow          *window;
+
+     D_DEBUG_AT( DirectFB_Core, "%s( %p )\n", __FUNCTION__, core );
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, object_id );
+     VOODOO_PARSER_GET_DATA( parser, left );
+     VOODOO_PARSER_GET_DATA( parser, right );
+     VOODOO_PARSER_GET_INT( parser, flags );
+     VOODOO_PARSER_END( parser );
+
+     fusion_object_get( core->shared->window_pool, object_id, (FusionObject**) &window );
+
+     ret = dfb_window_repaint( window, left, right, flags );
+
+     dfb_window_unref( window );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, ret, VOODOO_INSTANCE_NONE, VMBT_NONE );
+}
+
+static DirectResult
+CoreDFB_Dispatch( void                 *dispatcher,
+                  void                 *real,
+                  VoodooManager        *manager,
+                  VoodooRequestMessage *msg )
+{
+     switch (msg->method) {
+          case CORE_DFB_GET_LAYER_CONTEXT:
+               return CoreDFB_Dispatch_GetLayerContext( real, manager, msg );
+
+          case CORE_DFB_CREATE_GRAPHICS_STATE:
+               return CoreDFB_Dispatch_CreateGraphicsState( real, manager, msg );
+
+          case CORE_DFB_CREATE_WINDOW:
+               return CoreDFB_Dispatch_CreateWindow( real, manager, msg );
+
+          case CORE_DFB_WINDOW_SET_CONFIG:
+               return CoreDFB_Dispatch_Window_SetConfig( real, manager, msg );
+
+          case CORE_DFB_WINDOW_REPAINT:
+               return CoreDFB_Dispatch_Window_Repaint( real, manager, msg );
+
+          default:
+               D_BUG( "invalid method %d", msg->method );
+     }
+
+     return DR_NOSUCHINSTANCE;
+}
+
+static DirectResult
+core_super_func( VoodooServer         *server,
+                 VoodooManager        *manager,
+                 const char           *name,
+                 void                 *ctx,
+                 VoodooInstanceID     *ret_instance )
+{
+     DirectResult     ret;
+     VoodooInstanceID instance;
+
+     D_ASSERT( server != NULL );
+     D_ASSERT( manager != NULL );
+     D_ASSERT( name != NULL );
+     D_ASSERT( ret_instance != NULL );
+
+     ret = voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, ctx, CoreDFB_Dispatch, &instance );
+     if (ret)
+          return ret;
+
+     *ret_instance = instance;
+
+     return DFB_OK;
+}
+
+static void *
+CoreDFB_Server_Main( DirectThread *thread,
+                     void         *arg )
+{
+     CoreDFB *core = arg;
+
+     voodoo_server_run( core->server );
+
+     return NULL;
+}
+
 static int
 dfb_core_arena_initialize( FusionArena *arena,
                            void        *ctx )
@@ -1186,6 +1449,30 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
+
+
+
+     ret = voodoo_server_create( "127.0.0.1", 23230 + fusion_world_index(core->world), false, &core->server );
+     if (ret)
+          return ret;
+
+     voodoo_server_register( core->server, "CoreDFB", core_super_func, core );
+
+     core->server_thread = direct_thread_create( DTT_DEFAULT, CoreDFB_Server_Main, core, "Core Server" );
+
+
+
+
+
+     ret = voodoo_client_create( "127.0.0.1", 23230 + fusion_world_index(core->world), &core->client );
+     if (ret)
+          return ret;
+
+     core->manager = voodoo_client_manager( core->client );
+
+     ret = voodoo_manager_super( core->manager, "CoreDFB", &core->instance );
+     if (ret)
+          return ret;
 
      return DFB_OK;
 }
@@ -1249,6 +1536,16 @@ dfb_core_arena_join( FusionArena *arena,
 
      /* Join. */
      ret = dfb_core_join( core );
+     if (ret)
+          return ret;
+
+     ret = voodoo_client_create( "127.0.0.1", 23230 + fusion_world_index(core->world), &core->client );
+     if (ret)
+          return ret;
+
+     core->manager = voodoo_client_manager( core->client );
+
+     ret = voodoo_manager_super( core->manager, "CoreDFB", &core->instance );
      if (ret)
           return ret;
 

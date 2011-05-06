@@ -46,39 +46,37 @@ D_DEBUG_DOMAIN( Core_Window, "Core/Window", "DirectFB Core Window" );
 /*********************************************************************************************************************/
 
 DFBResult
-CoreWindow_SetConfig( CoreWindow             *window,
+CoreWindow_SetConfig( CoreDFB                *core,
+                      CoreWindow             *window,
                       const CoreWindowConfig *config,
                       CoreWindowConfigFlags   flags )
 {
-     DFBResult           ret;
-     int                 val;
-     CoreWindowSetConfig set_config;
+     DFBResult ret;
 
      D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, window );
 
      D_MAGIC_ASSERT( window, CoreWindow );
      D_ASSERT( config != NULL );
 
-     set_config.config = *config;
-     set_config.flags  = flags;
+     ret = voodoo_manager_request( core->manager, core->instance, CORE_DFB_WINDOW_SET_CONFIG, VREQ_NONE, NULL,
+                                   VMBT_UINT, window->object.id,
+                                   VMBT_DATA, sizeof(*config), config,
+                                   VMBT_INT, flags,
+                                   VMBT_NONE );
+     if (ret)
+          D_DERROR( ret, "%s: voodoo_manager_request( CORE_DFB_WINDOW_SET_CONFIG ) failed!\n", __FUNCTION__ );
 
-     ret = dfb_window_call( window, CORE_WINDOW_SET_CONFIG, &set_config, sizeof(set_config), FCEF_NONE, &val );
-     if (ret) {
-          D_DERROR( ret, "%s: dfb_window_call( CORE_WINDOW_SET_CONFIG ) failed!\n", __FUNCTION__ );
-          return ret;
-     }
-
-     return val;
+     return ret;
 }
 
 DFBResult
-CoreWindow_Repaint( CoreWindow          *window,
+CoreWindow_Repaint( CoreDFB             *core,
+                    CoreWindow          *window,
                     const DFBRegion     *left,
                     const DFBRegion     *right,
                     DFBSurfaceFlipFlags  flags )
 {
-     DFBResult         ret;
-     CoreWindowRepaint repaint;
+     DFBResult ret;
 
      D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, window );
 
@@ -86,85 +84,92 @@ CoreWindow_Repaint( CoreWindow          *window,
      DFB_REGION_ASSERT( left );
      DFB_REGION_ASSERT( right );
 
-     repaint.left  = *left;
-     repaint.right = *right;
-     repaint.flags = flags;
+     ret = voodoo_manager_request( core->manager, core->instance, CORE_DFB_WINDOW_REPAINT, VREQ_NONE, NULL,
+                                   VMBT_UINT, window->object.id,
+                                   VMBT_DATA, sizeof(*left), left,
+                                   VMBT_DATA, sizeof(*right), right,
+                                   VMBT_INT, flags,
+                                   VMBT_NONE );
+     if (ret)
+          D_DERROR( ret, "%s: voodoo_manager_request( CORE_DFB_WINDOW_REPAINT ) failed!\n", __FUNCTION__ );
 
-     ret = dfb_window_call( window, CORE_WINDOW_REPAINT, &repaint, sizeof(repaint), FCEF_NONE, NULL );
-     if (ret) {
-          D_DERROR( ret, "%s: dfb_window_call( CORE_WINDOW_SET_CONFIG ) failed!\n", __FUNCTION__ );
-          return ret;
-     }
-
-     return DFB_OK;
+     return ret;
 }
 
 /*********************************************************************************************************************/
+/*********************************************************************************************************************/
+
+static DFBResult
+CoreWindow_Dispatch_SetConfig( CoreWindow           *window,
+                               VoodooManager        *manager,
+                               VoodooRequestMessage *msg )
+{
+     DFBResult               ret;
+     VoodooMessageParser     parser;
+     const CoreWindowConfig *config;
+     CoreWindowConfigFlags   flags;
+
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, window );
+
+     D_MAGIC_ASSERT( window, CoreWindow );
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, config );
+     VOODOO_PARSER_GET_INT( parser, flags );
+     VOODOO_PARSER_END( parser );
+
+     ret = dfb_window_set_config( window, config, flags );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, ret, VOODOO_INSTANCE_NONE, VMBT_NONE );
+}
+
+static DFBResult
+CoreWindow_Dispatch_Repaint( CoreWindow           *window,
+                             VoodooManager        *manager,
+                             VoodooRequestMessage *msg )
+{
+     DFBResult            ret;
+     VoodooMessageParser  parser;
+     const DFBRegion     *left;
+     const DFBRegion     *right;
+     DFBSurfaceFlipFlags  flags;
+
+     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, window );
+
+     D_MAGIC_ASSERT( window, CoreWindow );
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, left );
+     VOODOO_PARSER_GET_DATA( parser, right );
+     VOODOO_PARSER_GET_INT( parser, flags );
+     VOODOO_PARSER_END( parser );
+
+     ret = dfb_window_repaint( window, left, right, flags );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, ret, VOODOO_INSTANCE_NONE, VMBT_NONE );
+}
 
 DirectResult
-dfb_window_call( CoreWindow          *window,
-                 CoreWindowCall       call,
-                 void                *arg,
-                 size_t               len,
-                 FusionCallExecFlags  flags,
-                 int                 *ret_val )
+CoreWindow_Dispatch( void                 *dispatcher,
+                     void                 *real,
+                     VoodooManager        *manager,
+                     VoodooRequestMessage *msg )
 {
-     return fusion_call_execute2( &window->call, flags, call, arg, len, ret_val );
-}
-
-/*********************************************************************************************************************/
-/*********************************************************************************************************************/
-
-static DFBResult
-CoreWindow_Dispatch_SetConfig( CoreWindow          *window,
-                               CoreWindowSetConfig *set_config )
-{
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, window );
-
-     D_MAGIC_ASSERT( window, CoreWindow );
-     D_ASSERT( set_config != NULL );
-
-     return dfb_window_set_config( window, &set_config->config, set_config->flags );
-}
-
-static DFBResult
-CoreWindow_Dispatch_Repaint( CoreWindow        *window,
-                             CoreWindowRepaint *repaint )
-{
-     D_DEBUG_AT( Core_Window, "%s( %p )\n", __FUNCTION__, window );
-
-     D_MAGIC_ASSERT( window, CoreWindow );
-     D_ASSERT( repaint != NULL );
-
-     return dfb_window_repaint( window, &repaint->left, &repaint->right, repaint->flags );
-}
-
-FusionCallHandlerResult
-CoreWindow_Dispatch( int           caller,   /* fusion id of the caller */
-                     int           call_arg, /* optional call parameter */
-                     void         *call_ptr, /* optional call parameter */
-                     void         *ctx,      /* optional handler context */
-                     unsigned int  serial,
-                     int          *ret_val )
-{
-     switch (call_arg) {
+     switch (msg->method) {
           case CORE_WINDOW_SET_CONFIG:
                D_DEBUG_AT( Core_Window, "=-> CORE_WINDOW_SET_CONFIG\n" );
 
-               *ret_val = CoreWindow_Dispatch_SetConfig( ctx, call_ptr );
-               break;
+               return CoreWindow_Dispatch_SetConfig( real, manager, msg );
 
           case CORE_WINDOW_REPAINT:
                D_DEBUG_AT( Core_Window, "=-> CORE_WINDOW_REPAINT\n" );
 
-               *ret_val = CoreWindow_Dispatch_Repaint( ctx, call_ptr );
-               break;
+               return CoreWindow_Dispatch_Repaint( real, manager, msg );
 
           default:
-               D_BUG( "invalid call arg %d", call_arg );
-               *ret_val = DFB_INVARG;
+               D_BUG( "invalid method %d", msg->method );
      }
 
-     return FCHR_RETURN;
+     return DR_NOSUCHINSTANCE;
 }
 

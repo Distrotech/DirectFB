@@ -209,7 +209,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           //dfb_window_repaint( data->window, &reg, NULL, flags );
 
-          CoreWindow_Repaint( data->window, &reg, &reg, flags );
+          CoreWindow_Repaint( data->base.core, data->window, &reg, &reg, flags );
      }
 
      if (!data->window->config.opacity && data->base.caps & DSCAPS_PRIMARY) {
@@ -217,7 +217,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           CoreWindowConfig config = { .opacity = 0xff };
 
-          CoreWindow_SetConfig( data->window, &config, CWCF_OPACITY );
+          CoreWindow_SetConfig( data->base.core, data->window, &config, CWCF_OPACITY );
      }
 
      return DFB_OK;

@@ -213,8 +213,6 @@ dfb_graphics_core_initialize( CoreDFB               *core,
 
      fusion_property_init( &shared->lock, dfb_core_world(core) );
 
-     fusion_call_init( &core->shared->graphics_call, CoreGraphics_Dispatch, data, dfb_core_world(core) );
-
      if (__DFB_CoreRegisterHook)
          __DFB_CoreRegisterHook( core, card, __DFB_CoreRegisterHookCtx );
 
@@ -311,8 +309,6 @@ dfb_graphics_core_shutdown( DFBGraphicsCore *data,
      shared = data->shared;
 
      dfb_gfxcard_lock( GDLF_SYNC );
-
-     fusion_call_destroy( &data->core->shared->graphics_call );
 
      if (data->driver_funcs) {
           const GraphicsDriverFuncs *funcs = data->driver_funcs;

@@ -49,6 +49,7 @@
 #include <core/screen.h>
 #include <core/surface.h>
 #include <core/system.h>
+#include <core/window_internal.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/wm.h>
@@ -103,8 +104,6 @@ context_destructor( FusionObject *object, bool zombie, void *ctx )
                  zombie ? " - ZOMBIE" : "");
 
      D_MAGIC_ASSERT( context, CoreLayerContext );
-
-     fusion_call_destroy( &context->call );
 
      /* Remove the context from the layer's context stack. */
      dfb_layer_remove_context( layer, context );
@@ -197,19 +196,27 @@ update_stack_geometry( CoreLayerContext *context )
           dfb_windowstack_resize( context->stack, size.w, size.h, rotation );
 }
 
-static DFBWindowID
-CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext            *context,
-                                        const DFBWindowDescription  *desc )
+static DirectResult
+CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext     *context,
+                                        VoodooManager        *manager,
+                                        VoodooRequestMessage *msg )
 {
-     DFBResult        ret;
-     CoreWindow      *window;
-     CoreWindowStack *stack;
-     CoreLayer       *layer;
+     DFBResult                   ret;
+     CoreWindow                 *window;
+     CoreWindowStack            *stack;
+     CoreLayer                  *layer;
+     VoodooMessageParser         parser;
+     const DFBWindowDescription *desc;
+     VoodooInstanceID            instance;
 
-     D_DEBUG_AT( Core_LayerContext, "%s( %p, %p )\n", __FUNCTION__, context, desc );
+     D_DEBUG_AT( Core_LayerContext, "%s( %p )\n", __FUNCTION__, context );
 
      D_MAGIC_ASSERT( context, CoreLayerContext );
-     D_ASSERT( desc != NULL );
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, desc );
+     VOODOO_PARSER_END( parser );
+
 
      layer = dfb_layer_at( context->layer_id );
 
@@ -242,31 +249,29 @@ CoreLayerContext_Dispatch_CreateWindow( CoreLayerContext            *context,
 
      dfb_layer_context_unlock( context );
 
-     return window->object.id;
+
+     voodoo_manager_register_local( manager, VOODOO_INSTANCE_NONE, NULL, window, CoreWindow_Dispatch, &instance );
+
+     return voodoo_manager_respond( manager, true, msg->header.serial, DR_OK, instance, VMBT_NONE );
 }
 
-static FusionCallHandlerResult
-CoreLayerContext_Dispatch( int           caller,   /* fusion id of the caller */
-                           int           call_arg, /* optional call parameter */
-                           void         *call_ptr, /* optional call parameter */
-                           void         *ctx,      /* optional handler context */
-                           unsigned int  serial,
-                           int          *ret_val )
+DirectResult
+CoreLayerContext_Dispatch( void                 *dispatcher,
+                           void                 *real,
+                           VoodooManager        *manager,
+                           VoodooRequestMessage *msg )
 {
-     CoreLayerContextCreateWindow *create_window = call_ptr;
-
-     switch (call_arg) {
+     switch (msg->method) {
           case CORE_LAYERCONTEXT_CREATE_WINDOW:
-               D_INFO( "CORE_LAYERCONTEXT_CREATE_WINDOW\n" );
-               *ret_val = CoreLayerContext_Dispatch_CreateWindow( ctx, &create_window->desc );
-               break;
+               D_DEBUG_AT( Core_LayerContext, "=-> CORE_LAYERCONTEXT_CREATE_WINDOW\n" );
+
+               return CoreLayerContext_Dispatch_CreateWindow( real, manager, msg );
 
           default:
-               D_BUG( "invalid call arg %d", call_arg );
-               *ret_val = DFB_INVARG;
+               D_BUG( "invalid method %d", msg->method );
      }
 
-     return FCHR_RETURN;
+     return DR_NOSUCHINSTANCE;
 }
 
 DFBResult
@@ -337,8 +342,6 @@ dfb_layer_context_init( CoreLayerContext *context,
 
      /* Tell the window stack about its size. */
      update_stack_geometry( context );
-
-     fusion_call_init( &context->call, CoreLayerContext_Dispatch, context, dfb_core_world(layer->core) );
 
      dfb_layer_context_unlock( context );
 
@@ -1539,9 +1542,9 @@ dfb_layer_context_create_window( CoreDFB                     *core,
                                  const DFBWindowDescription  *desc,
                                  CoreWindow                 **ret_window )
 {
-     DFBResult   ret;
-     int         val;
-     CoreWindow *window;
+     DFBResult              ret;
+     CoreWindow            *window;
+     VoodooResponseMessage *response;
 
      D_DEBUG_AT( Core_LayerContext, "%s( %p, %p, %p, %p )\n", __FUNCTION__, core, context, desc, ret_window );
 
@@ -1549,26 +1552,29 @@ dfb_layer_context_create_window( CoreDFB                     *core,
      D_ASSERT( desc != NULL );
      D_ASSERT( ret_window != NULL );
 
-     CoreLayerContextCreateWindow create;
-
-     create.desc = *desc;
-
-     ret = fusion_call_execute2( &context->call, FCEF_NONE, CORE_LAYERCONTEXT_CREATE_WINDOW, &create, sizeof(create), &val );
+     ret = voodoo_manager_request( core->manager, core->instance, CORE_DFB_CREATE_WINDOW, VREQ_RESPOND, &response,
+                                   VMBT_UINT, context->object.id,
+                                   VMBT_DATA, sizeof(*desc), desc,
+                                   VMBT_NONE );
      if (ret) {
-          D_DERROR( ret, "Core/LayerContext: fusion_call_execute2( CORE_LAYERCONTEXT_CREATE_WINDOW ) failed!\n" );
+          D_DERROR( ret, "Core/LayerContext: voodoo_manager_request( CORE_CREATE_WINDOW ) failed!\n" );
           return ret;
      }
 
-     if (!val) {
-          D_ERROR( "Core/LayerContext: Did not get a window ID!\n" );
-          return DFB_FAILURE;
-     }
-
-     ret = dfb_core_get_window( core, val, &window );
+     ret = response->result;
      if (ret) {
-          D_DERROR( ret, "Core/LayerContext: Looking up window by ID %u failed!\n", (DFBWindowID) val );
+          D_DERROR( ret, "Core/LayerContext: CORE_CREATE_WINDOW failed!\n" );
           return ret;
      }
+
+     ret = dfb_core_get_window( core, response->instance, &window );
+     if (ret) {
+          D_DERROR( ret, "Core/LayerContext: Looking up window by ID %u failed!\n", response->instance );
+          voodoo_manager_finish_request( core->manager, response );
+          return ret;
+     }
+
+     voodoo_manager_finish_request( core->manager, response );
 
      *ret_window = window;
 

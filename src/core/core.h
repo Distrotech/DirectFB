@@ -33,6 +33,8 @@
 #include <fusion/lock.h>
 #include <fusion/object.h>
 
+#include <voodoo/manager.h>
+
 #include <directfb.h>
 
 #include "coretypes.h"
@@ -200,8 +202,6 @@ struct __DFB_CoreDFBShared {
 
      FusionSHMPoolShared *shmpool;
      FusionSHMPoolShared *shmpool_data; /* for raw data, e.g. surface buffers */
-
-     FusionCall           graphics_call;
 };
 
 struct __DFB_CoreDFB {
@@ -228,7 +228,25 @@ struct __DFB_CoreDFB {
      DirectCleanupHandler    *cleanup_handler;
 
      DFBFontManager          *font_manager;
+
+
+     VoodooServer            *server;
+     DirectThread            *server_thread;
+
+     VoodooClient            *client;
+     VoodooManager           *manager;
+
+     VoodooInstanceID         instance;
 };
+
+
+typedef enum {
+     CORE_DFB_GET_LAYER_CONTEXT        = 1,
+     CORE_DFB_CREATE_GRAPHICS_STATE    = 2,
+     CORE_DFB_CREATE_WINDOW            = 3,
+     CORE_DFB_WINDOW_SET_CONFIG        = 4,
+     CORE_DFB_WINDOW_REPAINT           = 5,
+} CoreDFBCall;
 
 #endif
 

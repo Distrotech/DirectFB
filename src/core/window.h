@@ -64,11 +64,13 @@ typedef struct {
 
 
 
-DFBResult CoreWindow_SetConfig( CoreWindow             *window,
+DFBResult CoreWindow_SetConfig( CoreDFB                *core,
+                                CoreWindow             *window,
                                 const CoreWindowConfig *config,
                                 CoreWindowConfigFlags   flags );
 
-DFBResult CoreWindow_Repaint  ( CoreWindow             *window,
+DFBResult CoreWindow_Repaint  ( CoreDFB                *core,
+                                CoreWindow             *window,
                                 const DFBRegion        *left,
                                 const DFBRegion        *right,
                                 DFBSurfaceFlipFlags     flags );

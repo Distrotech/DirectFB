@@ -48,26 +48,31 @@ DFBResult
 CoreGraphicsStateClient_Init( CoreGraphicsStateClient *client,
                               CoreDFB                 *core )
 {
-     DFBResult ret;
-     int       val;
+     DFBResult              ret;
+     VoodooResponseMessage *response;
 
      D_ASSERT( client != NULL );
      D_MAGIC_ASSERT( core, CoreDFB );
 
      client->core = core;
 
-     ret = dfb_graphics_call( core, CORE_GRAPHICS_CREATE_STATE, NULL, 0, FCEF_NONE, &val );
+     ret = voodoo_manager_request( core->manager, core->instance, CORE_DFB_CREATE_GRAPHICS_STATE, VREQ_RESPOND, &response, VMBT_NONE );
      if (ret) {
-          D_DERROR( ret, "%s: dfb_graphics_call( CORE_GRAPHICS_CREATE_STATE ) failed!\n", __FUNCTION__ );
+          D_DERROR( ret, "%s: voodoo_manager_request( CORE_DFB_CREATE_GRAPHICS_STATE ) failed!\n", __FUNCTION__ );
           return ret;
      }
 
-     if (!val) {
-          D_DERROR( ret, "%s: dfb_graphics_call( CORE_GRAPHICS_CREATE_STATE ) did not return an ID!\n", __FUNCTION__ );
-          return DFB_FAILURE;
+     ret = response->result;
+     if (ret) {
+          D_DERROR( ret, "%s: CORE_CREATE_GRAPHICS_STATE failed!\n", __FUNCTION__ );
+          voodoo_manager_finish_request( core->manager, response );
+          return ret;
      }
 
-     fusion_call_init_from( &client->call, val, dfb_core_world(core) );
+     voodoo_manager_finish_request( core->manager, response );
+
+     client->manager  = core->manager;
+     client->instance = response->instance;
 
      D_MAGIC_SET( client, CoreGraphicsStateClient );
 
@@ -85,31 +90,31 @@ CoreGraphicsStateClient_SetState( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( state, CardState );
 
      if (flags & SMF_DESTINATION) {
-          ret = fusion_call_execute2( &client->call, FCEF_ONEWAY,
-                                      CORE_GRAPHICS_STATE_SET_DESTINATION,
-                                      &state->destination->object.id, sizeof(state->destination->object.id), NULL );
+          ret = voodoo_manager_request( client->manager, client->instance, CORE_GRAPHICS_STATE_SET_DESTINATION, VREQ_QUEUE, NULL,
+                                        VMBT_UINT, state->destination->object.id,
+                                        VMBT_NONE );
           if (ret) {
-               D_DERROR( ret, "%s: fusion_call_execute2( CORE_GRAPHICS_STATE_SET_DESTINATION ) failed!\n", __FUNCTION__ );
+               D_DERROR( ret, "%s: voodoo_manager_request( CORE_GRAPHICS_STATE_SET_DESTINATION ) failed!\n", __FUNCTION__ );
                return ret;
           }
      }
 
      if (flags & SMF_CLIP) {
-          ret = fusion_call_execute2( &client->call, FCEF_ONEWAY,
-                                      CORE_GRAPHICS_STATE_SET_CLIP,
-                                      &state->clip, sizeof(state->clip), NULL );
+          ret = voodoo_manager_request( client->manager, client->instance, CORE_GRAPHICS_STATE_SET_CLIP, VREQ_QUEUE, NULL,
+                                        VMBT_DATA, sizeof(state->clip), &state->clip,
+                                        VMBT_NONE );
           if (ret) {
-               D_DERROR( ret, "%s: fusion_call_execute2( CORE_GRAPHICS_STATE_SET_CLIP ) failed!\n", __FUNCTION__ );
+               D_DERROR( ret, "%s: voodoo_manager_request( CORE_GRAPHICS_STATE_SET_CLIP ) failed!\n", __FUNCTION__ );
                return ret;
           }
      }
 
      if (flags & SMF_COLOR) {
-          ret = fusion_call_execute2( &client->call, FCEF_ONEWAY,
-                                      CORE_GRAPHICS_STATE_SET_COLOR,
-                                      &state->color, sizeof(state->color), NULL );
+          ret = voodoo_manager_request( client->manager, client->instance, CORE_GRAPHICS_STATE_SET_COLOR, VREQ_QUEUE, NULL,
+                                        VMBT_DATA, sizeof(state->color), &state->color,
+                                        VMBT_NONE );
           if (ret) {
-               D_DERROR( ret, "%s: fusion_call_execute2( CORE_GRAPHICS_STATE_SET_COLOR ) failed!\n", __FUNCTION__ );
+               D_DERROR( ret, "%s: voodoo_manager_request( CORE_GRAPHICS_STATE_SET_COLOR ) failed!\n", __FUNCTION__ );
                return ret;
           }
      }
@@ -127,11 +132,11 @@ CoreGraphicsStateClient_FillRectangle( CoreGraphicsStateClient *client,
      D_MAGIC_ASSERT( client, CoreGraphicsStateClient );
      DFB_RECTANGLE_ASSERT( rect );
 
-     ret = fusion_call_execute2( &client->call, FCEF_ONEWAY,
-                                 CORE_GRAPHICS_STATE_FILL_RECTANGLE,
-                                 rect, sizeof(*rect), NULL );
+     ret = voodoo_manager_request( client->manager, client->instance, CORE_GRAPHICS_STATE_FILL_RECTANGLE, VREQ_QUEUE, NULL,
+                                   VMBT_DATA, sizeof(*rect), rect,
+                                   VMBT_NONE );
      if (ret) {
-          D_DERROR( ret, "%s: fusion_call_execute2( CORE_GRAPHICS_STATE_FILL_RECTANGLE ) failed!\n", __FUNCTION__ );
+          D_DERROR( ret, "%s: voodoo_manager_request( CORE_GRAPHICS_STATE_FILL_RECTANGLE ) failed!\n", __FUNCTION__ );
           return ret;
      }
 
@@ -142,17 +147,24 @@ CoreGraphicsStateClient_FillRectangle( CoreGraphicsStateClient *client,
 /*********************************************************************************************************************/
 
 static DFBResult
-CoreGraphicsState_Dispatch_SetDestination( CoreGraphicsState               *state,
-                                           CoreGraphicsStateSetDestination *set_destination )
+CoreGraphicsState_Dispatch_SetDestination( CoreGraphicsState    *state,
+                                           VoodooManager        *manager,
+                                           VoodooRequestMessage *msg )
 {
-     DFBResult    ret;
-     CoreSurface *surface;
+     DFBResult            ret;
+     VoodooMessageParser  parser;
+     u32                  object_id;
+     CoreSurface         *surface;
 
      D_DEBUG_AT( Core_GraphicsState, "%s( %p )\n", __FUNCTION__, state );
 
      D_MAGIC_ASSERT( state, CoreGraphicsState );
 
-     ret = dfb_core_get_surface( state->core, set_destination->object_id, &surface );
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, object_id );
+     VOODOO_PARSER_END( parser );
+
+     ret = dfb_core_get_surface( state->core, object_id, &surface );
      if (ret)
           return ret;
 
@@ -164,88 +176,101 @@ CoreGraphicsState_Dispatch_SetDestination( CoreGraphicsState               *stat
 }
 
 static DFBResult
-CoreGraphicsState_Dispatch_SetClip( CoreGraphicsState        *state,
-                                    CoreGraphicsStateSetClip *set_clip )
+CoreGraphicsState_Dispatch_SetClip( CoreGraphicsState    *state,
+                                    VoodooManager        *manager,
+                                    VoodooRequestMessage *msg )
 {
+     VoodooMessageParser  parser;
+     const DFBRegion     *clip;
+
      D_DEBUG_AT( Core_GraphicsState, "%s( %p )\n", __FUNCTION__, state );
 
      D_MAGIC_ASSERT( state, CoreGraphicsState );
 
-     dfb_state_set_clip( &state->state, &set_clip->clip );
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, clip );
+     VOODOO_PARSER_END( parser );
+
+     dfb_state_set_clip( &state->state, clip );
 
      return DFB_OK;
 }
 
 static DFBResult
-CoreGraphicsState_Dispatch_SetColor( CoreGraphicsState         *state,
-                                     CoreGraphicsStateSetColor *set_color )
+CoreGraphicsState_Dispatch_SetColor( CoreGraphicsState    *state,
+                                     VoodooManager        *manager,
+                                     VoodooRequestMessage *msg )
 {
+     VoodooMessageParser  parser;
+     const DFBColor      *color;
+
      D_DEBUG_AT( Core_GraphicsState, "%s( %p )\n", __FUNCTION__, state );
 
      D_MAGIC_ASSERT( state, CoreGraphicsState );
 
-     dfb_state_set_color( &state->state, &set_color->color );
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, color );
+     VOODOO_PARSER_END( parser );
+
+     dfb_state_set_color( &state->state, color );
 
      return DFB_OK;
 }
 
 static DFBResult
-CoreGraphicsState_Dispatch_FillRectangle( CoreGraphicsState              *state,
-                                          CoreGraphicsStateFillRectangle *fill_rectangle )
+CoreGraphicsState_Dispatch_FillRectangle( CoreGraphicsState    *state,
+                                          VoodooManager        *manager,
+                                          VoodooRequestMessage *msg )
 {
+     VoodooMessageParser  parser;
+     const DFBRectangle  *rect;
+
      D_DEBUG_AT( Core_GraphicsState, "%s( %p )\n", __FUNCTION__, state );
 
      D_MAGIC_ASSERT( state, CoreGraphicsState );
 
-     dfb_gfxcard_fillrectangles( &fill_rectangle->rect, 1, &state->state );
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, rect );
+     VOODOO_PARSER_END( parser );
+
+     dfb_gfxcard_fillrectangles( rect, 1, &state->state );
 
      return DFB_OK;
 }
 
 /**********************************************************************************************************************/
 
-FusionCallHandlerResult
-CoreGraphicsState_Dispatch( int           caller,   /* fusion id of the caller */
-                            int           call_arg, /* optional call parameter */
-                            void         *call_ptr, /* optional call parameter */
-                            void         *ctx,      /* optional handler context */
-                            unsigned int  serial,
-                            int          *ret_val )
+DirectResult
+CoreGraphicsState_Dispatch( void                 *dispatcher,
+                            void                 *real,
+                            VoodooManager        *manager,
+                            VoodooRequestMessage *msg )
 {
-     CoreGraphicsState *state = ctx;
-
-     D_MAGIC_ASSERT( state, CoreGraphicsState );
-
-     switch (call_arg) {
+     switch (msg->method) {
           case CORE_GRAPHICS_STATE_SET_DESTINATION:
                D_DEBUG_AT( Core_GraphicsState, "=-> CORE_GRAPHICS_STATE_SET_DESTINATION\n" );
 
-               *ret_val = CoreGraphicsState_Dispatch_SetDestination( ctx, call_ptr );
-               break;
+               return CoreGraphicsState_Dispatch_SetDestination( real, manager, msg );
 
           case CORE_GRAPHICS_STATE_SET_CLIP:
                D_DEBUG_AT( Core_GraphicsState, "=-> CORE_GRAPHICS_STATE_SET_CLIP\n" );
 
-               *ret_val = CoreGraphicsState_Dispatch_SetClip( ctx, call_ptr );
-               break;
+               return CoreGraphicsState_Dispatch_SetClip( real, manager, msg );
 
           case CORE_GRAPHICS_STATE_SET_COLOR:
                D_DEBUG_AT( Core_GraphicsState, "=-> CORE_GRAPHICS_STATE_SET_COLOR\n" );
 
-               *ret_val = CoreGraphicsState_Dispatch_SetColor( ctx, call_ptr );
-               break;
+               return CoreGraphicsState_Dispatch_SetColor( real, manager, msg );
 
           case CORE_GRAPHICS_STATE_FILL_RECTANGLE:
                D_DEBUG_AT( Core_GraphicsState, "=-> CORE_GRAPHICS_STATE_FILL_RECTANGLE\n" );
 
-               *ret_val = CoreGraphicsState_Dispatch_FillRectangle( ctx, call_ptr );
-               break;
+               return CoreGraphicsState_Dispatch_FillRectangle( real, manager, msg );
 
           default:
-               D_BUG( "invalid call arg %d", call_arg );
-               *ret_val = DFB_INVARG;
+               D_BUG( "invalid method %d", msg->method );
      }
 
-     return FCHR_RETURN;
+     return DR_NOSUCHINSTANCE;
 }
 

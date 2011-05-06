@@ -34,6 +34,8 @@
 
 #include <core/state.h>
 
+#include <voodoo/types.h>
+
 
 /**********************************************************************************************************************
  * CoreGraphicsState
@@ -82,11 +84,12 @@ typedef struct {
 
 
 typedef struct {
-     int            magic;
+     int               magic;
 
-     CoreDFB       *core;
+     CoreDFB          *core;
 
-     FusionCall     call;
+     VoodooManager    *manager;
+     VoodooInstanceID  instance;
 } CoreGraphicsStateClient;
 
 

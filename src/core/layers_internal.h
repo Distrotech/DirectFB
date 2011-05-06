@@ -141,8 +141,6 @@ struct __DFB_CoreLayerContext {
                                                 its own pixel buffer. */
 
      FusionSHMPoolShared        *shmpool;
-
-     FusionCall                  call;
 };
 
 typedef enum {

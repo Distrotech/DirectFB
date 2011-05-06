@@ -39,12 +39,10 @@
  * CoreGraphicsState internal
  */
 
-FusionCallHandlerResult CoreGraphicsState_Dispatch( int           caller,   /* fusion id of the caller */
-                                                    int           call_arg, /* optional call parameter */
-                                                    void         *call_ptr, /* optional call parameter */
-                                                    void         *ctx,      /* optional handler context */
-                                                    unsigned int  serial,
-                                                    int          *ret_val );
+DirectResult CoreGraphicsState_Dispatch( void                 *dispatcher,
+                                         void                 *real,
+                                         VoodooManager        *manager,
+                                         VoodooRequestMessage *msg );
 
 
 struct __DFB_CoreGraphicsState {
@@ -53,8 +51,6 @@ struct __DFB_CoreGraphicsState {
      CoreDFB       *core;
 
      CardState      state;
-
-     FusionCall     call;
 };
 
 #endif

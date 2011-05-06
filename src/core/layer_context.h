@@ -34,6 +34,8 @@
 #include <core/coretypes.h>
 #include <fusion/object.h>
 
+#include <voodoo/types.h>
+
 typedef enum {
      CLCNF_ACTIVATED   = 0x00000001,
      CLCNF_DEACTIVATED = 0x00000002
@@ -171,6 +173,14 @@ typedef enum {
 typedef struct {
      DFBWindowDescription     desc;
 } CoreLayerContextCreateWindow;
+
+
+
+DirectResult
+CoreLayerContext_Dispatch( void                 *dispatcher,
+                           void                 *real,
+                           VoodooManager        *manager,
+                           VoodooRequestMessage *msg );
 
 
 #endif
