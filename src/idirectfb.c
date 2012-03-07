@@ -746,7 +746,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          wd.width        = width;
                          wd.height       = height;
                          wd.pixelformat  = format;
-                         wd.surface_caps = caps & ~DSCAPS_FLIPPING;
+                         wd.surface_caps = caps;
 
                          switch (format) {
                               case DSPF_ARGB8565:
