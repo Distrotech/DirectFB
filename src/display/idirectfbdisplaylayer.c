@@ -603,6 +603,9 @@ IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer         *thiz,
                return DFB_INVARG;
      }
 
+     if (!data->stack)
+          return DFB_OK;
+
      return CoreWindowStack_BackgroundSetMode( data->stack, background_mode );
 }
 
@@ -628,6 +631,9 @@ IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
      if (!surface_data->surface)
           return DFB_DESTROYED;
 
+     if (!data->stack)
+          return DFB_OK;
+
      return CoreWindowStack_BackgroundSetImage( data->stack,
                                                 surface_data->surface );
 }
@@ -642,6 +648,9 @@ IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
+
+     if (!data->stack)
+          return DFB_OK;
 
      return CoreWindowStack_BackgroundSetColor( data->stack, &color );
 }
