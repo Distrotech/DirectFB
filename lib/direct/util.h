@@ -127,6 +127,7 @@
                       ((f) & 0x40000000) ? 30 : \
                       ((f) & 0x80000000) ? 31 : -1)
 
+#define D_UNUSED(x)   (void)x
 
 /*
  * portable sched_yield() implementation
