@@ -57,6 +57,11 @@ AC_CANONICAL_TARGET
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
 PKG_PROG_PKG_CONFIG
 
+#
+# Enable silent compilation showing just CC or CCLD rather than the full
+# compile-time GCC output.
+#
+AM_SILENT_RULES([no])
 
 AC_CONFIG_HEADER([config.h])
 AM_MAINTAINER_MODE
