@@ -320,6 +320,8 @@ DFBResult dfb_surface_set_alpha_ramp( CoreSurface                  *surface,
                                       u8                            a2,
                                       u8                            a3 );
 
+DFBResult dfb_surface_clear_buffers  ( CoreSurface                  *surface );
+
 
 static inline DirectResult
 dfb_surface_lock( CoreSurface *surface )
