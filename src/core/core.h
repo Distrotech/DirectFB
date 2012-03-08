@@ -379,7 +379,7 @@ DEFINE_INTERFACE( ICoreResourceManager,
      DFBResult (*CreateClient)       ( ICoreResourceManager     *thiz,
                                        FusionID                  identity,
                                        ICoreResourceClient     **ret_client );
-);
+)
 
 /*
  * Per slave resource accounting
@@ -405,7 +405,7 @@ DEFINE_INTERFACE( ICoreResourceClient,
      DFBResult (*UpdateSurface)      ( ICoreResourceClient      *thiz,
                                        CoreSurface              *surface,
                                        const CoreSurfaceConfig  *config );
-);
+)
 
 
 /*
