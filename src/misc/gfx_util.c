@@ -612,7 +612,7 @@ void dfb_copy_buffer_32( u32 *src,
                          void  *dst, int dpitch, DFBRectangle *drect,
                          CoreSurface *dst_surface, const DFBRegion *dst_clip )
 {
-     void *dst1, *dst2;
+     u8   *dst1, *dst2;
      int   sw = drect->w;
      int   y, x;
 
@@ -647,10 +647,10 @@ void dfb_copy_buffer_32( u32 *src,
           case DSPF_YV12:
           case DSPF_I420:
                if (dst_surface->config.format == DSPF_I420) {
-                    dst1 = dst  + dpitch   * dst_surface->config.size.h;
+                    dst1 = (u8*)dst  + dpitch   * dst_surface->config.size.h;
                     dst2 = dst1 + dpitch/2 * dst_surface->config.size.h/2;
                } else {
-                    dst2 = dst  + dpitch   * dst_surface->config.size.h;
+                    dst2 = (u8*)dst  + dpitch   * dst_surface->config.size.h;
                     dst1 = dst2 + dpitch/2 * dst_surface->config.size.h/2;
                }
 
@@ -671,7 +671,7 @@ void dfb_copy_buffer_32( u32 *src,
                break;
 
           case DSPF_YV16:
-               dst2 = dst  + dpitch   * dst_surface->config.size.h;
+               dst2 = (u8*)dst  + dpitch   * dst_surface->config.size.h;
                dst1 = dst2 + dpitch/2 * dst_surface->config.size.h;
 
                for (y = drect->y; y < drect->y + drect->h; y++) {
@@ -692,7 +692,7 @@ void dfb_copy_buffer_32( u32 *src,
 
           case DSPF_NV12:
           case DSPF_NV21:
-               dst1 = dst + dpitch * dst_surface->config.size.h;
+               dst1 = (u8*)dst + dpitch * dst_surface->config.size.h;
 
                for (y = drect->y; y < drect->y + drect->h; y++) {
                     u8 *d[2];
@@ -709,7 +709,7 @@ void dfb_copy_buffer_32( u32 *src,
                break;
 
           case DSPF_NV16:
-               dst1 = dst + dpitch * dst_surface->config.size.h;
+               dst1 = (u8*)dst + dpitch * dst_surface->config.size.h;
 
                for (y = drect->y; y < drect->y + drect->h; y++) {
                     u8 *d[2];
@@ -726,7 +726,7 @@ void dfb_copy_buffer_32( u32 *src,
                break;
 
           case DSPF_YUV444P:
-               dst1 = dst  + dpitch * dst_surface->config.size.h;
+               dst1 = (u8*)dst  + dpitch * dst_surface->config.size.h;
                dst2 = dst1 + dpitch * dst_surface->config.size.h;
 
                for (y = drect->y; y < drect->y + drect->h; y++) {
@@ -919,6 +919,9 @@ static u32* scale_line( const int *weights, int n_x, int n_y,
                         u32 *dst, u32 *dst_end,
                         const u32 **src, int x, int x_step, int sw )
 {
+
+     D_UNUSED_P( sw );
+
      while (dst < dst_end) {
           const int  x_scaled      = x >> SCALE_SHIFT;
           const int *pixel_weights = weights + ((x >> (SCALE_SHIFT -
@@ -967,7 +970,7 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
      int x_step, y_step;
      int scaled_x_offset;
      PixopsFilter filter;
-     void *dst1 = NULL, *dst2 = NULL;
+     u8   *dst1 = NULL, *dst2 = NULL;
      u32  *buf;
 
      if (drect->w == sw && drect->h == sh) {
@@ -997,24 +1000,24 @@ void dfb_scale_linear_32( u32 *src, int sw, int sh,
 
      switch (dst_surface->config.format) {
           case DSPF_I420:
-               dst1 = dst  + dpitch   * dst_surface->config.size.h;
+               dst1 = (u8*)dst  + dpitch   * dst_surface->config.size.h;
                dst2 = dst1 + dpitch/2 * dst_surface->config.size.h/2;
                break;
           case DSPF_YV12:
-               dst2 = dst  + dpitch   * dst_surface->config.size.h;
+               dst2 = (u8*)dst  + dpitch   * dst_surface->config.size.h;
                dst1 = dst2 + dpitch/2 * dst_surface->config.size.h/2;
                break;
           case DSPF_YV16:
-               dst2 = dst  + dpitch   * dst_surface->config.size.h;
+               dst2 = (u8*)dst  + dpitch   * dst_surface->config.size.h;
                dst1 = dst2 + dpitch/2 * dst_surface->config.size.h;
                break;
           case DSPF_NV12:
           case DSPF_NV21:
           case DSPF_NV16:
-               dst1 = dst + dpitch * dst_surface->config.size.h;
+               dst1 = (u8*)dst + dpitch * dst_surface->config.size.h;
                break;
           case DSPF_YUV444P:
-               dst1 = dst  + dpitch * dst_surface->config.size.h;
+               dst1 = (u8*)dst  + dpitch * dst_surface->config.size.h;
                dst2 = dst1 + dpitch * dst_surface->config.size.h;
                break;
           default:
