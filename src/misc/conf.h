@@ -255,6 +255,8 @@ typedef struct
      bool          core_sighandler;
 
      char         *resource_manager;
+
+     bool          layers_clear;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
