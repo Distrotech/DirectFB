@@ -908,13 +908,15 @@ static DFBResult
 region_buffer_unlock( CoreLayerRegion *region,
                       bool             unlockSurface)
 {
+    DFBResult               ret = DFB_OK;
+
     D_ASSERT(region != NULL);
 
     /* Unlock any previously locked buffer. */
     if (region->surface_lock.buffer) {
          D_MAGIC_ASSERT( region->surface_lock.buffer, CoreSurfaceBuffer );
 
-         dfb_surface_unlock_buffer( region->surface_lock.buffer->surface, &region->surface_lock );
+         ret = dfb_surface_unlock_buffer( region->surface_lock.buffer->surface, &region->surface_lock );
     }
 
     /* Unlock the surface Fusion skirmish. */
@@ -923,7 +925,7 @@ region_buffer_unlock( CoreLayerRegion *region,
              return DFB_FUSION;
     }
 
-    return DFB_OK;
+    return ret;
 }
 
 static DFBResult
@@ -931,7 +933,7 @@ region_buffer_lock( CoreLayerRegion       *region,
                     CoreSurface           *surface,
                     CoreSurfaceBufferRole  role )
 {
-     DFBResult              ret;
+     DFBResult              ret = DFB_OK;
      CoreSurfaceBuffer     *buffer;
      CoreSurfaceAllocation *allocation;
      CoreLayerContext      *context;
@@ -946,7 +948,9 @@ region_buffer_lock( CoreLayerRegion       *region,
      if (region->surface_lock.buffer) {
           D_MAGIC_ASSERT( region->surface_lock.buffer, CoreSurfaceBuffer );
 
-          dfb_surface_unlock_buffer( region->surface_lock.buffer->surface, &region->surface_lock );
+          ret = dfb_surface_unlock_buffer( region->surface_lock.buffer->surface, &region->surface_lock );
+          if (ret != DFB_OK)
+               return ret;
      }
 
      if (dfb_surface_lock( surface ))
@@ -978,7 +982,7 @@ region_buffer_lock( CoreLayerRegion       *region,
 
      /* surface is unlocked by caller */
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
