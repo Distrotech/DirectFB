@@ -1,8 +1,8 @@
 directfb (1.4.16-1) oneiric; urgency=low
 
-  * DirectFB 1.6.16
+  * DirectFB 1.4.16
 
- -- Andreas Shimokawa <andi@directfb.org>  Wed, 01 Mar 2012 12:46:32 +0100
+ -- Andreas Shimokawa <andi@directfb.org>  Wed, 20 Mar 2012 16:32:32 +0100
 
 directfb (1.4.15-1) natty; urgency=low
 
