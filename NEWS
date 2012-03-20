@@ -1,3 +1,177 @@
+1.4.16
+------
+
+API
+- Add DFB_NOALLOCATION result used internally.
+
+IDirectFB
+- Allow DSCAPS_TRIPLE for windowed primary surface, thanks to Rob McConnell!
+- Do not mask out DSCAPS_FLIPPING when creating a windowed primary surface.
+
+IDirectFBWindow
+- Allow DSCAPS_TRIPLE to be used for windows.
+- Fix LowerToBottom()!
+- Destroy the window explicitly on Release when interface is from CreateWindow.
+
+IDirectFBSurface
+- Allow DSCAPS_STATIC_ALLOC to be used in combination with DSDESC_PREALLOCATED
+  to request that any further Lock() will always return the original preallocated
+  buffer pointer even if that requires lots of transfers back and forth. Otherwise,
+  the allocation might be moved to shared memory. This especially requires the
+  application to correctly use Lock() with the READ and WRITE flags as appropriate.
+
+IDirectFBGL
+- add TextureSurface() to the interface definition
+
+Runtime Options
+- Add run time option "trace-ref" to print messages including stack dump when a certain ref is up/downed.
+
+Core
+- Remove early setting of num_buffers to zero, fixing buffer leakage!
+- Add PreAlloc() function to surface pool interface to check the surface description
+  for a supported preallocation, e.g. DSCAPS_VIDEOONLY for a preallocation in an
+  accelerated pool. This is called on the slave side!
+- Add preallocated_pool_id to the surface configuration that is filled by the
+  slave to indicate in which pool it likes to create a preallocated surface.
+  Also add more fields to the preallocated entries like offset or phys.
+- Add CoreSlave interface for master to call into slave processes. This contains
+  methods for sending or receiving data, e.g. to or from preallocated memory areas.
+  Access to such areas is checked against permissions, though the master should be
+  a trusted process in the DirectFB session :-)
+- For preallocated surfaces allocate the buffers during their creation in the
+  preallocated pool already to ensure this already exists as the first allocation.
+- Tweak dfb_surface_buffer_find_allocation() to implement DSCAPS_STATIC_ALLOC and
+  to avoid locking non-shared preallocated allocations from other processes. It
+  is possible to create a preallocated hardware buffer from a slave and use hardware
+  accceleration with this in the master via secure fusion, if implemented by the
+  surface pool(s) for the hardware accelerator.
+- Add dfb_core_memory_permissions_add/remove/check() for management of areas
+  where the master may read/write within slave memory via CoreSlave interface.
+- Put secure/insecure mode into shared memory and fail in slave init when
+  the configuration does not match.
+- In Core_GetIdentity() return local core identity if stack is empty.
+- In Core_PushIdentity() if argument is 0, push local identity on stack.
+- Use Core_PushIdentity(0) before locking surfaces for actual execution of
+  software or hardware rendering functions.
+- Add new initialize/join calls for surface pools to pass context data.
+- Add dfb_surface_pools_lookup() for lookup by ID.
+- Implement priorities for surface pool bridges.  
+- Fix missing return of permission handle in dfb_core_memory_permissions_add()
+- In resource manager code don't consult client interface when identity matches ours (master).
+- Fix missing Dispatch init for hotplug devices, thanks to Steven (Sheng-Chi) Chang!
+- Add dfb_surface_deallocate_buffers() that deallocates all surface buffers, called by unrealize_region() instead of destroying the buffers now.
+- When decoupling a buffer being unlocked, deallocate right away.
+- Fix assertion in error path of surface creation.
+- Add error handler for window object creation, e.g. OOM case.
+- Add CSF_SOURCE2_LOCKED to mask for calling dfb_state_update().
+- Use new "queue" property for rendering and state setting methods. Except surface setters because of out of order execution with references
+  being dropped right after blitting from but before flushing.
+- Update dfb_gfxcard_check_state to check for full system memory support.
+- Replace FusionProperty in gfxcard by hybrid skirmish (simple mutex in secure fusion mode).
+- Add fusion_skirmish_init2() with 'local' argument to create a fake skirmish (simple mutex). Improves performance.
+- Make CoreSurfaceAllocation a FusionObject.
+- Change ISurface::PreLockBuffer() to return a CoreSurfaceAllocation instead of index.
+- Replace dfb_surface_buffer_locks() by dfb_surface_allocation_locks().
+- Add dfb_surface_allocation_decouple() for deallocating and setting surface and buffer pointers to NULL.
+- Use fusion_skirmish_init2() to make surface skirmish a plain mute in case of secure fusion, resulting in greater performance.
+- Fix local surface pool (single app) for new surface/buffer less allocation code.
+- Deallocate window surface buffers right away when a window is destroyed.
+- Fix munmap issue with modified lock.addr by keeping a copy in .handle (shared secure pool).
+- Deallocate buffers right away when deallocating a layer surface.
+- Don't set owner of layer surfaces until privileges are sorted out better.
+- Add dfb_surface_clear_buffers() to allocate/fill all surface buffers (unless new run-time option "no-layers-clear" is used).
+
+WM/Default
+- Implement same flipping scheme as in SaWMan.
+
+Graphics
+- force recheck of DFXL_BLIT2 if source2 has been changed
+- allow DSBLIT_FLIP_HORIZONTAL and DSBLIT_FLIP_VERTICAL simultaniously in gStretchBlit()
+- Add planar YUV smooth scaling, only NV12 and NV21 for now.
+- backport various clipping fixes and improvements in the generic software rasterizer from 1.6
+- Use RGB accumulators only, adding YUV values does not work.
+- fixes for AYUV rendering, FillRect etc.
+- optimizations to the generic driver
+- Add dfb_gfx_clear() to fill buffer with fully transparent black.
+
+Input
+- Get lock state and other items from input device, not via events.
+- implement quitpipe also for the hotplug thread
+
+Fusion
+- Remove bogus assertion from fusion_call_init and fusion_call_init3.
+- Implement fusion_reactor_attach/dispatch_channel() for single app mode.
+- use s64 instad of int to calculate number of free bytes to prevent wraparound when having more than 2GB free in tmpfs.
+- Add fusion_call_init_from() to initialize a FusionCall structure in local slave memory from call id returned by call to master.
+- Add fusion_call_get_owner() to get the FusionID of the call creator.
+- Add fusion_world_set_leave_callback() dummy for single app core.
+- Increase return size limit to 32MB for calls.
+- Add fusion_call_execute2() using new linux-fusion 8.3 ioctl.
+- Add handling of call payload appended to FusionCallMessage rather than a pointer in the message.
+- When MADV_REMOVE is supported use static ftruncate and no longer resize file in brk().
+- Provide fusion_skirmish_init2 on single app builds
+- Increase main shm pool (e.g. for objects) max size from 1 to 16 MB.
+- Replace linked list by hash table for objects, finally, *sigh*
+- Add fusion_hash_foreach() working like direct_list_foreach() via FusionHashIterator
+  and inlined fusion_hash_iterator_init() and fusion_hash_iterator_next().
+
+Secure Fusion
+- Remove unnecessary locking to improve performance.
+- Add fusion_skirmish_add_permissions().
+- Avoid mmap/munmap on each Lock/Unlock in shared surface pool when being the master. This restores rendering speed a lot for 
+  software fallbacks.
+- Convert two more dfb_layer_activate_context to CoreLayer_ActivateContext, thanks to Rob McConnell for spotting!
+
+Voodoo
+- Init host with "" if NULL to fix strcmp crash.
+- No DataBuffer_Init_Dispatch when DIRECTFB_BUILD_PURE_VOODOO is defined.
+
+ImageProvider
+- Add secure IPC to (hardware) image providers.
+- IPC: CPP -> C!
+- PNG: add libpng 1.5 support
+- JPEG: improve probe to recognize more valid jpeg formats
+
+PreAlloc Pool
+- Add preallocPrealloc() implemention in the preallocated surface pool to fill
+  out the new surface configuration entries for the preallocated buffers before
+  the CreateSurface call goes to master.
+- In preallocTestConfig() check the core identity against the buffer identity
+  and reject allocation for other processes than the creator of the preallocated
+  surface. This should not happen though.
+- In preallocAllocateBuffer() remove CSALF_VOLATILE flag from allocation to
+  ensure the allocation will not be removed before the buffer is destroyed.
+- In preallocLock() check the core identity against the buffer identity and
+  reject locking for other processes than the creator of the preallocated  
+  surface. This should not happen though.
+
+libdirect
+- Check for error in DIRECT_ALLOCATE_INTERFACE
+- never return an uninitialized value in direct_recursive_mutex_init()
+- Add D_UNUSED(param) macro for cancelling compiler warnings.
+
+FBDev
+- Fix surface pool for new surface/buffer less allocation code.
+
+GLX
+- Choose config with depth buffer.
+- Work around crashing glDeleteTextures() by leaking it.
+- Force layer pixmap to 24 bit.
+
+X11
+- Add dfb_surface_notify_display() calls to primaryFlipRegion()
+- Fix broken expose event handling, many thanks to Loïc Yhuel!
+
+dfbdump
+- Add loop mode "-l" to be used as secure master for example.
+
+Tests
+- dfbtest_resize: Add threaded window resizing, surface locking test. Add Read/Write tests.
+- dfbtest_prealloc: Add dfbtest_prealloc for testing preallocated surfaces with and without the usage of DSCAPS_STATIC_ALLOC.
+- dfbtest_window_surface: Simple resource/reference counting test.
+- dfbtest_window_cursor: Add test for cursor flags and per window cursor shape.
+
+
 1.4.15
 ------
 
