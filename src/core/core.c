@@ -1680,6 +1680,8 @@ typedef struct {
 
      FusionID     identity[CORE_TLS_IDENTITY_STACK_MAX];
      unsigned int identity_count;
+
+     int          calling;
 } CoreTLS;
 
 static pthread_key_t core_tls_key;
@@ -1789,6 +1791,47 @@ Core_GetIdentity()
 
           return core_tls->identity[CORE_TLS_IDENTITY_STACK_MAX-1];
      }
+
+     D_WARN( "TLS error" );
+
+     return 0;
+}
+
+void
+Core_PushCalling( void )
+{
+     CoreTLS *core_tls = Core_GetTLS();
+
+     if (core_tls)
+          core_tls->calling++;
+     else
+          D_WARN( "TLS error" );
+}
+
+void
+Core_PopCalling( void )
+{
+     CoreTLS *core_tls = Core_GetTLS();
+
+     if (core_tls) {
+          if (core_tls->calling == 0) {
+               D_BUG( "" );
+               return;
+          }
+
+          core_tls->calling++;
+     }
+     else
+          D_WARN( "TLS error" );
+}
+
+int
+Core_GetCalling( void )
+{
+     CoreTLS *core_tls = Core_GetTLS();
+
+     if (core_tls)
+          return core_tls->calling;
 
      D_WARN( "TLS error" );
 
