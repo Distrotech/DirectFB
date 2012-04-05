@@ -531,5 +531,10 @@ interface {
 			typename  DFBTriangleFormation
 		}
 	}
-}
 
+	method {
+		name      ReleaseSource
+		async  	  yes
+		queue     yes
+	}
+}
