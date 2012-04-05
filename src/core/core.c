@@ -413,7 +413,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           }
      }
      else
-          direct_thread_sleep( 500000 );
+          usleep( 500000 );
 
      if (core->font_manager)
           dfb_font_manager_destroy( core->font_manager );
