@@ -74,7 +74,32 @@ typedef struct {
 static pthread_mutex_t  implementations_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 static DirectLink      *implementations       = NULL;
 
-/**************************************************************************************************/
+static inline int
+probe_interface( DirectInterfaceImplementation  *impl,
+                 DirectInterfaceFuncs          **funcs,
+                 const char                     *type,
+                 const char                     *implementation,
+                 DirectInterfaceProbeFunc        probe,
+                 void                           *probe_ctx )
+{
+     if (type && strcmp( type, impl->type ))
+          return 0;
+
+     if (implementation && strcmp( implementation, impl->implementation ))
+          return 0;
+
+     D_DEBUG_AT( Direct_Interface, "  -> Probing '%s'...\n", impl->implementation );
+
+     if (probe && !probe( impl->funcs, probe_ctx ))
+          return 0;
+
+     *funcs = impl->funcs;
+     impl->references++;
+
+     return 1;
+}
+
+/**********************************************************************************************************************/
 
 void
 DirectRegisterInterface( DirectInterfaceFuncs *funcs )
@@ -140,6 +165,10 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                     DirectInterfaceProbeFunc   probe,
                     void                      *probe_ctx )
 {
+     int                         n      = 0;
+     int                         idx    = -1;
+     int                         loaded = 0;
+
 #ifdef DYNAMIC_LINKING
      int                         len;
      DIR                        *dir;
@@ -156,34 +185,50 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
      pthread_mutex_lock( &implementations_mutex );
 
-     /*
-      * Check existing implementations first.
-      */
-     direct_list_foreach( link, implementations ) {
-          DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
-
-          if (type && strcmp( type, impl->type ))
-               continue;
-
-          if (implementation && strcmp( implementation, impl->implementation ))
-               continue;
-
-          D_DEBUG_AT( Direct_Interface, "  -> Probing '%s'...\n", impl->implementation );
-
-          if (probe && !probe( impl->funcs, probe_ctx ))
-               continue;
-          else {
-               if (!impl->references) {
-                    D_INFO( "Direct/Interface: Using '%s' implementation of '%s'.\n",
-                            impl->implementation, impl->type );
+     /* Check whether there is a default implementation set for the type in config */
+     if (type && direct_config->default_interface_implementation_types) {
+          while (direct_config->default_interface_implementation_types[n]) {
+               if (!strcmp(direct_config->default_interface_implementation_types[n], type)) {
+                    idx = n;
+                    break;
                }
+               n++;
+          }
+     }
 
-               *funcs = impl->funcs;
-               impl->references++;
+     /* Check whether we have to check for a default implementation for the selected type */
+     if (!implementation  && idx >= 0) {
+          direct_list_foreach( link, implementations ) {
+               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
 
-               pthread_mutex_unlock( &implementations_mutex );
+               if (probe_interface( impl, funcs, NULL, direct_config->default_interface_implementation_names[idx], probe, probe_ctx )) {
+                    D_INFO( "Direct/Interface: Using '%s' cached default implementation of '%s'.\n",
+                            impl->implementation, impl->type );
 
-               return DR_OK;
+                    direct_mutex_unlock( &implementations_mutex );
+
+                    return DR_OK;
+               }
+          }
+     }
+
+     /*
+      * Check existing implementations first (if they were not checked already).
+      */
+     else {
+          direct_list_foreach( link, implementations ) {
+               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
+
+               if (probe_interface( impl, funcs, type, implementation, probe, probe_ctx )) {
+                    if (impl->references == 1) {
+                         D_INFO( "Direct/Interface: Using '%s' implementation of '%s'.\n",
+                                 impl->implementation, impl->type );
+                    }
+
+                    direct_mutex_unlock( &implementations_mutex );
+
+                    return DR_OK;
+               }
           }
      }
 
@@ -199,7 +244,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      }
 
      path = direct_config->module_dir;
-     if(!path)
+     if (!path)
           path = MODULEDIR;
 
      len = strlen(path) + strlen("/interfaces/") + strlen(type) + 1;
@@ -262,39 +307,43 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                     continue;
                }
 
-               /*
-                * Almost the same stuff like above, TODO: make function.
-                */
-               if (strcmp( type, impl->type ))
-                    continue;
-
-               if (implementation && strcmp( implementation,
-                                             impl->implementation ))
-                    continue;
-
-               if (probe && !probe( impl->funcs, probe_ctx )) {
-                    continue;
-               }
-               else {
+               if (probe_interface( impl, funcs, type, implementation, probe, probe_ctx )) {
                     /*
                      * Keep filename and module handle.
                      */
                     impl->filename      = D_STRDUP( buf );
                     impl->module_handle = handle;
 
+                    if (idx >= 0) {
+                         if (!strcmp( impl->implementation, direct_config->default_interface_implementation_names[idx] )) {
+                              D_INFO( "Direct/Interface: Loaded '%s' default implementation of '%s'.\n",
+                                      impl->implementation, impl->type );
 
-                    D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n",
-                            impl->implementation, impl->type );
+                              closedir( dir );
 
-                    *funcs = impl->funcs;
-                    impl->references++;
+                              direct_mutex_unlock( &implementations_mutex );
 
-                    closedir( dir );
+                              return DR_OK;
+                         }
+                         else {
+                              D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s' but it is not the default, continue probing...\n",
+                                      impl->implementation, impl->type );
+                              loaded = 1;
+                         }
+                    }
+                    else {
+                         D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n",
+                                 impl->implementation, impl->type );
 
-                    pthread_mutex_unlock( &implementations_mutex );
+                         closedir( dir );
 
-                    return DR_OK;
+                         direct_mutex_unlock( &implementations_mutex );
+
+                         return DR_OK;
+                    }
                }
+               else
+                    continue;
           }
           else
                D_DLERROR( "Direct/Interface: Unable to dlopen `%s'!\n", buf );
@@ -304,6 +353,9 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 #endif
 
      pthread_mutex_unlock( &implementations_mutex );
+
+     if (loaded)
+          return DR_OK;
 
      return DR_NOIMPL;
 }
