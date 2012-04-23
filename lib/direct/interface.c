@@ -208,7 +208,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                               D_INFO( "Direct/Interface: Using '%s' cached default implementation of '%s'.\n",
                                       impl->implementation, impl->type );
 
-                              direct_mutex_unlock( &implementations_mutex );
+                              pthread_mutex_unlock( &implementations_mutex );
 
                               return DR_OK;
                          }
@@ -229,7 +229,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                                  impl->implementation, impl->type );
                     }
 
-                    direct_mutex_unlock( &implementations_mutex );
+                    pthread_mutex_unlock( &implementations_mutex );
 
                     return DR_OK;
                }
@@ -287,7 +287,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                         entry->d_name[strlen(entry->d_name)-2] != 's')
                          continue;
 
-                    direct_snprintf( buf, 4096, "%s/%s", interface_dir, entry->d_name );
+                    snprintf( buf, 4096, "%s/%s", interface_dir, entry->d_name );
 
                     /* Check if it got already loaded. */
                     direct_list_foreach( link, implementations ) {
@@ -333,7 +333,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                                    closedir( dir );
 
-                                   direct_mutex_unlock( &implementations_mutex );
+                                   pthread_mutex_unlock( &implementations_mutex );
 
                                    return DR_OK;
                               }
@@ -403,7 +403,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                     closedir( dir );
 
-                    direct_mutex_unlock( &implementations_mutex );
+                    pthread_mutex_unlock( &implementations_mutex );
 
                     return DR_OK;
                }
