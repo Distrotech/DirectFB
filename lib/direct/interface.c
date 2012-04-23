@@ -281,6 +281,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                     char  buf[4096];
 
                     DirectInterfaceImplementation *old_impl = (DirectInterfaceImplementation*) implementations;
+                    DirectInterfaceImplementation *impl = NULL;
 
                     if (strlen(entry->d_name) < 4 ||
                         entry->d_name[strlen(entry->d_name)-1] != 'o' ||
@@ -291,9 +292,10 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                     /* Check if it got already loaded. */
                     direct_list_foreach( link, implementations ) {
-                         DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
+                         DirectInterfaceImplementation *test_impl = (DirectInterfaceImplementation*) link;
 
-                         if (impl->filename && !strcmp( impl->filename, buf )) {
+                         if (test_impl->filename && !strcmp( test_impl->filename, buf )) {
+                              impl = test_impl;
                               handle = impl->module_handle;
                               break;
                          }
@@ -305,7 +307,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                          /* Check if it registered itself. */
                          if (handle) {
-                              DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) implementations;
+                              impl = (DirectInterfaceImplementation*) implementations;
 
                               if (old_impl == impl) {
                                    dlclose( handle );
@@ -319,17 +321,12 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                     }
 
                     if (handle) {
-                         DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) implementations;
-
                          /* check whether the dlopen'ed interface supports the required implementation */
                          if (!strcmp( impl->implementation, direct_config->default_interface_implementation_names[idx] )) {
                               if (probe_interface( impl, funcs, type, direct_config->default_interface_implementation_names[idx], probe, probe_ctx )) {
-                                   /* Keep filename and module handle. */
-                                   impl->filename      = D_STRDUP( buf );
-                                   impl->module_handle = handle;
-
-                                   D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n",
-                                           impl->implementation, impl->type );
+                                   if (impl->references == 1)
+                                        D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n", 
+                                                impl->implementation, impl->type );
 
                                    closedir( dir );
 
@@ -357,6 +354,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
           char  buf[4096];
 
           DirectInterfaceImplementation *old_impl = (DirectInterfaceImplementation*) implementations;
+          DirectInterfaceImplementation *impl = NULL;
 
           if (strlen(entry->d_name) < 4 ||
               entry->d_name[strlen(entry->d_name)-1] != 'o' ||
@@ -367,9 +365,10 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
           /* Check if it got already loaded. */
           direct_list_foreach( link, implementations ) {
-               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
+               DirectInterfaceImplementation *test_impl = (DirectInterfaceImplementation*) link;
 
-               if (impl->filename && !strcmp( impl->filename, buf )) {
+               if (test_impl->filename && !strcmp( test_impl->filename, buf )) {
+                   impl = test_impl;
                    handle = impl->module_handle;
                    break;
                }
@@ -381,7 +380,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
                /* Check if it registered itself. */
                if (handle) {
-                    DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) implementations;
+                    impl = (DirectInterfaceImplementation*) implementations;
 
                     if (old_impl == impl) {
                          dlclose( handle );
@@ -395,11 +394,10 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
           }
 
           if (handle) {
-               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) implementations;
-
                if (probe_interface( impl, funcs, type, implementation, probe, probe_ctx )) {
-                    D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n",
-                            impl->implementation, impl->type );
+                    if (impl->references == 1)
+                         D_INFO( "Direct/Interface: Loaded '%s' implementation of '%s'.\n",
+                                 impl->implementation, impl->type );
 
                     closedir( dir );
 
