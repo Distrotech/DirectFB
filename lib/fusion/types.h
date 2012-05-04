@@ -31,6 +31,8 @@
 
 #include <fusion/build.h>
 
+#include <direct/types.h>
+
 #if FUSION_BUILD_MULTI && FUSION_BUILD_KERNEL
 
 #include <linux/fusion.h>
