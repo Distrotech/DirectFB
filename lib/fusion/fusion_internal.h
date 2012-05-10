@@ -123,9 +123,6 @@ struct __Fusion_FusionWorld {
 
      FusionLeaveCallback  leave_callback;
      void                *leave_ctx;
-
-     DirectLink          *dispatch_cleanups;
-
 #if FUSION_BUILD_MULTI
 # if FUSION_BUILD_KERNEL
      DirectMutex          bins_lock;
