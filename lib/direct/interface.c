@@ -217,40 +217,24 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                else
                     break;
           }
+     }
 
-          /* Check existing implementations without default. */
-          direct_list_foreach( link, implementations ) {
-               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
+     /* Check existing implementations without default. */
+     direct_list_foreach( link, implementations ) {
+          DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
 
-               if (probe_interface( impl, funcs, type, implementation, probe, probe_ctx )) {
-                    if (impl->references == 1) {
-                         D_INFO( "Direct/Interface: Using '%s' implementation of '%s'.\n",
-                                 impl->implementation, impl->type );
-                    }
-
-                    direct_mutex_unlock( &implementations_mutex );
-
-                    return DR_OK;
+          if (probe_interface( impl, funcs, type, implementation, probe, probe_ctx )) {
+               if (impl->references == 1) {
+                    D_INFO( "Direct/Interface: Using '%s' implementation of '%s'.\n",
+                            impl->implementation, impl->type );
                }
+
+               pthread_mutex_unlock( &implementations_mutex );
+
+               return DR_OK;
           }
      }
-     else {
-          /* Check existing implementations without default. */
-          direct_list_foreach( link, implementations ) {
-               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
 
-               if (probe_interface( impl, funcs, type, implementation, probe, probe_ctx )) {
-                    if (impl->references == 1) {
-                         D_INFO( "Direct/Interface: Using '%s' implementation of '%s'.\n",
-                                 impl->implementation, impl->type );
-                    }
-
-                    pthread_mutex_unlock( &implementations_mutex );
-
-                    return DR_OK;
-               }
-          }
-     }
 #ifdef DYNAMIC_LINKING
      /* Try to load it dynamically. */
 
