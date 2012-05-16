@@ -1025,7 +1025,8 @@ set_region( CoreLayerRegion            *region,
      funcs  = layer->funcs;
 
      if (surface) {
-          if (flags & (CLRCF_SURFACE | CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT)) {
+          if (flags & (CLRCF_SURFACE | CLRCF_WIDTH   | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SRCKEY |
+                       CLRCF_DSTKEY  | CLRCF_OPACITY | CLRCF_SOURCE | CLRCF_DEST)) {
                ret = region_buffer_lock( region, surface, CSBR_FRONT );
                if (ret)
                     return ret;
