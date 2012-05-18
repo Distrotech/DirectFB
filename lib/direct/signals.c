@@ -466,7 +466,8 @@ handle_signals( void *ptr )
           }
           else {
                if (SIG_CLOSE_SIGHANDLER == info.si_signo) {
-                    break;
+                    if (getpid() == info.si_pid)
+                         break;
                }
                else {
 #ifdef SA_SIGINFO
