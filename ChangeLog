@@ -1,3 +1,15 @@
+commit f53178901b16193f0d69349972af728182129246
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 18:42:13 2012 +0200
+
+    change version to 1.4.17
+
+commit 3b471668af4637ae8f5dddafd7e56360b609d558
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 18:40:56 2012 +0200
+
+    update changelog
+
 commit da1f9218105c0693b18a448c962cc12bf81317f9
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Tue May 22 18:40:05 2012 +0200
