@@ -206,7 +206,7 @@ dfb_screen_set_mixer_config( CoreScreen                 *screen,
                              const DFBScreenMixerConfig *config )
 {
      DFBResult                 ret;
-     DFBScreenMixerConfigFlags failed = DSOCONF_NONE;
+     DFBScreenMixerConfigFlags failed = DSMCONF_NONE;
 
      D_ASSERT( screen != NULL );
      D_ASSERT( screen->shared != NULL );

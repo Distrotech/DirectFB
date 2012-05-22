@@ -123,7 +123,7 @@ IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
      if (--data->base.ref == 0)
           IDirectFBSurface_Window_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult
@@ -156,13 +156,13 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 
           DIRECT_INTERFACE_GET_DATA_FROM( data->base.parent, parent_data, IDirectFBSurface );
 
-          /* Signal end of sequence of operations. */
-          dfb_state_lock( &parent_data->state );
-          dfb_state_stop_drawing( &parent_data->state );
-          dfb_state_unlock( &parent_data->state );
+          if (parent_data) {
+               /* Signal end of sequence of operations. */
+               dfb_state_lock( &parent_data->state );
+               dfb_state_stop_drawing( &parent_data->state );
+               dfb_state_unlock( &parent_data->state );
+          }
      }
-
-
 
      dfb_region_from_rectangle( &reg, &data->base.area.current );
 
@@ -363,4 +363,3 @@ Flipping_Thread( DirectThread *thread,
 
      return NULL;
 }
-

@@ -104,7 +104,7 @@ IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -115,7 +115,7 @@ IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz )
      if (--data->ref == 0)
           IDirectFBInputDevice_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

@@ -57,7 +57,7 @@ IDirectFBImageProvider_Client_AddRef( IDirectFBImageProvider *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -75,7 +75,7 @@ IDirectFBImageProvider_Client_Release( IDirectFBImageProvider *thiz )
           DIRECT_DEALLOCATE_INTERFACE( thiz );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

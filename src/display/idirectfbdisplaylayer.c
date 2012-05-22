@@ -121,7 +121,7 @@ IDirectFBDisplayLayer_AddRef( IDirectFBDisplayLayer *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -132,7 +132,7 @@ IDirectFBDisplayLayer_Release( IDirectFBDisplayLayer *thiz )
      if (--data->ref == 0)
           IDirectFBDisplayLayer_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult
@@ -642,7 +642,7 @@ static DFBResult
 IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
                                           u8 r, u8 g, u8 b, u8 a )
 {
-     DFBColor color = { a: a, r: r, g: g, b: b };
+     DFBColor color = { .a = a, .r = r, .g = g, .b = b };
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 

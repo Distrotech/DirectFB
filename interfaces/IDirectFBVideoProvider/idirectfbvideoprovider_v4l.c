@@ -182,7 +182,7 @@ IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -194,7 +194,7 @@ IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thiz )
           IDirectFBVideoProvider_V4L_Destruct( thiz );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

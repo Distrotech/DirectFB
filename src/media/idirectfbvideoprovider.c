@@ -43,13 +43,13 @@
 static DirectResult
 IDirectFBVideoProvider_AddRef( IDirectFBVideoProvider *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 static DirectResult
 IDirectFBVideoProvider_Release( IDirectFBVideoProvider *thiz )
 {
-     return DFB_UNIMPLEMENTED;
+     return DR_UNIMPLEMENTED;
 }
 
 static DFBResult

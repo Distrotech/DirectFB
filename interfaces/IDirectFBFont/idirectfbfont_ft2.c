@@ -752,7 +752,7 @@ IDirectFBFont_FT2_Release( IDirectFBFont *thiz )
           IDirectFBFont_FT2_Destruct( thiz );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 

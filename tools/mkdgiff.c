@@ -600,11 +600,11 @@ out:
 /**********************************************************************************************************************/
 
 static DGIFFHeader header = {
-     magic: { 'D', 'G', 'I', 'F', 'F'},
-     major: 0,
-     minor: 0,
-     flags: DGIFF_FLAG_LITTLE_ENDIAN,
-     num_faces: 0
+     .magic = { 'D', 'G', 'I', 'F', 'F'},
+     .major = 0,
+     .minor = 0,
+     .flags = DGIFF_FLAG_LITTLE_ENDIAN,
+     .num_faces = 0
 };
 
 int

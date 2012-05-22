@@ -107,7 +107,7 @@ static char *     base_name       (const char             *name);
 int main (int         argc,
           const char *argv[])
 {
-     DFBSurfaceDescription desc      = { flags: 0 };
+     DFBSurfaceDescription desc      = { .flags = 0 };
      DFBSurfacePixelFormat format    = DSPF_UNKNOWN;
      DFBSurfacePixelFormat rgbformat = DSPF_UNKNOWN;
      DFBColor  palette[256];

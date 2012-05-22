@@ -112,7 +112,7 @@ dummyTestRegion( CoreLayer                  *layer,
                  CoreLayerRegionConfigFlags *ret_failed )
 {
      if (ret_failed)
-          *ret_failed = DLCONF_NONE;
+          *ret_failed = CLRCF_NONE;
 
      return DFB_OK;
 }

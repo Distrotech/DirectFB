@@ -89,7 +89,7 @@ IDirectFBDataBuffer_AddRef( IDirectFBDataBuffer *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -100,7 +100,7 @@ IDirectFBDataBuffer_Release( IDirectFBDataBuffer *thiz )
      if (--data->ref == 0)
           IDirectFBDataBuffer_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

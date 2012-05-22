@@ -125,7 +125,7 @@ IDirectFBFont_DGIFF_Release( IDirectFBFont *thiz )
           IDirectFBFont_DGIFF_Destruct( thiz );
      }
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

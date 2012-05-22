@@ -74,7 +74,7 @@ IDirectFBPalette_AddRef( IDirectFBPalette *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -85,7 +85,7 @@ IDirectFBPalette_Release( IDirectFBPalette *thiz )
      if (--data->ref == 0)
           IDirectFBPalette_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

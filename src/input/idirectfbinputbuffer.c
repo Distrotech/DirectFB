@@ -211,7 +211,7 @@ IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -224,7 +224,7 @@ IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
      if (--data->ref == 0)
           IDirectFBEventBuffer_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

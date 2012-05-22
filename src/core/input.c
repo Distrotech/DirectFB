@@ -226,16 +226,16 @@ typedef struct {
 
 static const DeadKeyCombo combos_grave[] = {         
      { DIKS_SPACE,     (unsigned char) '`' },        
-     { DIKS_SMALL_A,   (unsigned char) 'à' },        
-     { DIKS_SMALL_E,   (unsigned char) 'è' },        
-     { DIKS_SMALL_I,   (unsigned char) 'ì' },        
-     { DIKS_SMALL_O,   (unsigned char) 'ò' },        
-     { DIKS_SMALL_U,   (unsigned char) 'ù' },        
-     { DIKS_CAPITAL_A, (unsigned char) 'À' },        
-     { DIKS_CAPITAL_E, (unsigned char) 'È' },        
-     { DIKS_CAPITAL_I, (unsigned char) 'Ì' },        
-     { DIKS_CAPITAL_O, (unsigned char) 'Ò' },        
-     { DIKS_CAPITAL_U, (unsigned char) 'Ù' },        
+     { DIKS_SMALL_A,   (unsigned char) 0xe0 }, // 'à'
+     { DIKS_SMALL_E,   (unsigned char) 0xe8 }, // 'è'
+     { DIKS_SMALL_I,   (unsigned char) 0xec }, // 'ì'
+     { DIKS_SMALL_O,   (unsigned char) 0xf2 }, // 'ò'
+     { DIKS_SMALL_U,   (unsigned char) 0xf9 }, // 'ù'
+     { DIKS_CAPITAL_A, (unsigned char) 0xc0 }, // 'À'
+     { DIKS_CAPITAL_E, (unsigned char) 0xc8 }, // 'È'
+     { DIKS_CAPITAL_I, (unsigned char) 0xcc }, // 'Ì'
+     { DIKS_CAPITAL_O, (unsigned char) 0xd2 }, // 'Ò'
+     { DIKS_CAPITAL_U, (unsigned char) 0xd9 }, // 'Ù'
      { 0, 0 }                                        
 };                                                   
                                                      

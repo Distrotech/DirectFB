@@ -82,7 +82,7 @@ ICoreResourceManager_test_AddRef( ICoreResourceManager *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -95,7 +95,7 @@ ICoreResourceManager_test_Release( ICoreResourceManager *thiz )
      if (--data->ref == 0)
           ICoreResourceManager_test_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -134,13 +134,13 @@ Probe( void *ctx, ... )
 
      /* ... */
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
 Construct( void *interface, ... )
 {
-     DFBResult             ret  = DFB_INVARG;
+     DirectResult          ret  = DR_INVARG;
      ICoreResourceManager *thiz = interface;
      CoreDFB              *core;
 
@@ -169,7 +169,7 @@ Construct( void *interface, ... )
      thiz->CreateClient = ICoreResourceManager_test_CreateClient;
 
 
-     return DFB_OK;
+     return DR_OK;
 
 
 error:

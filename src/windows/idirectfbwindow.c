@@ -147,7 +147,7 @@ IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -160,7 +160,7 @@ IDirectFBWindow_Release( IDirectFBWindow *thiz )
      if (--data->ref == 0)
           IDirectFBWindow_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult
@@ -489,7 +489,7 @@ IDirectFBWindow_SetColor( IDirectFBWindow *thiz,
                           u8               b,
                           u8               a )
 {
-     DFBColor color = { a: a, r: r, g: g, b: b };
+     DFBColor color = { .a = a, .r = r, .g = g, .b = b };
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 

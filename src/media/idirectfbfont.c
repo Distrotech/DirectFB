@@ -93,7 +93,7 @@ IDirectFBFont_AddRef( IDirectFBFont *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*
@@ -109,7 +109,7 @@ IDirectFBFont_Release( IDirectFBFont *thiz )
      if (--data->ref == 0)
           IDirectFBFont_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /*

@@ -73,7 +73,7 @@ ICoreResourceClient_test_AddRef( ICoreResourceClient *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -86,7 +86,7 @@ ICoreResourceClient_test_Release( ICoreResourceClient *thiz )
      if (--data->ref == 0)
           ICoreResourceClient_test_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 /**********************************************************************************************************************/
@@ -234,6 +234,6 @@ ICoreResourceClient_test_Construct( ICoreResourceClient  *thiz,
      thiz->UpdateSurface      = ICoreResourceClient_test_UpdateSurface;
 
 
-     return DFB_OK;
+     return DR_OK;
 }
 

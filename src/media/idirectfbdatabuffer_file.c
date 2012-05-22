@@ -81,7 +81,7 @@ IDirectFBDataBuffer_File_Release( IDirectFBDataBuffer *thiz )
      if (--data->ref == 0)
           IDirectFBDataBuffer_File_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

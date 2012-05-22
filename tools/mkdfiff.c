@@ -182,7 +182,7 @@ load_image (const char            *filename,
 
      data  = malloc (height * pitch);
      if (!data) {
-          fprintf (stderr, "Failed to allocate %ud bytes.\n", height * pitch);
+          fprintf (stderr, "Failed to allocate %lu bytes.\n", height * pitch);
           goto cleanup;
      }
 
@@ -209,7 +209,7 @@ load_image (const char            *filename,
 
           dest = malloc (height * d_pitch);
           if (!dest) {
-               fprintf (stderr, "Failed to allocate %ud bytes.\n",
+               fprintf (stderr, "Failed to allocate %lu bytes.\n",
                         height * d_pitch);
                goto cleanup;
           }
@@ -407,17 +407,17 @@ parse_command_line( int argc, char *argv[] )
 /**********************************************************************************************************************/
 
 static DFIFFHeader header = {
-     magic: { 'D', 'F', 'I', 'F', 'F' },
-     major: 0,
-     minor: 0,
-     flags: DFIFF_FLAG_LITTLE_ENDIAN
+     .magic = { 'D', 'F', 'I', 'F', 'F' },
+     .major = 0,
+     .minor = 0,
+     .flags = DFIFF_FLAG_LITTLE_ENDIAN
 };
 
 int
 main( int argc, char *argv[] )
 {
      int                   i;
-     DFBSurfaceDescription desc = { flags: DSDESC_NONE };
+     DFBSurfaceDescription desc = { .flags = DSDESC_NONE };
 
      /* Parse the command line. */
      if (!parse_command_line( argc, argv ))

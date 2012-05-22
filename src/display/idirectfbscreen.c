@@ -98,7 +98,7 @@ IDirectFBScreen_AddRef( IDirectFBScreen *thiz )
 
      data->ref++;
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DirectResult
@@ -109,7 +109,7 @@ IDirectFBScreen_Release( IDirectFBScreen *thiz )
      if (--data->ref == 0)
           IDirectFBScreen_Destruct( thiz );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static DFBResult

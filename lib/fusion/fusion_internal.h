@@ -112,7 +112,7 @@ struct __Fusion_FusionWorld {
       * List of reactors with at least one local reaction attached.
       */
      DirectLink          *reactor_nodes;
-     pthread_mutex_t      reactor_nodes_lock;
+     DirectMutex          reactor_nodes_lock;
 
      FusionSHM            shm;
 

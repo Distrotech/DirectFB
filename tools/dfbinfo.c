@@ -179,7 +179,7 @@ input_device_callback( DFBInputDeviceID           id,
 
      printf( "\n" );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -274,7 +274,7 @@ display_layer_callback( DFBDisplayLayerID           id,
 
      printf( "\n" );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
@@ -564,7 +564,7 @@ screen_callback( DFBScreenID           id,
 
      screen->Release( screen );
 
-     return DFB_OK;
+     return DR_OK;
 }
 
 static void
