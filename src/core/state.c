@@ -32,6 +32,7 @@
 
 #include <pthread.h>
 
+#include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/reactor.h>
 
@@ -219,7 +220,9 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
      dfb_state_lock( state );
 
      if (state->source != source) {
-          if (source && dfb_surface_ref( source )) {
+          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+
+          if (source && ref && dfb_surface_ref( source )) {
                D_WARN( "could not ref() source" );
                dfb_state_unlock( state );
                return DFB_DEAD;
@@ -227,7 +230,8 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
 
           if (state->source) {
                D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_SOURCE ) );
-               dfb_surface_unref( state->source );
+               if (ref)
+                    dfb_surface_unref( state->source );
           }
 
           state->source    = source;
@@ -255,7 +259,9 @@ dfb_state_set_source2( CardState *state, CoreSurface *source2 )
      dfb_state_lock( state );
 
      if (state->source2 != source2) {
-          if (source2 && dfb_surface_ref( source2 )) {
+          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+
+          if (source2 && ref && dfb_surface_ref( source2 )) {
                D_WARN( "could not ref() source2" );
                dfb_state_unlock( state );
                return DFB_DEAD;
@@ -263,7 +269,8 @@ dfb_state_set_source2( CardState *state, CoreSurface *source2 )
 
           if (state->source2) {
                D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_SOURCE2 ) );
-               dfb_surface_unref( state->source2 );
+               if (ref)
+                    dfb_surface_unref( state->source2 );
           }
 
           state->source2   = source2;
@@ -291,7 +298,9 @@ dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask )
      dfb_state_lock( state );
 
      if (state->source_mask != source_mask) {
-          if (source_mask && dfb_surface_ref( source_mask )) {
+          bool ref = !fusion_config->secure_fusion || dfb_core_is_master( core_dfb );
+
+          if (source_mask && ref && dfb_surface_ref( source_mask )) {
                D_WARN( "could not ref() source mask" );
                dfb_state_unlock( state );
                return DFB_DEAD;
@@ -299,7 +308,8 @@ dfb_state_set_source_mask( CardState *state, CoreSurface *source_mask )
 
           if (state->source_mask) {
                D_ASSERT( D_FLAGS_IS_SET( state->flags, CSF_SOURCE_MASK ) );
-               dfb_surface_unref( state->source_mask );
+               if (ref)
+                    dfb_surface_unref( state->source_mask );
           }
 
           state->source_mask  = source_mask;
