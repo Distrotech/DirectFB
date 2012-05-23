@@ -1,3 +1,366 @@
+commit f53178901b16193f0d69349972af728182129246
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 18:42:13 2012 +0200
+
+    change version to 1.4.17
+
+commit 3b471668af4637ae8f5dddafd7e56360b609d558
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 18:40:56 2012 +0200
+
+    update changelog
+
+commit da1f9218105c0693b18a448c962cc12bf81317f9
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 18:40:05 2012 +0200
+
+    make flux 1.3.0 a requirement, update debian package
+
+commit ab24540bfa1523dc8e7a09a039bd3cf2d1bae1b5
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 18:02:32 2012 +0200
+
+    Core: remove bogus asserts, mark optional output parameters in .flux files to have flux generate proper code
+
+commit 18edd451e85e19c2fa921f63e301ec88444deba8
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 16:24:42 2012 +0200
+
+    rules: use $FLUXCOMP not fluxcomp
+
+commit 1466a914a3a6fc1dd69aee5091dfea9c6302024b
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 16:23:55 2012 +0200
+
+    configure: dont check for CoreDFB.cpp but fort CoreDFB.c on 1.4
+
+commit 22c6b7f4ee761fed3a4d3cdad8e8233d0fc16d5a
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 15:59:15 2012 +0200
+
+    configure: add check for fluxcomp, which also checks for the required fluxcomp version
+    
+    Many thanks to Sven Neumann for the original patch
+
+commit c1a17397d64ccb97d3b8ad5f4597edb2e84692dc
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue May 22 10:23:43 2012 +0200
+
+    Semantic fixes in various places (thanks to bc).
+
+commit 277acd149d72f30fec9d6a51c1e1d5691bd0b780
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri May 18 17:21:58 2012 +0200
+
+    Direct: only allow killing the sighandler thread from inside the DFB process
+
+commit 767e55dbd5897ee1f06aa50853862b2266decb86
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri May 18 12:41:43 2012 +0200
+
+    Direct: add custom signal 123 to sighandler mask
+
+commit 75a07f9a47a26f3f572432e315a83cb73ee8ac21
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri May 18 12:37:47 2012 +0200
+
+    Direct: add custom signal 123 to sighandler mask
+
+commit 92a508bf2abb7b534ff4a1e4a1a245fcdcf89d55
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri May 18 12:39:42 2012 +0200
+
+    Direct: remove empty line at EOF
+
+commit 770be366cf0b1214088453436257f3eb80899103
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu May 17 23:57:30 2012 +0200
+
+    direct: Fix missing zero char in size calculation for option entry allocation.
+
+commit 6058a0050a9d4d4e35e06f5b3e3af10d88c1cb0b
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 16 13:49:57 2012 +0200
+
+    ImageProvider: handle invalid images (thanks to bc).
+
+commit 54c5862b15b62bb5f6a203bd08734394f9f61d71
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 16 13:18:37 2012 +0200
+
+    Core: set_region: must lock region buffer also on flags CLRCF_SRCKEY,CLRCF_DSTKEY,CLRCF_OPACITY,CLRCF_SOURCE,CLRCF_DEST
+
+commit f6dab2d6981e671c1d216ebedc391625aa6adba3
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 16 12:35:44 2012 +0200
+
+    Direct: use pthread_mutex instead of direct_mutex
+
+commit 6d2a00b99956097ff5bf42e7b7f0fb66a6a7511c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue May 15 15:44:13 2012 +0200
+
+    Direct: added missing path to loading interfaces when a implementation was not specified when loading a static interface
+
+commit 991d8fa8ec8900defd7ecfccedd96350ee996bdc
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu May 10 13:20:02 2012 +0200
+
+    Fusion: remove dispatch_cleanups from internal struct
+
+commit c12635ea578fd1f0cde9b87c218de4ab5fe7a980
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu May 10 13:03:49 2012 +0200
+
+    Fusion: fix build for single app mode
+
+commit 097c9094043da2b5c58dc0267a04ab95d10d8601
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 9 12:27:41 2012 +0200
+
+    Core: can also queue SetColorAndIndex
+
+commit a438503ebd9c089f2ca678f019bfa1c9e2052cf5
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 9 11:56:29 2012 +0200
+
+    Direct: fix off by one bug in detecting value of default-interface-implementation
+
+commit 40f4a5c8cf6f00e8235413e29886255ede96201c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue May 8 16:03:55 2012 +0200
+
+    Fusion: buffer async fusion calls in user space using one ioctl up to 512 calls or 20ms timeout
+    
+    Improves slave GFX performance by ~1% and produces ~10% less CPU load
+
+commit 7bad203babb16cd8e5086c414dd5c9ef390ace2f
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue May 8 13:23:47 2012 +0200
+
+    Core: fix segfault in palette (off-by-one)
+
+commit 127c7b92fb94f55dbed527360162d6266c5fbbe1
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri May 4 14:09:14 2012 +0200
+
+    Direct: remove debug message
+
+commit da7cd980d7b88a5089c08d9c49b3ae0163f65d7e
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri May 4 14:02:03 2012 +0200
+
+    direct: compile fix: include <direct/types.h>
+
+commit 0abfe843628af4a4ea9d2d65826f0bdde0740f25
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri May 4 13:26:23 2012 +0200
+
+    Conf: generic config extensions fixes and improvements
+    
+    Conflicts:
+    
+    	lib/direct/conf.c
+    	lib/direct/conf.h
+
+commit c39b3daae1e9d001fd9d7688add46e645342a6f6
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu May 3 12:26:00 2012 +0200
+
+    Core: close input devices before shutdown is processed
+
+commit fcf8fd172ab153659d6c6772fcc0442a56094846
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Apr 30 14:56:35 2012 +0200
+
+    core: make rest of palette APIs secure-fusion safe
+
+commit 2cf3e296551a78c1935d2303097b6ab67bddd037
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Apr 24 13:10:29 2012 +0200
+
+    dfb:     fix CreatePalette() which was not ready for secure-fusion
+    display: fix SetColorIndex() which was not ready for secure-fusion
+    core:    add SetColorAndIndex(..) which sets color and color index in client card state
+    
+    Fix: Slave apps were not able to set and use palette.
+         Removed segfaults and added proper handling in master.
+
+commit 3fab3954474747e0457d175fb792582a256e540d
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Apr 23 16:27:13 2012 +0200
+
+    direct: fix default interface selection from cached interfaces
+
+commit c9f33c9ac742a8985922cacb3f99fe4946641d3e
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Apr 23 14:54:13 2012 +0200
+
+    direct: replace direct_mutex_*() by pthread_mutex_*()
+
+commit 4a50c114b22c7b9d26bf3561ba9e522721b3c8f5
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Apr 23 14:13:03 2012 +0200
+
+    direct: handle multiple settings of default-interface-implementation=type/impl in directfbrc
+
+commit 112fe6c62e391ad54dbd7eb43df07f685736215e
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Fri Apr 20 10:01:06 2012 +0200
+
+    direct: support default-interface-implementation=interface_name/implementation_name in config
+    
+    Refactored DirectGetInterface(...) to respect default settings in directfbrc.
+    Now it is possible to select e.g. a default ImageProvider by adding
+    
+    default-interface-implementation=IDirectFBImageProvider/IMLIB2
+    
+    to directfbrc. The IMLIB2 Provider will then be used prior to selecting PNG or JPEG provider.
+
+commit d7316b65f5a51a5907b5b64358049681ecc2ad4e
+Author: Holger Hans Peter Freyther <zecke@selfish.org>
+Date:   Sat Apr 14 10:43:40 2012 +0200
+
+    build: Fix make distcheck.
+    
+    Add CoreDFB_CallMode.h to the list of header files.
+
+commit 62dd0763524fe7020c6329b6d2e25874928d5b9a
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Apr 12 12:16:34 2012 +0200
+
+    direct: also evaluate no-sighandler option in destructor
+
+commit cc36130b38757259252a9a4dcc00b76741063a66
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Apr 12 11:13:19 2012 +0200
+
+    - core: optimization: force COREDFB_CALL_DIRECT mode for single-app builds
+
+commit afc141c33608aa3bb1447c9ba0022f0124ccad06
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Apr 12 10:13:22 2012 +0200
+
+    direct: respect no-sighandler option
+    
+    Conflicts:
+    
+    	lib/direct/signals.c
+
+commit 4eee6b622337e5e85745107f249c51fb2474759d
+Merge: 7caaf91 a6bdcae
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Thu Apr 12 10:18:21 2012 +0200
+
+    Merge branch 'directfb-1.4' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.4
+
+commit a6bdcae75771e2db28507caf793806dde3d35ab1
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Apr 11 15:39:16 2012 +0200
+
+    gfx/generic: fix off-by one issues in 16-bit code introduced by 520907c32769e08272d9b776f5524b37e114343c
+
+commit 7caaf915f65a52b9889b4eb4d7bcf8d4028f7bbd
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Apr 10 18:18:46 2012 +0200
+
+    - fix reference counting bug
+
+commit 46de193e9e58e50c2cc3fef2918c4ae9fb905fbb
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Apr 10 13:58:55 2012 +0200
+
+    Fix shutdown deadlock.
+    Threads should not sleep in single app mode in CoreDFB_CallMode()
+    The disptacher thread should never sleep in CoreDFB_CallMode()
+    
+    core: dispatcher thread should not sleep in CoreDFB_CallMode()
+    fusion: fake return value of fusion_dispatcher_tid() for single app mode to zero
+
+commit 753fbf8d53c0d7e3f7077f6b9b0da5b2b5deee65
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Tue Apr 10 12:59:55 2012 +0200
+
+    direct: do not block all signals by default, just subscribe to the observed ones as before
+    
+    Makes ctrl-Z on console work again.
+
+commit 923ba1e2fc4de5281539e19fb0a6b81d8ed2d5e8
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Apr 6 18:39:58 2012 +0200
+
+    Fusion: Fix build by adding fusion_dispatcher_tid() for single app.
+
+commit 0803220ceb4c6932b75bc4d82af8442d574fbc42
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Apr 5 19:02:33 2012 +0200
+
+    Core: Add CoreGraphicsState::ReleaseSource() to fix IDirectFBSurface::ReleaseSource() in secure fusion mode.
+
+commit 3653030438ca759183f5cf4358b8a5dc0785245e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Apr 5 19:25:24 2012 +0200
+
+    Fix: Replace direct_thread_sleep by usleep.
+
+commit 3dc15bba9414d934d02d91d220eae8e924496706
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Apr 4 16:48:34 2012 +0200
+
+    devmem: remove bogus ASSERTS
+
+commit 7887f70cedb0b999a01b600875644fdfba3b318a
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Apr 4 15:55:17 2012 +0200
+
+    core: let ongoing flux calls complete in any case before deinitialization is performed
+
+commit 8009d41496beea491e3cc3ff8f773bbd6ce217d7
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed Apr 4 12:27:18 2012 +0200
+
+    remove printf()
+
+commit dade67073d418cd658cfa5e70f338becbe477dc5
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Apr 4 11:42:02 2012 +0200
+
+    core: implemented clean shutdown
+    
+    The registered signal handler is the first one which destroys the core.
+    All pending flux calls wait until core is destroyed before returning DFB_DEAD.
+
+commit 761f569f5b055515f1daa2834c8d8cfc9bf7d9de
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed Apr 4 13:41:12 2012 +0200
+
+    direct: reworked signal handling
+    
+    Created threads block all signals by default.
+    Added an extra thread dedicated for asynchronous signal processing.
+    This is the only thread which catches and processes signals.
+    The changes were needed for a synchronous and clean application shutdown.
+
+commit 8a74c2a600ffd7a85561ed24067308bc4ab5e073
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Apr 3 14:06:22 2012 +0200
+
+    core: add function CoreDFB_CallMode() which determines whether calls should be direct, indirect or denied.
+    
+    NOTE: Requieres latest flux from git
+
+commit 8bc73643cb8024718bb4e71885ca0711d38ea042
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Mon Apr 2 18:15:55 2012 +0200
+
+    core: fix race condition between dfb_wm_close_all_stacks() and layer_context destructor
+
+commit ab0d779e85cec22c7c2e7b8b6b1976049b1ba0f1
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue Mar 20 18:19:13 2012 +0100
+
+    DirectFB 1.4.16
+
 commit 251b90db938c5d35edd19dade3e3c58394cef0aa
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Tue Mar 20 16:32:49 2012 +0100
