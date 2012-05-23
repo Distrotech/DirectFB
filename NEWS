@@ -10,20 +10,22 @@ Core
 - set_region: lock region buffer also on flags CLRCF_SRCKEY,CLRCF_DSTKEY,CLRCF_OPACITY,CLRCF_SOURCE,CLRCF_DEST
 - remove bogus asserts for optional output parameters in Core API and mark these parameters in .flux files
 
+Graphics
+- generic: fix off-by one issues in 16-bit code
+
 libdirect
 - reworked signal handling (an extra thread is now dedicated to asychronous signal processing)
 - support default-interface-implementation=interface_name/implementation_name in config
 - generic configuration extensions to support options unknown to the directfb core, but known to custom modules
 
-
 Fusion:
 - buffer async fusion calls in user space using one ioctl up to 512 calls or 20ms timeout (Increses performance)
 
-Graphics
-- generic: fix off-by one issues in 16-bit code
-
 Secure Fusion
 - fix CreatePalette(), SetColorIndex(), SetEntries()
+
+One
+- add linux-one kernel module and libone from DirectFB 1.6, these are required when FusionDale with secure fusion
 
 Default WM
 - remove redundant checks
@@ -33,13 +35,15 @@ DevMem System
 - remove bogus ASSERTS
 
 X11 System:
--  Call dfb_surface_notify_diosplay() AFTER calling dfb_surface_flip().
+- Call dfb_surface_notify_diosplay() AFTER calling dfb_surface_flip().
 
 ImageProviders
 - handle invalid images in various providers (thanks to Broadcom)
 
 build
 - configure: check for flux 1.3.0 (thanks to Sven Neumann for the original patch)
+
+
 1.4.16
 ------
 

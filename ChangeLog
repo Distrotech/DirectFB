@@ -1,3 +1,153 @@
+commit cc8b39ea4b64c8304a4f36b7d724ae221bcea260
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 15:20:38 2012 +0200
+
+    wm: fix build, added missing variable "DFBResult ret"
+
+commit aada8a6fcbfb8a20db76b5a0a35ed7a67210b478
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 15:19:02 2012 +0200
+
+    Fusion: replaced direct_mutex_*lock by direct_thread_*lock
+
+commit 3af79d457416a13cc751f71aaa199ac77d43a855
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 15:18:30 2012 +0200
+
+    Added linux One.
+
+commit 618291f46d5aeb64a3c317dd3c157431c5ef26ba
+Merge: 35acd45 7290a64
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 14:55:51 2012 +0200
+
+    Merge branch 'directfb-1.4' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.4
+
+commit 35acd45a3f8a8a8bb3aeded0da465cd88d872d91
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri May 11 20:39:23 2012 +0100
+
+    One: Use capacity based ids array instead of reallocating each time.
+
+commit cfa5889480dbf15267892300ecc7d91292d1e0d1
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Mar 16 15:22:39 2012 +0100
+
+    One: Add more debug info about apps and queues to /proc.
+
+commit d7f671456cfd910f527a0c6c171f5e32a046603e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Mar 13 14:41:28 2012 +0100
+
+    One: Add OneQueue_SetName() using ONE_ENTRY_SET_INFO ioctl.
+
+commit 2b5b4a64a45ea2ba07d26e14f5c504b2058f00c0
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Jan 11 12:12:33 2012 +0100
+
+    queue: init link magic with 0 to avoid assumption failure due to non-clearing malloc
+
+commit 93c21cf1289830426b2111616bba8a3c094fe005
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Jan 10 16:38:50 2012 +0100
+
+    linux-one: fix kernel version detection for makefile
+
+commit 2d9e9f966e19a8bccbfabb6cb95281c5bf32193e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Nov 18 15:02:39 2011 +0100
+
+    One: Print pending packet count for each queue, print attached QIDs, more error logging.
+
+commit 3539ba32028149aa51c35ebdc8b8e196c21fc186
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Nov 14 20:01:23 2011 +0100
+
+    One: Add TODO item about packet size limit
+
+commit a320b3319103b5d165c7c9aec34d3cb7afeea0ce
+Author: Holger Hans Peter Freyther <holger@moiji-mobile.com>
+Date:   Sat Nov 12 10:52:24 2011 +0100
+
+    build: Fix make distcheck of master
+    
+    * Put Makefile.static into the EXTRA_DIST, invoke the Makefile via
+      the srcdir as distcheck invokes VPATH build.
+    * Put surface_core.h into the internal include headers, this file got
+      introduced by the recent PREALLOC surface patches.
+
+commit faceec59276529c28af7854134007db93226902e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed Nov 9 19:28:08 2011 +0100
+
+    One: Add notes about extending the QID for global messaging.
+
+commit 461455eb9298b8ea62fd4a59be6946d6ad4991bc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 27 11:34:22 2011 +0200
+
+    One: Start dynamic IDs at 1000 to reserve 1-999 for static IDs.
+
+commit 3b08ee6ace6b5870dcb29a7abdd487c3ef42b60a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Thu Oct 27 11:31:37 2011 +0200
+
+    One: Don't print error on timeout.
+
+commit b2a463ad03c56de63b212481bbd773db3d1e034e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 21 21:47:24 2011 +0200
+
+    ignore
+
+commit 7f6ab4416e127ab1089027f7e2d2af048cc9884e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Fri Oct 21 21:43:34 2011 +0200
+
+    One: Add optional receive timeout, 0 = no timeout, -1 = return immediately if nothing to receive
+
+commit 537b9a545ba2b1678b55d7552e0f4a11ace7604e
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 11 16:45:50 2011 +0200
+
+    One: Allow attaching remote queue to local queue, needs refactoring...
+
+commit 836be6100fe70144bc94d3a50991f56b731250fc
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Tue Oct 11 16:45:21 2011 +0200
+
+    One: Keep a list of OneApps.
+
+commit 34eae9fb790670f5a33bdb66a584031e0b76663f
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 10 21:54:22 2011 +0200
+
+    One: Disable packet append for now
+
+commit 91832d89cbad1c1abe871598a6bbe1d59520e675
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 10 20:35:40 2011 +0200
+
+    One: Don't clear magic in one_core_cleanup().
+
+commit 3f66d075d6739e5feed159705e792d9d93713e88
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 10 20:32:10 2011 +0200
+
+    One: Add missing one_core_cleanup() to kernel module.
+
+commit c2fd3286b772140fc5c7b1426328a88d58df35bd
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Mon Oct 10 13:44:28 2011 +0200
+
+    One: Initial checkin of new IPC module.
+
+commit 7290a649bc30c7beb649809b0b0889e2042f6c36
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed May 23 14:23:03 2012 +0200
+
+    update ChangeLog and NEWS
+
 commit 92d6e8785d944db2c67ad9cf63a1c1993d620185
 Merge: de74a77 fd72dc7
 Author: Marek Pikarski <mass@directfb.org>
