@@ -3214,6 +3214,12 @@ defaultwm_surface_reaction( const void *msg_data,
 
           switch (data->region->config.buffermode) {
                case DLBM_TRIPLE:
+                    ret = dfb_layer_context_lock( data->region->context );
+                    if (ret) {
+                         D_DERROR( ret, "WM/Default/SurfaceReaction: Could not lock layer context!\n" );
+                         return RS_OK;
+                    }
+
                     D_ASSUME( data->updated.num_regions > 0 );
 
                     if (data->updated.num_regions) {
@@ -3238,6 +3244,8 @@ defaultwm_surface_reaction( const void *msg_data,
 
                          flush_updating( data );
                     }
+
+                    dfb_layer_context_unlock( data->region->context );
                     break;
 
                default:
