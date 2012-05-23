@@ -30,6 +30,7 @@ One
 Default WM
 - remove redundant checks
 - add missing locking to surface reaction (fix race-condition)
+- use DSFLIP_WAITFORSYNC in DLBM_BACKVIDEO case
 
 DevMem System
 - remove bogus ASSERTS

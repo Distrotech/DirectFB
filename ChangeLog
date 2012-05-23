@@ -1,3 +1,15 @@
+commit 0aee8b988b4339fd4e9bb1c17384419bee92fb16
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed May 23 16:55:28 2012 +0200
+
+    wm/default: use DSFLIP_WAITFORSYNC in DLBM_BACKVIDEO case
+
+commit 2e1cd6858ffecd560e07155715b8877e60f45334
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Wed May 23 15:26:32 2012 +0200
+
+    update NEWS and changelog (again)
+
 commit cc8b39ea4b64c8304a4f36b7d724ae221bcea260
 Author: Marek Pikarski <mass@directfb.org>
 Date:   Wed May 23 15:20:38 2012 +0200
