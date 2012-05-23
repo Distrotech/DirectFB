@@ -122,6 +122,8 @@ DirectResult       fusion_object_set_string_property( FusionObject  *object ,
 void *fusion_object_get_property( FusionObject *object ,const char *key);
 void fusion_object_remove_property( FusionObject *object ,const char *key,void **ret_val);
 
+DirectResult fusion_object_catch  ( FusionObject           *object );
+
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
                                                                                \
 static inline DirectResult                                                     \
