@@ -1363,8 +1363,8 @@ flush_updating( StackData *data )
 
      D_ASSERT( data != NULL );
 
-     D_ASSUME( data->updating.num_regions > 0 || data->updating.num_regions > 0 );
-     D_ASSUME( data->updated.num_regions == 0 && data->updated.num_regions == 0 );
+     D_ASSUME( data->updating.num_regions > 0 );
+     D_ASSUME( data->updated.num_regions == 0 );
 
      if (data->updating.num_regions) {
           /*
@@ -3217,24 +3217,17 @@ defaultwm_surface_reaction( const void *msg_data,
                     D_ASSUME( data->updated.num_regions > 0 );
 
                     if (data->updated.num_regions) {
-                         switch (data->region->config.buffermode) {
-                              case DLBM_TRIPLE:
-                                   /* Copy back the updated region. */
-                                   if (data->updated.num_regions) {
-                                        D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
+                         /* Copy back the updated region. */
+                         if (data->updated.num_regions) {
+                              D_DEBUG_AT( WM_Default, "  -> copying %d updated regions (F->I) (left)\n", data->updated.num_regions );
 
-                                        for (i=0; i<data->updated.num_regions; i++) {
-                                             D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
-                                                         DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
-                                        }
+                              for (i=0; i<data->updated.num_regions; i++) {
+                                   D_DEBUG_AT( WM_Default, "    -> %4d,%4d - %4dx%4d  [%d]\n",
+                                               DFB_RECTANGLE_VALS_FROM_REGION( &data->updated.regions[i] ), i );
+                              }
 
-                                        dfb_gfx_copy_regions( data->surface, CSBR_FRONT, data->surface, CSBR_IDLE,
-                                                              data->updated.regions, data->updated.num_regions, 0, 0 );
-                                   }
-                                   break;
-
-                              default:
-                                   break;
+                              dfb_gfx_copy_regions( data->surface, CSBR_FRONT, data->surface, CSBR_IDLE,
+                                                    data->updated.regions, data->updated.num_regions, 0, 0 );
                          }
 
                          dfb_updates_reset( &data->updated );
