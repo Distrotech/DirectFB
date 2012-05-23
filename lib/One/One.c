@@ -725,15 +725,14 @@ OneThread_Dispatcher( DirectThread *thread,
           size_t length;
           size_t offset;
 
-          direct_mutex_lock( &thread->lock );
+          direct_thread_lock( thread );
 
           if (data->queues_age != ids_age) {
                if (!data->queue_count) {
                     // FIXME: use wait queue
-                    direct_thread_sleep( 10000 );
+                    usleep( 10000 );
 
-
-                    direct_mutex_unlock( &thread->lock );
+                    direct_thread_unlock( thread );
                     continue;
                }
 
@@ -751,6 +750,7 @@ OneThread_Dispatcher( DirectThread *thread,
                     ids = D_MALLOC( sizeof(OneQID) * ids_capacity );
                     if (!ids) {
                          D_OOM();
+                         direct_thread_unlock( thread );
                          return NULL;
                     }
                }
@@ -758,7 +758,7 @@ OneThread_Dispatcher( DirectThread *thread,
                direct_memcpy( ids, data->queue_ids, sizeof(OneQID) * data->queue_count );
           }
 
-          direct_mutex_unlock( &thread->lock );
+          direct_thread_unlock( thread );
 
           ret = OneQueue_Receive( ids, ids_count, buf, RECEIVE_BUFFER_SIZE, &length, false, 0 );
           if (ret) {
@@ -782,11 +782,11 @@ OneThread_Dispatcher( DirectThread *thread,
                     continue;
                }
 
-               direct_mutex_lock( &thread->lock );
+               direct_thread_lock( thread );
 
                queue = direct_hash_lookup( data->queues, header->queue_id );
 
-               direct_mutex_unlock( &thread->lock );
+               direct_thread_unlock( thread );
 
                if (queue) {
                     D_MAGIC_ASSERT( queue, AddedQueue );
@@ -878,17 +878,17 @@ OneThread_AddQueue( OneThread         *thread,
 
      D_DEBUG_AT( One_Thread, "%s()\n", __FUNCTION__ );
 
-     direct_mutex_lock( &thread->lock );
+     direct_thread_lock( thread->thread );
 
      queue = direct_hash_lookup( thread->queues, queue_id );
      if (queue) {
-          direct_mutex_unlock( &thread->lock );
+          direct_thread_unlock( thread->thread );
           return DR_BUSY;
      }
 
      queue = D_CALLOC( 1, sizeof(AddedQueue) );
      if (!queue) {
-          direct_mutex_unlock( &thread->lock );
+          direct_thread_unlock( thread->thread );
           return D_OOM();
      }
 
@@ -908,7 +908,7 @@ OneThread_AddQueue( OneThread         *thread,
 
      thread->queues_age++;
 
-     direct_mutex_unlock( &thread->lock );
+     direct_thread_unlock( thread->thread );
 
      OneQueue_WakeUp( &thread->queue_ids[0], 1 );
 
@@ -924,7 +924,7 @@ OneThread_RemoveQueue( OneThread *thread,
 
      D_DEBUG_AT( One_Thread, "%s()\n", __FUNCTION__ );
 
-     direct_mutex_lock( &thread->lock );
+     direct_thread_lock( thread->thread );
 
      queue = direct_hash_lookup( thread->queues, queue_id );
      if (!queue) {

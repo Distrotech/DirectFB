@@ -520,6 +520,18 @@ else
   FUSION_BUILD_KERNEL=0
 fi
 
+AC_ARG_ENABLE(one,
+              AC_HELP_STRING([--enable-one],
+                             [enable One (IPC) @<:@default=no@:>@]),
+              [], [enable_one=no]) 
+if test "$enable_one" = "yes"; then
+    DIRECTFB_BUILD_ONE=1
+    DEP_ONE=one
+else
+    DIRECTFB_BUILD_ONE=0
+    enable_one=no
+    DEP_ONE=
+fi
 
 AC_ARG_ENABLE(voodoo,
               AC_HELP_STRING([--enable-voodoo],
@@ -582,6 +594,7 @@ AM_CONDITIONAL(ENABLE_MULTI, test "$enable_multi" = "yes")
 AC_SUBST(FUSION_BUILD_MULTI)
 AC_SUBST(FUSION_BUILD_KERNEL)
 
+AM_CONDITIONAL(ENABLE_ONE, test "$enable_one" = "yes")
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 
 
@@ -1730,6 +1743,10 @@ lib/fusion/build.h
 lib/fusion/fusion.pc
 lib/fusion/shm/Makefile
 
+lib/One/Makefile
+lib/One/one.pc
+lib/One/linux-one/Makefile
+
 lib/voodoo/Makefile
 lib/voodoo/build.h
 lib/voodoo/voodoo.pc
@@ -1857,6 +1874,7 @@ Misc options:
   Multi Application Core    $enable_multi
   Fusion Kernel Device      $linux_fusion
   Fusion message size       $with_message_size
+  One (IPC)                 $enable_one
   Voodoo (network support)  $enable_voodoo
   Pure Voodoo (net only)    $enable_pure_voodoo
   Debug supported           $enable_debug_support
