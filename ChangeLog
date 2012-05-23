@@ -1,3 +1,41 @@
+commit 92d6e8785d944db2c67ad9cf63a1c1993d620185
+Merge: de74a77 fd72dc7
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 13:44:01 2012 +0200
+
+    Merge branch 'directfb-1.4' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.4
+
+commit de74a77e6e10b4e9df379253bb123e80182d0245
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 13:42:29 2012 +0200
+
+    wm: add missing locking to surface reaction (fix race-condition)
+
+commit fd72dc783df682c2922abae4f7d5cf54dd196d7a
+Author: Denis Oliver Kropp <dok@directfb.org>
+Date:   Wed May 23 12:16:17 2012 +0200
+
+    X11: Call dfb_surface_notify_diosplay() AFTER calling dfb_surface_flip().
+
+commit c1c9357499766ff612b5109fc69e5a333273ac0a
+Merge: 38ac24e e1c107c
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 11:44:43 2012 +0200
+
+    Merge branch 'directfb-1.4' of git+ssh://git.directfb.org/git/directfb/core/DirectFB into directfb-1.4
+
+commit 38ac24edb255dd54667f0d9d383e5648cddc7e62
+Author: Marek Pikarski <mass@directfb.org>
+Date:   Wed May 23 11:43:25 2012 +0200
+
+    wm: remove redundant checks (copy'n'paste bugs)
+
+commit e1c107cbba6a72e9e2294e5b1b6394ddc82cbf46
+Author: Andreas Shimokawa <andi@directfb.org>
+Date:   Tue May 22 18:42:35 2012 +0200
+
+    update changelog
+
 commit f53178901b16193f0d69349972af728182129246
 Author: Andreas Shimokawa <andi@directfb.org>
 Date:   Tue May 22 18:42:13 2012 +0200
