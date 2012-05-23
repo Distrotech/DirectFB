@@ -500,9 +500,9 @@ primaryFlipRegion( CoreLayer             *layer,
      if (x11->shared->x_error)
           return DFB_FAILURE;
 
-     dfb_surface_notify_display( surface, lock->buffer );
-
      dfb_surface_flip( surface, false );
+
+     dfb_surface_notify_display( surface, lock->buffer );
 
      return dfb_x11_update_screen( x11, lds, &region, lock );
 }
