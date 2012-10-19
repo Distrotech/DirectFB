@@ -859,7 +859,7 @@ fusion_exit( FusionWorld *world,
           return DR_OK;
      }
 
-     if (!emergency) {
+     {
           int               foo;
           FusionSendMessage msg;
 
@@ -878,7 +878,9 @@ fusion_exit( FusionWorld *world,
                     break;
                }
           }
+     }
 
+     if (!emergency) {
           /* Wait for its termination. */
           direct_thread_join( world->dispatch_loop );
      }
