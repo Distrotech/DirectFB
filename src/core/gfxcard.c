@@ -996,6 +996,10 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
                /* ...force rechecking for all blitting functions. */
                state->checked &= ~DFXL_ALL_BLIT;
           }
+          else if (state->modified & SMF_SOURCE2) {
+               /* Otherwise force rechecking for blit2 function if source2 has been changed. */
+               state->checked &= ~DFXL_BLIT2;
+          }
 
           /* If drawing flags have been changed... */
           if (state->modified & SMF_DRAWING_FLAGS) {
@@ -1037,7 +1041,9 @@ dfb_gfxcard_state_check_acquire( CardState *state, DFBAccelerationMask accel )
      D_MAGIC_ASSERT( dst_buffer, CoreSurfaceBuffer );
 
      /* If back_buffer policy is 'system only' there's no acceleration available. */
-     if (dst_buffer->policy == CSP_SYSTEMONLY || /* Special check required if driver does not check itself. */
+     if ((dst_buffer->policy == CSP_SYSTEMONLY &&
+           !(card->caps.flags & CCF_READSYSMEM &&
+            card->caps.flags & CCF_WRITESYSMEM)) || /* Special check required if driver does not check itself. */
                                                  ( !(card->caps.flags & CCF_RENDEROPTS) &&
                                                     (state->render_options & DSRO_MATRIX) ))
      {
