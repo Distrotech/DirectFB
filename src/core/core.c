@@ -1675,17 +1675,6 @@ dfb_core_arena_leave( FusionArena *arena,
 
 /*********************************************************************************************************************/
 
-#define CORE_TLS_IDENTITY_STACK_MAX     8
-
-typedef struct {
-     int          magic;
-
-     FusionID     identity[CORE_TLS_IDENTITY_STACK_MAX];
-     unsigned int identity_count;
-
-     int          calling;
-} CoreTLS;
-
 static pthread_key_t core_tls_key;
 
 static void
@@ -1715,7 +1704,7 @@ Core_TLS__deinit( void )
 }
 
 
-static CoreTLS *
+CoreTLS *
 Core_GetTLS( void )
 {
      CoreTLS *core_tls;
@@ -1729,6 +1718,8 @@ Core_GetTLS( void )
           }
 
           D_MAGIC_SET( core_tls, CoreTLS );
+
+          core_tls->tid = direct_gettid();
 
           pthread_setspecific( core_tls_key, core_tls );
      }

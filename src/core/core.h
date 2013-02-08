@@ -330,11 +330,24 @@ Core_AsyncCall( AsyncCallFunc  func,
      return (DFBResult) fusion_call_execute2( &core_dfb->async_call, (FusionCallExecFlags)(FCEF_ONEWAY | FCEF_NODIRECT), 0, &call, sizeof(call), NULL );
 }
 
+#define CORE_TLS_IDENTITY_STACK_MAX     8
 
+typedef struct {
+     int          magic;
+
+     FusionID     identity[CORE_TLS_IDENTITY_STACK_MAX];
+     unsigned int identity_count;
+     pid_t        tid;
+     int          calling;
+#if FUSION_BUILD_MULTI
+     int          no_wait_on_shutdown;
+#endif
+} CoreTLS;
 
 void Core_TLS__init( void );
 void Core_TLS__deinit( void );
 
+CoreTLS *Core_GetTLS( void );
 
 /*
  * Identity management

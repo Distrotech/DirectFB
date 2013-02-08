@@ -40,8 +40,16 @@ static __inline__ CoreDFBCallMode
 CoreDFB_CallMode( CoreDFB *core )
 {
 #if FUSION_BUILD_MULTI
-     if (core->shutdown_tid && core->shutdown_tid != direct_gettid() && direct_gettid() != fusion_dispatcher_tid(core->world) && !Core_GetCalling()) {
-          while (core_dfb)
+     CoreTLS *tls;
+     
+     tls = Core_GetTLS();
+     if (!tls) {
+          D_WARN( "TLS error" );
+          return COREDFB_CALL_DENY;
+     }
+     
+     if (core->shutdown_tid && core->shutdown_tid != tls->tid && tls->tid != fusion_dispatcher_tid(core->world) && !tls->calling) {
+          while (core_dfb && !tls->no_wait_on_shutdown)
                usleep(10000);
 
           return COREDFB_CALL_DENY;
