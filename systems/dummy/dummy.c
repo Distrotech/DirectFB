@@ -28,8 +28,6 @@
 
 #include <config.h>
 
-#include <core/Task.h>
-
 #include <core/layers.h>
 #include <core/screens.h>
 
@@ -140,15 +138,9 @@ dummyFlipRegion( CoreLayer             *layer,
                  void                  *region_data,
                  CoreSurface           *surface,
                  DFBSurfaceFlipFlags    flags,
-                 const DFBRegion       *left_update,
-                 CoreSurfaceBufferLock *left_lock,
-                 const DFBRegion       *right_update,
-                 CoreSurfaceBufferLock *right_lock )
+                 CoreSurfaceBufferLock *lock )
 {
-     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
-
-     if (left_lock->task)
-          Task_Done( left_lock->task );
+     dfb_surface_notify_display( surface, lock->buffer );
 
      return DFB_OK;
 }
@@ -159,15 +151,10 @@ dummyUpdateRegion( CoreLayer             *layer,
                    void                  *layer_data,
                    void                  *region_data,
                    CoreSurface           *surface,
-                   const DFBRegion       *left_update,
-                   CoreSurfaceBufferLock *left_lock,
-                   const DFBRegion       *right_update,
-                   CoreSurfaceBufferLock *right_lock )
+                   const DFBRegion       *update,
+                   CoreSurfaceBufferLock *lock )
 {
-     dfb_surface_notify_display2( surface, left_lock->allocation->index, left_lock->task );
-
-     if (left_lock->task)
-          Task_Done( left_lock->task );
+     dfb_surface_notify_display( surface, lock->buffer );
 
      return DFB_OK;
 }
