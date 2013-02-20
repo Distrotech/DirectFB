@@ -74,6 +74,15 @@ typedef struct {
 static pthread_mutex_t  implementations_mutex = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 static DirectLink      *implementations       = NULL;
 
+// workaround interface loading problems when compiled with gcc-4.x on x86-*
+void workaround_func(void);
+
+__attribute__((noinline))
+void
+workaround_func(void)
+{
+}
+
 static inline int
 probe_interface( DirectInterfaceImplementation  *impl,
                  DirectInterfaceFuncs          **funcs,
@@ -301,6 +310,8 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                          }
                     }
 
+                    workaround_func();
+
                     /* Open it if needed and check. */
                     if (!handle) {
                          handle = dlopen( buf, RTLD_NOW );
@@ -373,6 +384,8 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
                    break;
                }
           }
+
+          workaround_func();
 
           /* Open it if needed and check. */
           if (!handle) {
