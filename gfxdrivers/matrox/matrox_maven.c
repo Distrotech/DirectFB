@@ -35,6 +35,7 @@
 #include <dirent.h>
 
 #include <linux/i2c-dev.h>
+#include <linux/i2c.h>
 
 #include <directfb.h>
 
