@@ -1342,7 +1342,9 @@ dfb_surface_pool_enumerate ( CoreSurfacePool          *pool,
      D_ASSERT( callback != NULL );
 
      fusion_vector_foreach (allocation, i, pool->allocs) {
-          if (callback( allocation, ctx ) == DFENUM_CANCEL)
+          D_MAGIC_ASSERT( allocation, CoreSurfaceAllocation );
+
+          if (allocation->data && callback( allocation, ctx ) == DFENUM_CANCEL)
                break;
      }
 
